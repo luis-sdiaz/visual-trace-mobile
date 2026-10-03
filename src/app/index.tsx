@@ -3,6 +3,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Colors } from "@/constants/colors";
 import { Spacing } from "@/constants/spacing";
+import { Typography } from "@/constants/typography";
 
 export default function HomeScreen() {
   return (
@@ -41,16 +42,13 @@ const styles = StyleSheet.create({
   },
 
   title: {
-    fontSize: 36,
-    fontWeight: "800",
-    lineHeight: 42,
-    marginBottom: Spacing.lg,
+    ...Typography.display,
     color: Colors.textPrimary,
+    marginBottom: Spacing.lg,
   },
 
   description: {
-    fontSize: 17,
-    lineHeight: 26,
+    ...Typography.bodyLarge,
     color: Colors.textSecondary,
   },
 });
