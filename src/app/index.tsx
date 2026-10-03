@@ -1,6 +1,8 @@
-import { Colors } from "@/constants/colors";
 import { StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+
+import { Colors } from "@/constants/colors";
+import { Spacing } from "@/constants/spacing";
 
 export default function HomeScreen() {
   return (
@@ -28,21 +30,21 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     justifyContent: "center",
-    paddingHorizontal: 24,
+    paddingHorizontal: Spacing.xl,
   },
 
   brand: {
     color: Colors.primary,
     fontSize: 18,
     fontWeight: "700",
-    marginBottom: 16,
+    marginBottom: Spacing.lg,
   },
 
   title: {
     fontSize: 36,
     fontWeight: "800",
     lineHeight: 42,
-    marginBottom: 16,
+    marginBottom: Spacing.lg,
     color: Colors.textPrimary,
   },
 
