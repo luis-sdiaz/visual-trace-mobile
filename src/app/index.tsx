@@ -1,3 +1,4 @@
+import { Colors } from "@/constants/colors";
 import { StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -21,7 +22,7 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F7F8FA",
+    backgroundColor: Colors.background,
   },
 
   content: {
@@ -31,6 +32,7 @@ const styles = StyleSheet.create({
   },
 
   brand: {
+    color: Colors.primary,
     fontSize: 18,
     fontWeight: "700",
     marginBottom: 16,
@@ -41,10 +43,12 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     lineHeight: 42,
     marginBottom: 16,
+    color: Colors.textPrimary,
   },
 
   description: {
     fontSize: 17,
     lineHeight: 26,
+    color: Colors.textSecondary,
   },
 });
