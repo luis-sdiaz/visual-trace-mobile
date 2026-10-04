@@ -6,6 +6,7 @@ import { ComparisonPreview } from "@/components/ui/ComparisonPreview";
 import { Colors } from "@/constants/colors";
 import { Spacing } from "@/constants/spacing";
 import { Typography } from "@/constants/typography";
+import { router } from "expo-router";
 
 export default function HomeScreen() {
   return (
@@ -28,10 +29,7 @@ export default function HomeScreen() {
         <ComparisonPreview />
 
         <View style={styles.buttonContainer}>
-          <Button
-            label="Comenzar"
-            onPress={() => console.log("Start button pressed")}
-          />
+          <Button label="Comenzar" onPress={() => router.push("/home")} />
         </View>
       </ScrollView>
     </SafeAreaView>
