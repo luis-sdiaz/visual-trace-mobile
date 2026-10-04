@@ -1,5 +1,4 @@
 import { router } from "expo-router";
-import { useState } from "react";
 import {
   Pressable,
   ScrollView,
@@ -15,9 +14,10 @@ import { Colors } from "@/constants/colors";
 import { Radius } from "@/constants/radius";
 import { Spacing } from "@/constants/spacing";
 import { Typography } from "@/constants/typography";
+import { useComparison } from "@/context/ComparisonContext";
 
 export default function NewComparisonScreen() {
-  const [name, setName] = useState("");
+  const { name, setName } = useComparison();
 
   const isNameValid = name.trim().length > 0;
 
@@ -31,7 +31,7 @@ export default function NewComparisonScreen() {
         <View>
           <Pressable
             accessibilityRole="button"
-            onPress={() => router.back()}
+            onPress={() => router.replace("/home")}
             style={styles.backButton}
           >
             <Text style={styles.backIcon}>←</Text>

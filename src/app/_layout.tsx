@@ -1,11 +1,15 @@
 import { Stack } from "expo-router";
 
+import { ComparisonProvider } from "@/context/ComparisonContext";
+
 export default function RootLayout() {
   return (
-    <Stack
-      screenOptions={{
-        headerShown: false,
-      }}
-    />
+    <ComparisonProvider>
+      <Stack
+        screenOptions={{
+          headerShown: false,
+        }}
+      />
+    </ComparisonProvider>
   );
 }

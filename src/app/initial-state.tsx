@@ -1,6 +1,5 @@
 import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
-import { useState } from "react";
 import {
   Alert,
   Image,
@@ -17,9 +16,10 @@ import { Colors } from "@/constants/colors";
 import { Radius } from "@/constants/radius";
 import { Spacing } from "@/constants/spacing";
 import { Typography } from "@/constants/typography";
+import { useComparison } from "@/context/ComparisonContext";
 
 export default function InitialStateScreen() {
-  const [imageUri, setImageUri] = useState<string | null>(null);
+  const { initialImageUri, setInitialImageUri } = useComparison();
 
   async function handleTakePhoto() {
     const permission = await ImagePicker.requestCameraPermissionsAsync();
@@ -39,7 +39,7 @@ export default function InitialStateScreen() {
     });
 
     if (!result.canceled) {
-      setImageUri(result.assets[0].uri);
+      setInitialImageUri(result.assets[0].uri);
     }
   }
 
@@ -61,7 +61,7 @@ export default function InitialStateScreen() {
     });
 
     if (!result.canceled) {
-      setImageUri(result.assets[0].uri);
+      setInitialImageUri(result.assets[0].uri);
     }
   }
 
@@ -74,7 +74,7 @@ export default function InitialStateScreen() {
         <View>
           <Pressable
             accessibilityRole="button"
-            onPress={() => router.back()}
+            onPress={() => router.replace("/new-comparison")}
             style={styles.backButton}
           >
             <Text style={styles.backIcon}>←</Text>
@@ -97,10 +97,10 @@ export default function InitialStateScreen() {
           </Text>
 
           <View style={styles.photoCard}>
-            {imageUri ? (
+            {initialImageUri ? (
               <Image
                 accessibilityLabel="Fotografía del estado inicial"
-                source={{ uri: imageUri }}
+                source={{ uri: initialImageUri }}
                 style={styles.image}
               />
             ) : (
@@ -143,7 +143,7 @@ export default function InitialStateScreen() {
         <View style={styles.footer}>
           <Button
             label="Continuar"
-            disabled={!imageUri}
+            disabled={!initialImageUri}
             onPress={() => router.push("/final-state")}
           />
         </View>

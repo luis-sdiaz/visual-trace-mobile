@@ -1,6 +1,5 @@
 import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
-import { useState } from "react";
 import {
   Alert,
   Image,
@@ -17,9 +16,10 @@ import { Colors } from "@/constants/colors";
 import { Radius } from "@/constants/radius";
 import { Spacing } from "@/constants/spacing";
 import { Typography } from "@/constants/typography";
+import { useComparison } from "@/context/ComparisonContext";
 
 export default function FinalStateScreen() {
-  const [imageUri, setImageUri] = useState<string | null>(null);
+  const { finalImageUri, setFinalImageUri } = useComparison();
 
   async function handleTakePhoto() {
     const permission = await ImagePicker.requestCameraPermissionsAsync();
@@ -39,7 +39,7 @@ export default function FinalStateScreen() {
     });
 
     if (!result.canceled) {
-      setImageUri(result.assets[0].uri);
+      setFinalImageUri(result.assets[0].uri);
     }
   }
 
@@ -61,7 +61,7 @@ export default function FinalStateScreen() {
     });
 
     if (!result.canceled) {
-      setImageUri(result.assets[0].uri);
+      setFinalImageUri(result.assets[0].uri);
     }
   }
 
@@ -74,7 +74,7 @@ export default function FinalStateScreen() {
         <View>
           <Pressable
             accessibilityRole="button"
-            onPress={() => router.back()}
+            onPress={() => router.replace("/initial-state")}
             style={styles.backButton}
           >
             <Text style={styles.backIcon}>←</Text>
@@ -97,10 +97,10 @@ export default function FinalStateScreen() {
           </Text>
 
           <View style={styles.photoCard}>
-            {imageUri ? (
+            {finalImageUri ? (
               <Image
                 accessibilityLabel="Fotografía del estado final"
-                source={{ uri: imageUri }}
+                source={{ uri: finalImageUri }}
                 style={styles.image}
               />
             ) : (
@@ -143,7 +143,7 @@ export default function FinalStateScreen() {
         <View style={styles.footer}>
           <Button
             label="Comparar estados"
-            disabled={!imageUri}
+            disabled={!finalImageUri}
             onPress={() => console.log("Compare states pressed")}
           />
         </View>
