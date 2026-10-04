@@ -1,6 +1,7 @@
-import { StyleSheet, Text, View } from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { Button } from "@/components/ui/Button";
 import { Colors } from "@/constants/colors";
 import { Spacing } from "@/constants/spacing";
 import { Typography } from "@/constants/typography";
@@ -8,16 +9,29 @@ import { Typography } from "@/constants/typography";
 export default function HomeScreen() {
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
-        <Text style={styles.brand}>VisualTrace</Text>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.introContent}>
+          <Text style={styles.brand}>VisualTrace</Text>
 
-        <Text style={styles.title}>Detecta lo que cambió</Text>
+          <Text style={styles.title}>Detecta lo que cambió</Text>
 
-        <Text style={styles.description}>
-          Compara el estado inicial y final de tus espacios y objetos con ayuda
-          de inteligencia artificial.
-        </Text>
-      </View>
+          <Text style={styles.description}>
+            Compara el estado inicial y final de tus espacios y objetos con
+            ayuda de inteligencia artificial.
+          </Text>
+        </View>
+
+        <View style={styles.buttonContainer}>
+          <Button
+            label="Comenzar"
+            onPress={() => console.log("Start button pressed")}
+          />
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -28,10 +42,20 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
   },
 
-  content: {
+  scrollView: {
     flex: 1,
-    justifyContent: "center",
+  },
+
+  content: {
+    flexGrow: 1,
+    justifyContent: "space-between",
     paddingHorizontal: Spacing.xl,
+    paddingTop: Spacing.xxxl,
+    paddingBottom: Spacing.xl,
+  },
+
+  introContent: {
+    flexShrink: 1,
   },
 
   brand: {
@@ -50,5 +74,9 @@ const styles = StyleSheet.create({
   description: {
     ...Typography.bodyLarge,
     color: Colors.textSecondary,
+  },
+
+  buttonContainer: {
+    marginTop: Spacing.xl,
   },
 });
