@@ -18,7 +18,7 @@ import { Radius } from "@/constants/radius";
 import { Spacing } from "@/constants/spacing";
 import { Typography } from "@/constants/typography";
 
-export default function InitialStateScreen() {
+export default function FinalStateScreen() {
   const [imageUri, setImageUri] = useState<string | null>(null);
 
   async function handleTakePhoto() {
@@ -27,7 +27,7 @@ export default function InitialStateScreen() {
     if (!permission.granted) {
       Alert.alert(
         "Permiso necesario",
-        "VisualTrace necesita acceso a la cámara para registrar el estado inicial.",
+        "VisualTrace necesita acceso a la cámara para registrar el estado final.",
       );
 
       return;
@@ -82,24 +82,24 @@ export default function InitialStateScreen() {
           </Pressable>
 
           <View style={styles.progressContainer}>
-            <Text style={styles.progressText}>PASO 2 DE 3</Text>
+            <Text style={styles.progressText}>PASO 3 DE 3</Text>
 
             <View style={styles.progressTrack}>
               <View style={styles.progressValue} />
             </View>
           </View>
 
-          <Text style={styles.title}>Estado inicial</Text>
+          <Text style={styles.title}>Estado final</Text>
 
           <Text style={styles.description}>
-            Registra una fotografía clara de cómo se encuentra actualmente el
-            espacio u objeto.
+            Registra cómo se encuentra ahora el espacio u objeto. Esta
+            fotografía se comparará con el estado inicial.
           </Text>
 
           <View style={styles.photoCard}>
             {imageUri ? (
               <Image
-                accessibilityLabel="Fotografía del estado inicial"
+                accessibilityLabel="Fotografía del estado final"
                 source={{ uri: imageUri }}
                 style={styles.image}
               />
@@ -110,12 +110,12 @@ export default function InitialStateScreen() {
                 </View>
 
                 <Text style={styles.placeholderTitle}>
-                  Agrega una fotografía
+                  Agrega la fotografía final
                 </Text>
 
                 <Text style={styles.placeholderDescription}>
-                  Procura utilizar buena iluminación y mantener visible toda el
-                  área que deseas comparar.
+                  Intenta conservar un ángulo y una iluminación similares a los
+                  utilizados en la fotografía inicial.
                 </Text>
               </View>
             )}
@@ -142,9 +142,9 @@ export default function InitialStateScreen() {
 
         <View style={styles.footer}>
           <Button
-            label="Continuar"
+            label="Comparar estados"
             disabled={!imageUri}
-            onPress={() => router.push("/final-state")}
+            onPress={() => console.log("Compare states pressed")}
           />
         </View>
       </ScrollView>
@@ -202,7 +202,7 @@ const styles = StyleSheet.create({
   },
 
   progressValue: {
-    width: "66%",
+    width: "100%",
     height: "100%",
     backgroundColor: Colors.primary,
     borderRadius: Radius.full,
