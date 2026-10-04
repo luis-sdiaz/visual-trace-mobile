@@ -144,7 +144,7 @@ export default function FinalStateScreen() {
           <Button
             label="Comparar estados"
             disabled={!finalImageUri}
-            onPress={() => console.log("Compare states pressed")}
+            onPress={() => router.push("/comparison-result")}
           />
         </View>
       </ScrollView>
