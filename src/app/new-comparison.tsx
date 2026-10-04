@@ -75,7 +75,7 @@ export default function NewComparisonScreen() {
           <Button
             label="Continuar"
             disabled={!isNameValid}
-            onPress={() => console.log("Continue comparison pressed")}
+            onPress={() => router.push("/initial-state")}
           />
         </View>
       </ScrollView>
