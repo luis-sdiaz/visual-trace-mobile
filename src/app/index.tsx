@@ -2,6 +2,7 @@ import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Button } from "@/components/ui/Button";
+import { ComparisonPreview } from "@/components/ui/ComparisonPreview";
 import { Colors } from "@/constants/colors";
 import { Spacing } from "@/constants/spacing";
 import { Typography } from "@/constants/typography";
@@ -24,6 +25,7 @@ export default function HomeScreen() {
             ayuda de inteligencia artificial.
           </Text>
         </View>
+        <ComparisonPreview />
 
         <View style={styles.buttonContainer}>
           <Button
