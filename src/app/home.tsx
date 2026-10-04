@@ -1,3 +1,4 @@
+import { router } from "expo-router";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -42,7 +43,7 @@ export default function HomeScreen() {
 
           <Button
             label="Crear comparación"
-            onPress={() => console.log("Create comparison pressed")}
+            onPress={() => router.push("/new-comparison")}
           />
         </View>
 
