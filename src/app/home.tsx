@@ -1,5 +1,13 @@
 import { router } from "expo-router";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Button } from "@/components/ui/Button";
@@ -7,17 +15,70 @@ import { Colors } from "@/constants/colors";
 import { Radius } from "@/constants/radius";
 import { Spacing } from "@/constants/spacing";
 import { Typography } from "@/constants/typography";
+import { useAuth } from "@/context/AuthContext";
 
 export default function HomeScreen() {
+  const { user, isLoading, signOut } = useAuth();
+
+  const [isSigningOut, setIsSigningOut] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isLoading && !user) {
+      router.replace("/");
+    }
+  }, [isLoading, user]);
+
+  async function handleSignOut() {
+    if (isSigningOut) {
+      return;
+    }
+
+    setIsSigningOut(true);
+    setErrorMessage(null);
+
+    try {
+      await signOut();
+      router.replace("/");
+    } catch {
+      setErrorMessage("No pudimos cerrar tu sesión. Inténtalo nuevamente.");
+      setIsSigningOut(false);
+    }
+  }
+
+  if (isLoading || !user) {
+    return (
+      <SafeAreaView style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.header}>
+        <View style={styles.topBar}>
           <Text style={styles.brand}>VisualTrace</Text>
 
+          <Pressable
+            accessibilityRole="button"
+            disabled={isSigningOut}
+            onPress={handleSignOut}
+            style={({ pressed }) => [
+              styles.signOutButton,
+              pressed && !isSigningOut && styles.signOutButtonPressed,
+            ]}
+          >
+            <Text style={styles.signOutText}>
+              {isSigningOut ? "Cerrando..." : "Cerrar sesión"}
+            </Text>
+          </Pressable>
+        </View>
+
+        <View style={styles.header}>
           <Text style={styles.title}>Tus comparaciones</Text>
 
           <Text style={styles.description}>
@@ -25,6 +86,12 @@ export default function HomeScreen() {
             identificar cambios visuales con ayuda de inteligencia artificial.
           </Text>
         </View>
+
+        {errorMessage ? (
+          <View style={styles.errorCard}>
+            <Text style={styles.errorText}>{errorMessage}</Text>
+          </View>
+        ) : null}
 
         <View style={styles.actionCard}>
           <View style={styles.actionHeader}>
@@ -74,6 +141,13 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
   },
 
+  loadingContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Colors.background,
+  },
+
   content: {
     flexGrow: 1,
     paddingHorizontal: Spacing.xl,
@@ -81,15 +155,36 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.xxxl,
   },
 
-  header: {
-    marginBottom: Spacing.xl,
+  topBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: Spacing.md,
   },
 
   brand: {
     color: Colors.primary,
     fontSize: 18,
     fontWeight: "700",
-    marginBottom: Spacing.md,
+  },
+
+  signOutButton: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radius.md,
+  },
+
+  signOutButtonPressed: {
+    backgroundColor: Colors.primarySoft,
+  },
+
+  signOutText: {
+    ...Typography.label,
+    color: Colors.primary,
+  },
+
+  header: {
+    marginBottom: Spacing.xl,
   },
 
   title: {
@@ -101,6 +196,18 @@ const styles = StyleSheet.create({
   description: {
     ...Typography.body,
     color: Colors.textSecondary,
+  },
+
+  errorCard: {
+    padding: Spacing.md,
+    backgroundColor: Colors.dangerSoft,
+    borderRadius: Radius.md,
+    marginBottom: Spacing.lg,
+  },
+
+  errorText: {
+    ...Typography.label,
+    color: Colors.danger,
   },
 
   actionCard: {
