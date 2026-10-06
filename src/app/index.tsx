@@ -104,6 +104,7 @@ const styles = StyleSheet.create({
 
   introContent: {
     flexShrink: 1,
+    width: "100%",
   },
 
   brand: {
@@ -116,12 +117,14 @@ const styles = StyleSheet.create({
   title: {
     ...Typography.display,
     color: Colors.textPrimary,
+    textAlign: "center",
     marginBottom: Spacing.lg,
   },
 
   description: {
     ...Typography.bodyLarge,
     color: Colors.textSecondary,
+    textAlign: "left",
   },
 
   actions: {

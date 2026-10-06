@@ -8,35 +8,72 @@ import { Typography } from "@/constants/typography";
 export function ComparisonPreview() {
   return (
     <View style={styles.container}>
-      <View style={styles.card}>
-        <View style={styles.preview}>
-          <View style={styles.panel}>
-            <View style={styles.scene}>
-              <View style={styles.object} />
-            </View>
-
-            <Text style={styles.label}>Antes</Text>
-          </View>
-
-          <View style={styles.separator}>
-            <Text style={styles.arrow}>→</Text>
-          </View>
-
-          <View style={styles.panel}>
-            <View style={styles.scene}>
-              <View style={styles.object} />
-              <View style={styles.changeMarker} />
-            </View>
-
-            <Text style={styles.label}>Después</Text>
-          </View>
+      <View style={styles.header}>
+        <View style={styles.headerText}>
+          <Text style={styles.eyebrow}>COMPARACIÓN VISUAL</Text>
+          <Text style={styles.title}>Antes y después</Text>
         </View>
 
-        <View style={styles.status}>
-          <View style={styles.statusDot} />
+        <View style={styles.aiBadge}>
+          <Text style={styles.aiBadgeText}>IA</Text>
+        </View>
+      </View>
 
-          <Text style={styles.statusText}>
-            Comparación visual asistida por IA
+      <Text style={styles.description}>
+        Registra dos momentos y revisa fácilmente qué cambió.
+      </Text>
+
+      <View style={styles.comparisonRow}>
+        <View style={[styles.stateCard, styles.initialCard]}>
+          <View style={[styles.stateBadge, styles.initialBadge]}>
+            <Text style={styles.initialBadgeText}>Inicial</Text>
+          </View>
+
+          <View style={styles.previewArea}>
+            <View style={styles.initialObject} />
+
+            <View style={styles.initialMarker} />
+          </View>
+
+          <Text style={styles.stateTitle}>Antes</Text>
+
+          <Text style={styles.stateDescription}>Estado registrado</Text>
+        </View>
+
+        <View style={styles.connector}>
+          <Text style={styles.connectorArrow}>→</Text>
+        </View>
+
+        <View style={[styles.stateCard, styles.finalCard]}>
+          <View style={[styles.stateBadge, styles.finalBadge]}>
+            <Text style={styles.finalBadgeText}>Final</Text>
+          </View>
+
+          <View style={styles.previewArea}>
+            <View style={styles.finalObject} />
+
+            <View style={styles.changeIndicator}>
+              <View style={styles.changeDot} />
+            </View>
+          </View>
+
+          <Text style={styles.stateTitle}>Después</Text>
+
+          <Text style={styles.stateDescription}>Estado comparado</Text>
+        </View>
+      </View>
+
+      <View style={styles.footer}>
+        <View style={styles.footerIcon}>
+          <Text style={styles.footerIconText}>✓</Text>
+        </View>
+
+        <View style={styles.footerContent}>
+          <Text style={styles.footerTitle}>Comparación asistida por IA</Text>
+
+          <Text style={styles.footerDescription}>
+            VisualTrace identifica posibles diferencias para que puedas
+            revisarlas.
           </Text>
         </View>
       </View>
@@ -46,94 +83,231 @@ export function ComparisonPreview() {
 
 const styles = StyleSheet.create({
   container: {
-    width: "100%",
-    alignItems: "center",
-    paddingVertical: Spacing.xl,
-  },
-
-  card: {
-    width: "100%",
-    maxWidth: 420,
     padding: Spacing.lg,
     backgroundColor: Colors.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: Colors.borderPrimary,
     borderRadius: Radius.xl,
   },
 
-  preview: {
+  header: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    marginBottom: Spacing.sm,
+  },
+
+  headerText: {
+    flex: 1,
+    marginRight: Spacing.md,
+  },
+
+  eyebrow: {
+    color: Colors.primary,
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: "700",
+    letterSpacing: 0.6,
+    marginBottom: Spacing.xs,
+  },
+
+  title: {
+    ...Typography.title,
+    color: Colors.textPrimary,
+  },
+
+  aiBadge: {
+    width: 42,
+    height: 42,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Colors.primary,
+    borderRadius: Radius.md,
+  },
+
+  aiBadgeText: {
+    ...Typography.label,
+    color: Colors.textInverse,
+    fontWeight: "800",
+  },
+
+  description: {
+    ...Typography.body,
+    color: Colors.textSecondary,
+    marginBottom: Spacing.lg,
+  },
+
+  comparisonRow: {
     flexDirection: "row",
     alignItems: "center",
   },
 
-  panel: {
+  stateCard: {
     flex: 1,
-  },
-
-  scene: {
-    aspectRatio: 1,
-    justifyContent: "flex-end",
     padding: Spacing.md,
-    backgroundColor: Colors.surfaceSecondary,
     borderRadius: Radius.lg,
   },
 
-  object: {
-    width: "72%",
-    height: "48%",
-    alignSelf: "center",
-    backgroundColor: Colors.borderStrong,
-    borderRadius: Radius.md,
+  initialCard: {
+    backgroundColor: Colors.initialSoft,
   },
 
-  changeMarker: {
-    position: "absolute",
-    top: Spacing.lg,
-    right: Spacing.lg,
-    width: 18,
-    height: 18,
-    backgroundColor: Colors.warning,
-    borderWidth: 4,
-    borderColor: Colors.warningSoft,
+  finalCard: {
+    backgroundColor: Colors.finalSoft,
+  },
+
+  stateBadge: {
+    alignSelf: "flex-start",
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
     borderRadius: Radius.full,
+    marginBottom: Spacing.sm,
   },
 
-  separator: {
-    width: 40,
-    alignItems: "center",
-    justifyContent: "center",
+  initialBadge: {
+    backgroundColor: Colors.primaryMedium,
   },
 
-  arrow: {
-    color: Colors.primary,
-    fontSize: 22,
+  finalBadge: {
+    backgroundColor: "#DCFCE7",
+  },
+
+  initialBadgeText: {
+    color: Colors.initial,
+    fontSize: 12,
+    lineHeight: 16,
     fontWeight: "700",
   },
 
-  label: {
+  finalBadgeText: {
+    color: Colors.final,
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: "700",
+  },
+
+  previewArea: {
+    height: 94,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Colors.white,
+    borderRadius: Radius.md,
+    marginBottom: Spacing.md,
+    overflow: "hidden",
+  },
+
+  initialObject: {
+    width: "68%",
+    height: 42,
+    backgroundColor: Colors.primaryMedium,
+    borderRadius: Radius.md,
+  },
+
+  initialMarker: {
+    position: "absolute",
+    top: 14,
+    left: 14,
+    width: 10,
+    height: 10,
+    backgroundColor: Colors.initial,
+    borderRadius: Radius.full,
+  },
+
+  finalObject: {
+    width: "68%",
+    height: 42,
+    backgroundColor: "#BBF7D0",
+    borderRadius: Radius.md,
+  },
+
+  changeIndicator: {
+    position: "absolute",
+    top: 12,
+    right: 12,
+    width: 24,
+    height: 24,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Colors.accentSoft,
+    borderRadius: Radius.full,
+  },
+
+  changeDot: {
+    width: 8,
+    height: 8,
+    backgroundColor: Colors.accent,
+    borderRadius: Radius.full,
+  },
+
+  connector: {
+    width: 34,
+    height: 34,
+    alignItems: "center",
+    justifyContent: "center",
+    marginHorizontal: Spacing.xs,
+    backgroundColor: Colors.primary,
+    borderRadius: Radius.full,
+  },
+
+  connectorArrow: {
+    color: Colors.textInverse,
+    fontSize: 20,
+    lineHeight: 24,
+    fontWeight: "700",
+  },
+
+  stateTitle: {
     ...Typography.label,
-    marginTop: Spacing.sm,
     color: Colors.textPrimary,
     textAlign: "center",
   },
 
-  status: {
+  stateDescription: {
+    color: Colors.textSecondary,
+    fontSize: 11,
+    lineHeight: 16,
+    textAlign: "center",
+    marginTop: 2,
+  },
+
+  footer: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
     marginTop: Spacing.lg,
+    paddingTop: Spacing.lg,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
   },
 
-  statusDot: {
-    width: 8,
-    height: 8,
-    marginRight: Spacing.sm,
-    backgroundColor: Colors.success,
+  footerIcon: {
+    width: 38,
+    height: 38,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Colors.successSoft,
     borderRadius: Radius.full,
+    marginRight: Spacing.md,
   },
 
-  statusText: {
+  footerIconText: {
+    color: Colors.success,
+    fontSize: 18,
+    fontWeight: "800",
+  },
+
+  footerContent: {
+    flex: 1,
+  },
+
+  footerTitle: {
     ...Typography.label,
+    color: Colors.textPrimary,
+    marginBottom: 2,
+  },
+
+  footerDescription: {
     color: Colors.textSecondary,
+    fontSize: 12,
+    lineHeight: 17,
   },
 });
