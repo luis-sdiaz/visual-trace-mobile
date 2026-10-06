@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import {
   Pressable,
@@ -21,6 +22,14 @@ export default function NewComparisonScreen() {
 
   const isNameValid = name.trim().length > 0;
 
+  function handleContinue() {
+    if (!isNameValid) {
+      return;
+    }
+
+    router.push("/initial-state");
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView
@@ -28,45 +37,71 @@ export default function NewComparisonScreen() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <View>
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => router.replace("/home")}
-            style={styles.backButton}
-          >
-            <Text style={styles.backIcon}>←</Text>
-            <Text style={styles.backText}>Volver</Text>
-          </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => router.replace("/home")}
+          style={({ pressed }) => [
+            styles.backButton,
+            pressed && styles.backButtonPressed,
+          ]}
+        >
+          <Ionicons name="arrow-back" size={20} color={Colors.textPrimary} />
 
-          <View style={styles.progressContainer}>
+          <Text style={styles.backText}>Volver</Text>
+        </Pressable>
+
+        <View style={styles.progressSection}>
+          <View style={styles.progressHeader}>
             <Text style={styles.progressText}>PASO 1 DE 3</Text>
-
-            <View style={styles.progressTrack}>
-              <View style={styles.progressValue} />
-            </View>
+            <Text style={styles.progressLabel}>Información básica</Text>
           </View>
 
+          <View style={styles.progressTrack}>
+            <View style={styles.progressValue} />
+          </View>
+        </View>
+
+        <View style={styles.header}>
           <Text style={styles.title}>Nueva comparación</Text>
 
           <Text style={styles.description}>
-            Identifica lo que vas a documentar para mantener organizados sus
-            estados inicial y final.
+            Asigna un nombre para identificar fácilmente este registro.
           </Text>
+        </View>
 
-          <View style={styles.form}>
-            <Text style={styles.label}>Nombre</Text>
+        <View style={styles.formCard}>
+          <Text style={styles.label}>Nombre de la comparación</Text>
+
+          <View style={styles.inputContainer}>
+            <Ionicons
+              name="document-text-outline"
+              size={20}
+              color={Colors.textMuted}
+              style={styles.inputIcon}
+            />
 
             <TextInput
               value={name}
               onChangeText={setName}
-              placeholder="Ej. Habitación principal"
+              placeholder="Ej. Portátil"
               placeholderTextColor={Colors.textMuted}
+              autoCapitalize="sentences"
+              autoCorrect
+              maxLength={50}
+              returnKeyType="done"
               style={styles.input}
+            />
+          </View>
+
+          <View style={styles.helperRow}>
+            <Ionicons
+              name="information-circle-outline"
+              size={16}
+              color={Colors.textMuted}
             />
 
             <Text style={styles.helperText}>
-              Usa un nombre corto que te permita reconocer esta comparación
-              fácilmente.
+              Usa un nombre breve y claro para reconocerla fácilmente.
             </Text>
           </View>
         </View>
@@ -75,8 +110,66 @@ export default function NewComparisonScreen() {
           <Button
             label="Continuar"
             disabled={!isNameValid}
-            onPress={() => router.push("/initial-state")}
+            onPress={handleContinue}
           />
+        </View>
+
+        <View style={styles.guideCard}>
+          <View style={styles.guideTop}>
+            <Text style={styles.guideEyebrow}>ANTES DE EMPEZAR</Text>
+
+            <Ionicons
+              name="sparkles-outline"
+              size={18}
+              color={Colors.primary}
+            />
+          </View>
+
+          <Text style={styles.guideTitle}>
+            Mejora la calidad de la comparación
+          </Text>
+
+          <Text style={styles.guideDescription}>
+            Dos detalles simples ayudan a obtener resultados visuales más
+            consistentes.
+          </Text>
+
+          <View style={styles.guideContent}>
+            <View style={styles.guideItem}>
+              <View style={styles.guideNumber}>
+                <Text style={styles.guideNumberText}>01</Text>
+              </View>
+
+              <View style={styles.guideItemContent}>
+                <Text style={styles.guideItemTitle}>
+                  Mantén el mismo encuadre
+                </Text>
+
+                <Text style={styles.guideItemDescription}>
+                  Conserva una distancia y un ángulo similares en ambas
+                  fotografías.
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.divider} />
+
+            <View style={styles.guideItem}>
+              <View style={styles.guideNumber}>
+                <Text style={styles.guideNumberText}>02</Text>
+              </View>
+
+              <View style={styles.guideItemContent}>
+                <Text style={styles.guideItemTitle}>
+                  Busca una iluminación estable
+                </Text>
+
+                <Text style={styles.guideItemDescription}>
+                  Evita cambios bruscos de luz entre el estado inicial y final.
+                </Text>
+              </View>
+            </View>
+          </View>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -91,52 +184,74 @@ const styles = StyleSheet.create({
 
   content: {
     flexGrow: 1,
-    justifyContent: "space-between",
     paddingHorizontal: Spacing.xl,
     paddingTop: Spacing.lg,
-    paddingBottom: Spacing.xl,
+    paddingBottom: Spacing.xxl,
   },
 
   backButton: {
     flexDirection: "row",
     alignItems: "center",
     alignSelf: "flex-start",
-    marginBottom: Spacing.xxl,
+    minHeight: 40,
+    paddingHorizontal: Spacing.sm,
+    marginLeft: -Spacing.sm,
+    marginBottom: Spacing.xl,
+    borderRadius: Radius.md,
   },
 
-  backIcon: {
-    color: Colors.textPrimary,
-    fontSize: 22,
-    marginRight: Spacing.sm,
+  backButtonPressed: {
+    backgroundColor: Colors.surfaceSecondary,
   },
 
   backText: {
     ...Typography.label,
     color: Colors.textPrimary,
+    marginLeft: Spacing.sm,
   },
 
-  progressContainer: {
+  progressSection: {
     marginBottom: Spacing.xl,
   },
 
-  progressText: {
-    ...Typography.label,
-    color: Colors.primary,
+  progressHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     marginBottom: Spacing.sm,
   },
 
+  progressText: {
+    color: Colors.primary,
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: "800",
+    letterSpacing: 0.5,
+  },
+
+  progressLabel: {
+    color: Colors.textSecondary,
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: "600",
+  },
+
   progressTrack: {
-    height: 6,
+    height: 4,
     overflow: "hidden",
     backgroundColor: Colors.border,
     borderRadius: Radius.full,
   },
 
   progressValue: {
-    width: "33%",
+    width: "33.33%",
     height: "100%",
     backgroundColor: Colors.primary,
     borderRadius: Radius.full,
+  },
+
+  header: {
+    marginBottom: Spacing.xl,
   },
 
   title: {
@@ -148,11 +263,14 @@ const styles = StyleSheet.create({
   description: {
     ...Typography.body,
     color: Colors.textSecondary,
-    marginBottom: Spacing.xxl,
   },
 
-  form: {
-    width: "100%",
+  formCard: {
+    padding: Spacing.lg,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: Radius.xl,
   },
 
   label: {
@@ -161,24 +279,132 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
 
-  input: {
-    minHeight: 52,
+  inputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    minHeight: 56,
     paddingHorizontal: Spacing.lg,
-    backgroundColor: Colors.surface,
+    backgroundColor: Colors.background,
     borderWidth: 1,
     borderColor: Colors.borderStrong,
     borderRadius: Radius.lg,
+  },
+
+  inputIcon: {
+    marginRight: Spacing.md,
+  },
+
+  input: {
+    flex: 1,
+    minHeight: 54,
     color: Colors.textPrimary,
     fontSize: 16,
   },
 
+  helperRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    marginTop: Spacing.md,
+  },
+
   helperText: {
-    ...Typography.label,
+    flex: 1,
     color: Colors.textSecondary,
-    marginTop: Spacing.sm,
+    fontSize: 12,
+    lineHeight: 18,
+    marginLeft: Spacing.xs,
   },
 
   footer: {
+    marginTop: Spacing.lg,
+  },
+
+  guideCard: {
     marginTop: Spacing.xxl,
+    padding: Spacing.lg,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: Radius.xl,
+  },
+
+  guideTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: Spacing.sm,
+  },
+
+  guideEyebrow: {
+    color: Colors.primary,
+    fontSize: 10,
+    lineHeight: 14,
+    fontWeight: "800",
+    letterSpacing: 0.8,
+  },
+
+  guideTitle: {
+    ...Typography.title,
+    color: Colors.textPrimary,
+    fontSize: 18,
+    lineHeight: 24,
+    marginBottom: Spacing.xs,
+  },
+
+  guideDescription: {
+    color: Colors.textSecondary,
+    fontSize: 13,
+    lineHeight: 19,
+    marginBottom: Spacing.xl,
+  },
+
+  guideContent: {
+    width: "100%",
+  },
+
+  guideItem: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+  },
+
+  guideNumber: {
+    width: 36,
+    height: 36,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Colors.primarySoft,
+    borderRadius: Radius.md,
+    marginRight: Spacing.md,
+  },
+
+  guideNumberText: {
+    color: Colors.primary,
+    fontSize: 11,
+    lineHeight: 14,
+    fontWeight: "800",
+  },
+
+  guideItemContent: {
+    flex: 1,
+    paddingTop: 1,
+  },
+
+  guideItemTitle: {
+    ...Typography.label,
+    color: Colors.textPrimary,
+    marginBottom: Spacing.xs,
+  },
+
+  guideItemDescription: {
+    color: Colors.textSecondary,
+    fontSize: 12,
+    lineHeight: 18,
+  },
+
+  divider: {
+    height: 1,
+    backgroundColor: Colors.border,
+    marginVertical: Spacing.lg,
+    marginLeft: 48,
   },
 });
