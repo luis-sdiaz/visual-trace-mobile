@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import {
@@ -23,6 +24,11 @@ export default function HomeScreen() {
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  const fullName = user?.user_metadata?.full_name;
+
+  const firstName =
+    typeof fullName === "string" ? fullName.trim().split(/\s+/)[0] : "";
+
   useEffect(() => {
     if (!isLoading && !user) {
       router.replace("/");
@@ -42,6 +48,7 @@ export default function HomeScreen() {
       router.replace("/");
     } catch {
       setErrorMessage("No pudimos cerrar tu sesión. Inténtalo nuevamente.");
+
       setIsSigningOut(false);
     }
   }
@@ -69,21 +76,30 @@ export default function HomeScreen() {
             onPress={handleSignOut}
             style={({ pressed }) => [
               styles.signOutButton,
-              pressed && !isSigningOut && styles.signOutButtonPressed,
+              pressed && styles.signOutButtonPressed,
             ]}
           >
+            <Ionicons
+              name="log-out-outline"
+              size={17}
+              color={Colors.textSecondary}
+            />
+
             <Text style={styles.signOutText}>
-              {isSigningOut ? "Cerrando..." : "Cerrar sesión"}
+              {isSigningOut ? "Saliendo..." : "Salir"}
             </Text>
           </Pressable>
         </View>
 
         <View style={styles.header}>
+          {firstName ? (
+            <Text style={styles.greeting}>Hola, {firstName}</Text>
+          ) : null}
+
           <Text style={styles.title}>Tus comparaciones</Text>
 
           <Text style={styles.description}>
-            Documenta el estado inicial y final de tus espacios u objetos para
-            identificar cambios visuales con ayuda de inteligencia artificial.
+            Documenta y revisa cambios visuales de forma clara y organizada.
           </Text>
         </View>
 
@@ -95,15 +111,19 @@ export default function HomeScreen() {
 
         <View style={styles.actionCard}>
           <View style={styles.actionHeader}>
-            <View style={styles.iconContainer}>
-              <Text style={styles.icon}>＋</Text>
+            <View style={styles.actionIcon}>
+              <Ionicons
+                name="images-outline"
+                size={24}
+                color={Colors.primary}
+              />
             </View>
 
-            <View style={styles.actionText}>
+            <View style={styles.actionHeaderText}>
               <Text style={styles.actionTitle}>Nueva comparación</Text>
 
               <Text style={styles.actionDescription}>
-                Registra un nuevo estado antes y después.
+                Registra un estado inicial y uno final para revisar qué cambió.
               </Text>
             </View>
           </View>
@@ -119,14 +139,18 @@ export default function HomeScreen() {
 
           <View style={styles.emptyCard}>
             <View style={styles.emptyIcon}>
-              <Text style={styles.emptyIconText}>◎</Text>
+              <Ionicons
+                name="albums-outline"
+                size={28}
+                color={Colors.primary}
+              />
             </View>
 
             <Text style={styles.emptyTitle}>Aún no tienes comparaciones</Text>
 
             <Text style={styles.emptyDescription}>
-              Cuando realices tu primera comparación aparecerá aquí para que
-              puedas consultarla nuevamente.
+              Tus registros aparecerán aquí después de completar tu primera
+              comparación.
             </Text>
           </View>
         </View>
@@ -151,7 +175,7 @@ const styles = StyleSheet.create({
   content: {
     flexGrow: 1,
     paddingHorizontal: Spacing.xl,
-    paddingTop: Spacing.xl,
+    paddingTop: Spacing.lg,
     paddingBottom: Spacing.xxxl,
   },
 
@@ -159,32 +183,45 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.xxxl,
   },
 
   brand: {
     color: Colors.primary,
-    fontSize: 18,
-    fontWeight: "700",
+    fontSize: 20,
+    lineHeight: 26,
+    fontWeight: "800",
   },
 
   signOutButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    minHeight: 40,
     paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: Radius.md,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: Radius.full,
   },
 
   signOutButtonPressed: {
-    backgroundColor: Colors.primarySoft,
+    backgroundColor: Colors.surfaceSecondary,
   },
 
   signOutText: {
     ...Typography.label,
-    color: Colors.primary,
+    color: Colors.textSecondary,
+    marginLeft: Spacing.xs,
   },
 
   header: {
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.xxl,
+  },
+
+  greeting: {
+    ...Typography.label,
+    color: Colors.primary,
+    marginBottom: Spacing.sm,
   },
 
   title: {
@@ -194,8 +231,9 @@ const styles = StyleSheet.create({
   },
 
   description: {
-    ...Typography.body,
+    ...Typography.bodyLarge,
     color: Colors.textSecondary,
+    maxWidth: 340,
   },
 
   errorCard: {
@@ -216,18 +254,28 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.border,
     borderRadius: Radius.xl,
-    marginBottom: Spacing.xxl,
+    marginBottom: Spacing.xxxl,
+
+    shadowColor: Colors.black,
+    shadowOffset: {
+      width: 0,
+      height: 6,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 18,
+
+    elevation: 2,
   },
 
   actionHeader: {
     flexDirection: "row",
-    alignItems: "center",
-    marginBottom: Spacing.lg,
+    alignItems: "flex-start",
+    marginBottom: Spacing.xl,
   },
 
-  iconContainer: {
-    width: 48,
-    height: 48,
+  actionIcon: {
+    width: 50,
+    height: 50,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: Colors.primarySoft,
@@ -235,14 +283,7 @@ const styles = StyleSheet.create({
     marginRight: Spacing.md,
   },
 
-  icon: {
-    color: Colors.primary,
-    fontSize: 28,
-    lineHeight: 32,
-    fontWeight: "500",
-  },
-
-  actionText: {
+  actionHeaderText: {
     flex: 1,
   },
 
@@ -270,7 +311,7 @@ const styles = StyleSheet.create({
   emptyCard: {
     alignItems: "center",
     paddingHorizontal: Spacing.xl,
-    paddingVertical: Spacing.xxl,
+    paddingVertical: Spacing.xxxl,
     backgroundColor: Colors.surface,
     borderWidth: 1,
     borderColor: Colors.border,
@@ -278,19 +319,13 @@ const styles = StyleSheet.create({
   },
 
   emptyIcon: {
-    width: 48,
-    height: 48,
+    width: 56,
+    height: 56,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: Colors.surfaceSecondary,
-    borderRadius: Radius.full,
-    marginBottom: Spacing.md,
-  },
-
-  emptyIconText: {
-    color: Colors.textMuted,
-    fontSize: 24,
-    fontWeight: "600",
+    backgroundColor: Colors.primarySoft,
+    borderRadius: Radius.lg,
+    marginBottom: Spacing.lg,
   },
 
   emptyTitle: {
@@ -304,5 +339,6 @@ const styles = StyleSheet.create({
     ...Typography.body,
     color: Colors.textSecondary,
     textAlign: "center",
+    maxWidth: 280,
   },
 });
