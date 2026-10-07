@@ -17,9 +17,11 @@ import { Radius } from "@/constants/radius";
 import { Spacing } from "@/constants/spacing";
 import { Typography } from "@/constants/typography";
 import { useAuth } from "@/context/AuthContext";
+import { useComparison } from "@/context/ComparisonContext";
 
 export default function HomeScreen() {
   const { user, isLoading, signOut } = useAuth();
+  const { resetComparison } = useComparison();
 
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -51,6 +53,11 @@ export default function HomeScreen() {
 
       setIsSigningOut(false);
     }
+  }
+
+  function handleCreateComparison() {
+    resetComparison();
+    router.push("/new-comparison");
   }
 
   if (isLoading || !user) {
@@ -128,10 +135,7 @@ export default function HomeScreen() {
             </View>
           </View>
 
-          <Button
-            label="Crear comparación"
-            onPress={() => router.push("/new-comparison")}
-          />
+          <Button label="Crear comparación" onPress={handleCreateComparison} />
         </View>
 
         <View style={styles.section}>

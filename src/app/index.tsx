@@ -53,7 +53,9 @@ export default function WelcomeScreen() {
           </Text>
         </View>
 
-        <ComparisonPreview />
+        <View style={styles.previewSection}>
+          <ComparisonPreview />
+        </View>
 
         <View style={styles.actions}>
           <Button
@@ -96,40 +98,46 @@ const styles = StyleSheet.create({
 
   content: {
     flexGrow: 1,
-    justifyContent: "space-between",
     paddingHorizontal: Spacing.xl,
-    paddingTop: Spacing.xxxl,
-    paddingBottom: Spacing.xl,
+    paddingTop: Spacing.xl,
+    paddingBottom: Spacing.lg,
   },
 
   introContent: {
-    flexShrink: 1,
     width: "100%",
+    marginBottom: Spacing.lg,
   },
 
   brand: {
     color: Colors.primary,
     fontSize: 18,
+    lineHeight: 24,
     fontWeight: "700",
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.sm,
   },
 
   title: {
-    ...Typography.display,
     color: Colors.textPrimary,
+    fontSize: 30,
+    lineHeight: 36,
+    fontWeight: "800",
     textAlign: "center",
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.md,
   },
 
   description: {
-    ...Typography.bodyLarge,
+    ...Typography.body,
     color: Colors.textSecondary,
     textAlign: "left",
   },
 
+  previewSection: {
+    width: "100%",
+  },
+
   actions: {
     gap: Spacing.md,
-    marginTop: Spacing.xl,
+    marginTop: Spacing.lg,
   },
 
   secondaryButton: {
