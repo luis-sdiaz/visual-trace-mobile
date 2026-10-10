@@ -13,9 +13,11 @@ import {
 } from "@/storage/comparisonStorage";
 
 type ComparisonContextValue = {
+  comparisonId: string | null;
   name: string;
   initialImageUri: string | null;
   finalImageUri: string | null;
+  setComparisonId: (id: string | null) => void;
   setName: (name: string) => void;
   setInitialImageUri: (uri: string | null) => void;
   setFinalImageUri: (uri: string | null) => void;
@@ -27,6 +29,7 @@ const ComparisonContext = createContext<ComparisonContextValue | undefined>(
 );
 
 export function ComparisonProvider({ children }: PropsWithChildren) {
+  const [comparisonId, setComparisonId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [initialImageUri, setInitialImageUri] = useState<string | null>(null);
   const [finalImageUri, setFinalImageUri] = useState<string | null>(null);
@@ -37,6 +40,7 @@ export function ComparisonProvider({ children }: PropsWithChildren) {
       const draft = await loadComparisonDraft();
 
       if (draft) {
+        setComparisonId(draft.comparisonId);
         setName(draft.name);
         setInitialImageUri(draft.initialImageUri);
         setFinalImageUri(draft.finalImageUri);
@@ -54,6 +58,7 @@ export function ComparisonProvider({ children }: PropsWithChildren) {
     }
 
     const hasDraft =
+      comparisonId !== null ||
       name.trim().length > 0 ||
       initialImageUri !== null ||
       finalImageUri !== null;
@@ -64,13 +69,15 @@ export function ComparisonProvider({ children }: PropsWithChildren) {
     }
 
     void saveComparisonDraft({
+      comparisonId,
       name,
       initialImageUri,
       finalImageUri,
     });
-  }, [name, initialImageUri, finalImageUri, isHydrated]);
+  }, [comparisonId, name, initialImageUri, finalImageUri, isHydrated]);
 
   function resetComparison() {
+    setComparisonId(null);
     setName("");
     setInitialImageUri(null);
     setFinalImageUri(null);
@@ -79,9 +86,11 @@ export function ComparisonProvider({ children }: PropsWithChildren) {
   return (
     <ComparisonContext.Provider
       value={{
+        comparisonId,
         name,
         initialImageUri,
         finalImageUri,
+        setComparisonId,
         setName,
         setInitialImageUri,
         setFinalImageUri,

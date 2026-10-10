@@ -3,6 +3,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 const COMPARISON_DRAFT_KEY = "@visualtrace/comparison-draft";
 
 export type ComparisonDraft = {
+  comparisonId: string | null;
   name: string;
   initialImageUri: string | null;
   finalImageUri: string | null;
@@ -24,10 +25,16 @@ export async function loadComparisonDraft(): Promise<ComparisonDraft | null> {
   }
 
   try {
-    return JSON.parse(storedDraft) as ComparisonDraft;
+    const draft = JSON.parse(storedDraft) as Partial<ComparisonDraft>;
+
+    return {
+      comparisonId: draft.comparisonId ?? null,
+      name: draft.name ?? "",
+      initialImageUri: draft.initialImageUri ?? null,
+      finalImageUri: draft.finalImageUri ?? null,
+    };
   } catch {
     await AsyncStorage.removeItem(COMPARISON_DRAFT_KEY);
-
     return null;
   }
 }
