@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
+import { useRef, useState } from "react";
 import {
   Pressable,
   ScrollView,
@@ -16,18 +17,53 @@ import { Radius } from "@/constants/radius";
 import { Spacing } from "@/constants/spacing";
 import { Typography } from "@/constants/typography";
 import { useComparison } from "@/context/ComparisonContext";
+import {
+  createComparisonDraft,
+  updateComparisonName,
+} from "@/services/comparisonService";
 
 export default function NewComparisonScreen() {
-  const { name, setName } = useComparison();
+  const { comparisonId, name, setComparisonId, setName } = useComparison();
+
+  const [isSaving, setIsSaving] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const savingRef = useRef(false);
 
   const isNameValid = name.trim().length > 0;
 
-  function handleContinue() {
-    if (!isNameValid) {
+  function handleNameChange(value: string) {
+    setName(value);
+    setErrorMessage(null);
+  }
+
+  async function handleContinue() {
+    if (!isNameValid || savingRef.current) {
       return;
     }
 
-    router.push("/initial-state");
+    savingRef.current = true;
+    setIsSaving(true);
+    setErrorMessage(null);
+
+    try {
+      if (comparisonId) {
+        await updateComparisonName(comparisonId, name);
+      } else {
+        const comparison = await createComparisonDraft(name);
+
+        setComparisonId(comparison.id);
+      }
+
+      router.push("/initial-state");
+    } catch {
+      setErrorMessage(
+        "No pudimos guardar la comparación. Revisa tu conexión e inténtalo nuevamente.",
+      );
+    } finally {
+      savingRef.current = false;
+      setIsSaving(false);
+    }
   }
 
   return (
@@ -39,10 +75,11 @@ export default function NewComparisonScreen() {
       >
         <Pressable
           accessibilityRole="button"
+          disabled={isSaving}
           onPress={() => router.replace("/home")}
           style={({ pressed }) => [
             styles.backButton,
-            pressed && styles.backButtonPressed,
+            pressed && !isSaving && styles.backButtonPressed,
           ]}
         >
           <Ionicons name="arrow-back" size={20} color={Colors.textPrimary} />
@@ -53,6 +90,7 @@ export default function NewComparisonScreen() {
         <View style={styles.progressSection}>
           <View style={styles.progressHeader}>
             <Text style={styles.progressText}>PASO 1 DE 3</Text>
+
             <Text style={styles.progressLabel}>Información básica</Text>
           </View>
 
@@ -82,7 +120,8 @@ export default function NewComparisonScreen() {
 
             <TextInput
               value={name}
-              onChangeText={setName}
+              onChangeText={handleNameChange}
+              editable={!isSaving}
               placeholder="Ej. Portátil"
               placeholderTextColor={Colors.textMuted}
               autoCapitalize="sentences"
@@ -106,10 +145,22 @@ export default function NewComparisonScreen() {
           </View>
         </View>
 
+        {errorMessage ? (
+          <View style={styles.errorCard}>
+            <Ionicons
+              name="alert-circle-outline"
+              size={20}
+              color={Colors.danger}
+            />
+
+            <Text style={styles.errorText}>{errorMessage}</Text>
+          </View>
+        ) : null}
+
         <View style={styles.footer}>
           <Button
-            label="Continuar"
-            disabled={!isNameValid}
+            label={isSaving ? "Guardando..." : "Continuar"}
+            disabled={!isNameValid || isSaving}
             onPress={handleContinue}
           />
         </View>
@@ -313,6 +364,22 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 18,
     marginLeft: Spacing.xs,
+  },
+
+  errorCard: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    padding: Spacing.md,
+    backgroundColor: Colors.dangerSoft,
+    borderRadius: Radius.md,
+    marginTop: Spacing.lg,
+  },
+
+  errorText: {
+    flex: 1,
+    ...Typography.label,
+    color: Colors.danger,
+    marginLeft: Spacing.sm,
   },
 
   footer: {

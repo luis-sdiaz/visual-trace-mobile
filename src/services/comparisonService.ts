@@ -46,3 +46,37 @@ export async function createComparisonDraft(
 
   return data as ComparisonRecord;
 }
+
+export async function updateComparisonName(
+  comparisonId: string,
+  name: string,
+): Promise<void> {
+  const trimmedName = name.trim();
+
+  if (!comparisonId || !trimmedName) {
+    throw new Error("Comparison ID and name are required.");
+  }
+
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    throw new Error("User must be authenticated.");
+  }
+
+  const { data, error } = await supabase
+    .from("comparisons")
+    .update({
+      name: trimmedName,
+    })
+    .eq("id", comparisonId)
+    .eq("user_id", user.id)
+    .select("id")
+    .single();
+
+  if (error || !data) {
+    throw error ?? new Error("Comparison could not be updated.");
+  }
+}
