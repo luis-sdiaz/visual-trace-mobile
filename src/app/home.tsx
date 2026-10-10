@@ -21,7 +21,14 @@ import { useComparison } from "@/context/ComparisonContext";
 
 export default function HomeScreen() {
   const { user, isLoading, signOut } = useAuth();
-  const { resetComparison } = useComparison();
+
+  const {
+    comparisonId,
+    name,
+    initialImageUri,
+    finalImageUri,
+    resetComparison,
+  } = useComparison();
 
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -30,6 +37,12 @@ export default function HomeScreen() {
 
   const firstName =
     typeof fullName === "string" ? fullName.trim().split(/\s+/)[0] : "";
+
+  const hasDraft =
+    comparisonId !== null ||
+    name.trim().length > 0 ||
+    initialImageUri !== null ||
+    finalImageUri !== null;
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -58,6 +71,25 @@ export default function HomeScreen() {
   function handleCreateComparison() {
     resetComparison();
     router.push("/new-comparison");
+  }
+
+  function handleResumeComparison() {
+    if (!comparisonId) {
+      router.push("/new-comparison");
+      return;
+    }
+
+    if (!initialImageUri) {
+      router.push("/initial-state");
+      return;
+    }
+
+    if (!finalImageUri) {
+      router.push("/final-state");
+      return;
+    }
+
+    router.push("/comparison-result");
   }
 
   if (isLoading || !user) {
@@ -114,6 +146,34 @@ export default function HomeScreen() {
           <View style={styles.errorCard}>
             <Text style={styles.errorText}>{errorMessage}</Text>
           </View>
+        ) : null}
+
+        {hasDraft ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Continuar comparación"
+            onPress={handleResumeComparison}
+            style={({ pressed }) => [
+              styles.draftCard,
+              pressed && styles.draftCardPressed,
+            ]}
+          >
+            <View style={styles.draftIcon}>
+              <Ionicons name="time-outline" size={23} color={Colors.primary} />
+            </View>
+
+            <View style={styles.draftContent}>
+              <Text style={styles.draftLabel}>COMPARACIÓN EN CURSO</Text>
+
+              <Text style={styles.draftName} numberOfLines={1}>
+                {name.trim() || "Comparación sin nombre"}
+              </Text>
+
+              <Text style={styles.draftAction}>Continuar comparación</Text>
+            </View>
+
+            <Ionicons name="chevron-forward" size={20} color={Colors.primary} />
+          </Pressable>
         ) : null}
 
         <View style={styles.actionCard}>
@@ -250,6 +310,60 @@ const styles = StyleSheet.create({
   errorText: {
     ...Typography.label,
     color: Colors.danger,
+  },
+
+  draftCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: Spacing.lg,
+    backgroundColor: Colors.primarySoft,
+    borderWidth: 1,
+    borderColor: Colors.borderPrimary,
+    borderRadius: Radius.xl,
+    marginBottom: Spacing.lg,
+  },
+
+  draftCardPressed: {
+    backgroundColor: Colors.primaryMedium,
+  },
+
+  draftIcon: {
+    width: 46,
+    height: 46,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Colors.surface,
+    borderRadius: Radius.lg,
+    marginRight: Spacing.md,
+  },
+
+  draftContent: {
+    flex: 1,
+    marginRight: Spacing.sm,
+  },
+
+  draftLabel: {
+    color: Colors.primaryDark,
+    fontSize: 10,
+    lineHeight: 14,
+    fontWeight: "800",
+    letterSpacing: 0.6,
+    marginBottom: Spacing.xs,
+  },
+
+  draftName: {
+    ...Typography.label,
+    color: Colors.textPrimary,
+    fontSize: 16,
+    lineHeight: 22,
+  },
+
+  draftAction: {
+    color: Colors.primary,
+    fontSize: 13,
+    lineHeight: 19,
+    fontWeight: "700",
+    marginTop: Spacing.sm,
   },
 
   actionCard: {
