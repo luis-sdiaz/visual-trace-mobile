@@ -1,5 +1,6 @@
 import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
+import { useRef, useState } from "react";
 import {
   Alert,
   Image,
@@ -17,11 +18,22 @@ import { Radius } from "@/constants/radius";
 import { Spacing } from "@/constants/spacing";
 import { Typography } from "@/constants/typography";
 import { useComparison } from "@/context/ComparisonContext";
+import { updateComparisonImagePath } from "@/services/comparisonService";
+import { uploadComparisonImage } from "@/services/imageStorageService";
 
 export default function InitialStateScreen() {
-  const { initialImageUri, setInitialImageUri } = useComparison();
+  const { comparisonId, initialImageUri, setInitialImageUri } = useComparison();
+
+  const [isUploading, setIsUploading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const uploadingRef = useRef(false);
 
   async function handleTakePhoto() {
+    if (uploadingRef.current) {
+      return;
+    }
+
     const permission = await ImagePicker.requestCameraPermissionsAsync();
 
     if (!permission.granted) {
@@ -40,10 +52,15 @@ export default function InitialStateScreen() {
 
     if (!result.canceled) {
       setInitialImageUri(result.assets[0].uri);
+      setErrorMessage(null);
     }
   }
 
   async function handlePickImage() {
+    if (uploadingRef.current) {
+      return;
+    }
+
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
     if (!permission.granted) {
@@ -62,6 +79,46 @@ export default function InitialStateScreen() {
 
     if (!result.canceled) {
       setInitialImageUri(result.assets[0].uri);
+      setErrorMessage(null);
+    }
+  }
+
+  async function handleContinue() {
+    if (!initialImageUri || uploadingRef.current) {
+      return;
+    }
+
+    if (!comparisonId) {
+      setErrorMessage(
+        "No encontramos la comparación. Regresa al primer paso y guarda su nombre.",
+      );
+
+      return;
+    }
+
+    uploadingRef.current = true;
+    setIsUploading(true);
+    setErrorMessage(null);
+
+    try {
+      const imagePath = await uploadComparisonImage({
+        comparisonId,
+        imageUri: initialImageUri,
+        imageStage: "initial",
+      });
+
+      await updateComparisonImagePath(comparisonId, "initial", imagePath);
+
+      router.push("/final-state");
+    } catch (error) {
+      console.error("Failed to save initial comparison image:", error);
+
+      setErrorMessage(
+        "No pudimos guardar la fotografía. Revisa tu conexión e inténtalo nuevamente.",
+      );
+    } finally {
+      uploadingRef.current = false;
+      setIsUploading(false);
     }
   }
 
@@ -74,6 +131,7 @@ export default function InitialStateScreen() {
         <View>
           <Pressable
             accessibilityRole="button"
+            disabled={isUploading}
             onPress={() => router.replace("/new-comparison")}
             style={styles.backButton}
           >
@@ -124,6 +182,7 @@ export default function InitialStateScreen() {
           <View style={styles.actions}>
             <Pressable
               accessibilityRole="button"
+              disabled={isUploading}
               onPress={handleTakePhoto}
               style={styles.primaryAction}
             >
@@ -132,19 +191,24 @@ export default function InitialStateScreen() {
 
             <Pressable
               accessibilityRole="button"
+              disabled={isUploading}
               onPress={handlePickImage}
               style={styles.secondaryAction}
             >
               <Text style={styles.secondaryActionText}>Elegir de galería</Text>
             </Pressable>
           </View>
+
+          {errorMessage ? (
+            <Text style={styles.errorText}>{errorMessage}</Text>
+          ) : null}
         </View>
 
         <View style={styles.footer}>
           <Button
-            label="Continuar"
-            disabled={!initialImageUri}
-            onPress={() => router.push("/final-state")}
+            label={isUploading ? "Guardando fotografía..." : "Continuar"}
+            disabled={!initialImageUri || isUploading}
+            onPress={handleContinue}
           />
         </View>
       </ScrollView>
@@ -304,6 +368,13 @@ const styles = StyleSheet.create({
   secondaryActionText: {
     ...Typography.button,
     color: Colors.textPrimary,
+  },
+
+  errorText: {
+    ...Typography.body,
+    color: Colors.danger,
+    marginTop: Spacing.md,
+    textAlign: "center",
   },
 
   footer: {
