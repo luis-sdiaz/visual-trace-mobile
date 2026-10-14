@@ -26,6 +26,16 @@ export type AnalyzeDependencies = {
     comparison: AuthorizedComparison;
     analysis: { model: string; report: { contractVersion: string } & Record<string, unknown> };
   }) => Promise<unknown>;
+  reserveUsage: (comparison: AuthorizedComparison) => Promise<
+    | { action: "reserved"; attemptId: string }
+    | { action: "cached"; report: unknown }
+    | { action: "limited"; scope: string }
+    | { action: "in_progress"; attemptId: string }
+  >;
+  completeUsage: (
+    attemptId: string,
+    status: "succeeded" | "failed_uncertain",
+  ) => Promise<void>;
 };
 
 const UUID_PATTERN =
@@ -139,10 +149,32 @@ export function createAnalyzeComparisonHandler(dependencies: AnalyzeDependencies
       return jsonResponse(status, code, "No fue posible preparar las fotografías para el análisis.");
     }
 
+    let reservation: Awaited<ReturnType<AnalyzeDependencies["reserveUsage"]>>;
+    try {
+      reservation = await dependencies.reserveUsage(comparison);
+    } catch {
+      return jsonResponse(503, "usage_limits_unavailable", "El control de uso no está disponible.");
+    }
+
+    if (reservation.action === "cached") {
+      return new Response(JSON.stringify(reservation.report), { status: 200, headers: JSON_HEADERS });
+    }
+    if (reservation.action === "limited") {
+      return jsonResponse(429, "usage_limit_reached", "Se alcanzó el límite de análisis.", {
+        scope: reservation.scope,
+      });
+    }
+    if (reservation.action === "in_progress") {
+      return jsonResponse(409, "analysis_in_progress", "Este análisis ya está en curso.");
+    }
+
+    const attemptId = reservation.attemptId;
+
     let analysis: Awaited<ReturnType<AnalyzeDependencies["analyzeImages"]>>;
     try {
       analysis = await dependencies.analyzeImages(images);
     } catch (error) {
+      await dependencies.completeUsage(attemptId, "failed_uncertain").catch(() => undefined);
       const code =
         typeof error === "object" && error !== null && "code" in error
           ? String(error.code)
@@ -153,8 +185,10 @@ export function createAnalyzeComparisonHandler(dependencies: AnalyzeDependencies
 
     try {
       const persisted = await dependencies.persistReport({ comparison, analysis });
+      await dependencies.completeUsage(attemptId, "succeeded");
       return new Response(JSON.stringify(persisted), { status: 200, headers: JSON_HEADERS });
     } catch (error) {
+      await dependencies.completeUsage(attemptId, "failed_uncertain").catch(() => undefined);
       const message = error instanceof Error ? error.message : "";
       const stale = message.includes("comparison_images_changed");
       return jsonResponse(

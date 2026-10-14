@@ -4,6 +4,7 @@ import { createClient } from "npm:@supabase/supabase-js@2.117.2";
 import { createAnalyzeComparisonHandler } from "./handler.ts";
 import { loadAuthorizedComparisonImages } from "./imageLoader.ts";
 import { createGeminiClient } from "./geminiClient.ts";
+import { readUsageLimits } from "./usageLimits.ts";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL");
 const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
@@ -16,6 +17,7 @@ if (!supabaseUrl || !supabaseAnonKey || !supabaseServiceRoleKey || !geminiApiKey
 }
 
 const gemini = createGeminiClient({ apiKey: geminiApiKey, model: geminiModel });
+const usageLimits = readUsageLimits((name) => Deno.env.get(name));
 const serviceClient = createClient(supabaseUrl, supabaseServiceRoleKey, {
   auth: { persistSession: false, autoRefreshToken: false },
 });
@@ -85,6 +87,28 @@ const handler = createAnalyzeComparisonHandler({
     });
     if (error) throw error;
     return data;
+  },
+
+  async reserveUsage(comparison) {
+    const { data, error } = await serviceClient.rpc("reserve_ai_analysis_usage", {
+      p_comparison_id: comparison.id,
+      p_user_id: comparison.user_id,
+      p_initial_image_path: comparison.initial_image_path,
+      p_final_image_path: comparison.final_image_path,
+      p_global_per_minute: usageLimits.globalPerMinute,
+      p_global_per_day: usageLimits.globalPerDay,
+      p_user_per_day: usageLimits.userPerDay,
+    });
+    if (error || !data) throw error ?? new Error("Usage reservation failed.");
+    return data;
+  },
+
+  async completeUsage(attemptId, status) {
+    const { error } = await serviceClient.rpc("complete_ai_analysis_usage", {
+      p_attempt_id: attemptId,
+      p_status: status,
+    });
+    if (error) throw error;
   },
 });
 
