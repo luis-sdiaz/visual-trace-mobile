@@ -2,13 +2,17 @@ import {
   createContext,
   useContext,
   useEffect,
+  useRef,
   useState,
   type PropsWithChildren,
 } from "react";
 
+import { useAuth } from "@/context/AuthContext";
+import { isComparisonOwnedByUser } from "@/services/comparisonService";
 import {
   clearComparisonDraft,
   loadComparisonDraft,
+  migrateLegacyComparisonDraft,
   saveComparisonDraft,
 } from "@/storage/comparisonStorage";
 
@@ -29,15 +33,54 @@ const ComparisonContext = createContext<ComparisonContextValue | undefined>(
 );
 
 export function ComparisonProvider({ children }: PropsWithChildren) {
+  const { user, isLoading: isAuthLoading } = useAuth();
   const [comparisonId, setComparisonId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [initialImageUri, setInitialImageUri] = useState<string | null>(null);
   const [finalImageUri, setFinalImageUri] = useState<string | null>(null);
-  const [isHydrated, setIsHydrated] = useState(false);
+  const [hydratedUserId, setHydratedUserId] = useState<string | null>(null);
+  const hydrationSequenceRef = useRef(0);
+  const persistenceQueueRef = useRef(Promise.resolve());
 
   useEffect(() => {
+    const userId = user?.id ?? null;
+    const hydrationSequence = ++hydrationSequenceRef.current;
+
+    setComparisonId(null);
+    setName("");
+    setInitialImageUri(null);
+    setFinalImageUri(null);
+    setHydratedUserId(null);
+
+    if (isAuthLoading || !userId) {
+      return;
+    }
+
+    const authenticatedUserId = userId;
+
     async function restoreComparisonDraft() {
-      const draft = await loadComparisonDraft();
+      let draft = null;
+
+      try {
+        draft = await loadComparisonDraft(authenticatedUserId);
+
+        if (!draft) {
+          draft = await migrateLegacyComparisonDraft(
+            authenticatedUserId,
+            (legacyId) =>
+              isComparisonOwnedByUser(legacyId, authenticatedUserId),
+          );
+        }
+      } catch {
+        draft = null;
+      }
+
+      if (
+        hydrationSequence !== hydrationSequenceRef.current ||
+        authenticatedUserId !== user?.id
+      ) {
+        return;
+      }
 
       if (draft) {
         setComparisonId(draft.comparisonId);
@@ -46,14 +89,16 @@ export function ComparisonProvider({ children }: PropsWithChildren) {
         setFinalImageUri(draft.finalImageUri);
       }
 
-      setIsHydrated(true);
+      setHydratedUserId(authenticatedUserId);
     }
 
     void restoreComparisonDraft();
-  }, []);
+  }, [isAuthLoading, user?.id]);
 
   useEffect(() => {
-    if (!isHydrated) {
+    const userId = user?.id;
+
+    if (!userId || hydratedUserId !== userId) {
       return;
     }
 
@@ -63,18 +108,26 @@ export function ComparisonProvider({ children }: PropsWithChildren) {
       initialImageUri !== null ||
       finalImageUri !== null;
 
-    if (!hasDraft) {
-      void clearComparisonDraft();
-      return;
-    }
-
-    void saveComparisonDraft({
-      comparisonId,
-      name,
-      initialImageUri,
-      finalImageUri,
-    });
-  }, [comparisonId, name, initialImageUri, finalImageUri, isHydrated]);
+    persistenceQueueRef.current = persistenceQueueRef.current
+      .catch(() => undefined)
+      .then(() =>
+        hasDraft
+          ? saveComparisonDraft(userId, {
+              comparisonId,
+              name,
+              initialImageUri,
+              finalImageUri,
+            })
+          : clearComparisonDraft(userId),
+      );
+  }, [
+    comparisonId,
+    name,
+    initialImageUri,
+    finalImageUri,
+    hydratedUserId,
+    user?.id,
+  ]);
 
   function resetComparison() {
     setComparisonId(null);

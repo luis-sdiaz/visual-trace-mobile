@@ -93,6 +93,41 @@ export async function updateComparisonName(
   }
 }
 
+export async function isComparisonOwnedByUser(
+  comparisonId: string,
+  expectedUserId: string,
+): Promise<boolean> {
+  if (!comparisonId || !expectedUserId) {
+    return false;
+  }
+
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError) {
+    throw authError;
+  }
+
+  if (user?.id !== expectedUserId) {
+    throw new Error("Authenticated user changed while restoring the draft.");
+  }
+
+  const { data, error } = await supabase
+    .from("comparisons")
+    .select("id")
+    .eq("id", comparisonId)
+    .eq("user_id", expectedUserId)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  return data !== null;
+}
+
 export async function updateComparisonImagePath(
   comparisonId: string,
   imageStage: ImageStage,
