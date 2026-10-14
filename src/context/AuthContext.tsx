@@ -8,6 +8,7 @@ import {
 } from "react";
 
 import { supabase } from "@/lib/supabase";
+import { observeAuthSession } from "@/services/authSessionService";
 
 type AuthContextValue = {
   session: Session | null;
@@ -23,47 +24,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    let isMounted = true;
-    let sessionRevision = 0;
-
-    async function loadSession() {
-      const requestRevision = sessionRevision;
-
-      try {
-        const { data, error } = await supabase.auth.getSession();
-
-        if (!isMounted || requestRevision !== sessionRevision) {
-          return;
-        }
-
-        setSession(error ? null : data.session);
-        setIsLoading(false);
-      } catch {
-        if (isMounted && requestRevision === sessionRevision) {
-          setSession(null);
-          setIsLoading(false);
-        }
-      }
-    }
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-      if (!isMounted) {
-        return;
-      }
-
-      sessionRevision += 1;
-      setSession(nextSession);
-      setIsLoading(false);
+    return observeAuthSession(supabase.auth, (update) => {
+      setSession(update.session);
+      setIsLoading(update.isLoading);
     });
-
-    void loadSession();
-
-    return () => {
-      isMounted = false;
-      subscription.unsubscribe();
-    };
   }, []);
 
   const user = session?.user ?? null;

@@ -4,6 +4,7 @@ import { ActivityIndicator, StyleSheet, View } from "react-native";
 import { Colors } from "@/constants/colors";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { ComparisonProvider } from "@/context/ComparisonContext";
+import { getAuthRouteAccess } from "@/utils/authNavigation";
 
 export default function RootLayout() {
   return (
@@ -24,6 +25,8 @@ function AppNavigator() {
     );
   }
 
+  const routeAccess = getAuthRouteAccess(Boolean(user));
+
   return (
     <ComparisonProvider>
       <Stack
@@ -31,13 +34,13 @@ function AppNavigator() {
           headerShown: false,
         }}
       >
-        <Stack.Protected guard={!user}>
+        <Stack.Protected guard={routeAccess.canAccessGuestRoutes}>
           <Stack.Screen name="index" />
           <Stack.Screen name="login" />
           <Stack.Screen name="register" />
         </Stack.Protected>
 
-        <Stack.Protected guard={Boolean(user)}>
+        <Stack.Protected guard={routeAccess.canAccessAuthenticatedRoutes}>
           <Stack.Screen name="home" />
           <Stack.Screen name="new-comparison" />
           <Stack.Screen name="initial-state" />
