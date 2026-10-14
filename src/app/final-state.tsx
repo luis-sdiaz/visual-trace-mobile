@@ -21,7 +21,10 @@ import { useComparison } from "@/context/ComparisonContext";
 import {
   markComparisonReady,
 } from "@/services/comparisonService";
-import { saveComparisonImage } from "@/services/comparisonImageLifecycleService";
+import {
+  AnalyzedComparisonEditError,
+  saveComparisonImage,
+} from "@/services/comparisonImageLifecycleService";
 
 export default function FinalStateScreen() {
   const {
@@ -151,7 +154,9 @@ export default function FinalStateScreen() {
       console.error("Failed to save final comparison image:", error);
 
       setErrorMessage(
-        "No pudimos guardar la fotografía final. Revisa tu conexión e inténtalo nuevamente.",
+        error instanceof AnalyzedComparisonEditError
+          ? "Esta comparación ya fue analizada y sus fotografías no se pueden reemplazar."
+          : "No pudimos guardar la fotografía final. Revisa tu conexión e inténtalo nuevamente.",
       );
     } finally {
       uploadingRef.current = false;

@@ -218,6 +218,7 @@ export async function updateComparisonImagePath(
   imageStage: ImageStage,
   imagePath: string,
   expectedCurrentPath?: string | null,
+  nextStatus?: Exclude<ComparisonStatus, "analyzed">,
 ): Promise<void> {
   if (!comparisonId || !imagePath) {
     throw new Error("Comparison ID and image path are required.");
@@ -248,12 +249,17 @@ export async function updateComparisonImagePath(
   }
 
   const column = IMAGE_PATH_COLUMNS[imageStage];
+  const updates: Partial<ComparisonRecord> = {
+    [column]: imagePath,
+  };
+
+  if (nextStatus) {
+    updates.status = nextStatus;
+  }
 
   let query = supabase
     .from("comparisons")
-    .update({
-      [column]: imagePath,
-    })
+    .update(updates)
     .eq("id", comparisonId)
     .eq("user_id", user.id);
 

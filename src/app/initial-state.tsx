@@ -18,7 +18,10 @@ import { Radius } from "@/constants/radius";
 import { Spacing } from "@/constants/spacing";
 import { Typography } from "@/constants/typography";
 import { useComparison } from "@/context/ComparisonContext";
-import { saveComparisonImage } from "@/services/comparisonImageLifecycleService";
+import {
+  AnalyzedComparisonEditError,
+  saveComparisonImage,
+} from "@/services/comparisonImageLifecycleService";
 
 export default function InitialStateScreen() {
   const {
@@ -146,7 +149,9 @@ export default function InitialStateScreen() {
       console.error("Failed to save initial comparison image:", error);
 
       setErrorMessage(
-        "No pudimos guardar la fotografía. Revisa tu conexión e inténtalo nuevamente.",
+        error instanceof AnalyzedComparisonEditError
+          ? "Esta comparación ya fue analizada y sus fotografías no se pueden reemplazar."
+          : "No pudimos guardar la fotografía. Revisa tu conexión e inténtalo nuevamente.",
       );
     } finally {
       uploadingRef.current = false;

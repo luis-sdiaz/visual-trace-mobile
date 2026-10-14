@@ -20,6 +20,13 @@ const IMAGE_PATH_COLUMNS = {
   final: "final_image_path",
 } as const;
 
+export class AnalyzedComparisonEditError extends Error {
+  constructor() {
+    super("Analyzed comparisons cannot be edited.");
+    this.name = "AnalyzedComparisonEditError";
+  }
+}
+
 export async function saveComparisonImage({
   comparisonId,
   imageStage,
@@ -28,6 +35,10 @@ export async function saveComparisonImage({
 }: SaveComparisonImageParams): Promise<string> {
   const comparison = await fetchComparisonById(comparisonId);
   const currentImagePath = comparison[IMAGE_PATH_COLUMNS[imageStage]];
+
+  if (comparison.status === "analyzed") {
+    throw new AnalyzedComparisonEditError();
+  }
 
   if (currentImagePath !== previousImagePath) {
     throw new Error("Comparison image changed before it could be saved.");
@@ -39,6 +50,11 @@ export async function saveComparisonImage({
     imageUri,
     isReplacement: previousImagePath !== null,
   });
+  const hasInitialImage =
+    imageStage === "initial" ? true : comparison.initial_image_path !== null;
+  const hasFinalImage =
+    imageStage === "final" ? true : comparison.final_image_path !== null;
+  const nextStatus = hasInitialImage && hasFinalImage ? "ready" : "draft";
 
   let imagePathWasSaved = false;
 
@@ -48,6 +64,7 @@ export async function saveComparisonImage({
       imageStage,
       imagePath,
       previousImagePath,
+      nextStatus,
     );
     imagePathWasSaved = true;
   } catch (saveError) {

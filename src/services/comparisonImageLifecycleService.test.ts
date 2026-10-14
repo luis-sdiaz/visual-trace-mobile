@@ -17,13 +17,19 @@ vi.mock("@/services/imageStorageService", () => ({
   uploadComparisonImage: lifecycleMock.uploadComparisonImage,
 }));
 
-import { saveComparisonImage } from "@/services/comparisonImageLifecycleService";
+import {
+  AnalyzedComparisonEditError,
+  saveComparisonImage,
+} from "@/services/comparisonImageLifecycleService";
 import type { ComparisonRecord } from "@/services/comparisonService";
 
 const previousPath = "user-1/comparison-1/initial.jpg";
 const replacementPath = "user-1/comparison-1/initial-version.png";
 
-function createComparison(imagePath: string | null): ComparisonRecord {
+function createComparison(
+  imagePath: string | null,
+  overrides: Partial<ComparisonRecord> = {},
+): ComparisonRecord {
   return {
     id: "comparison-1",
     user_id: "user-1",
@@ -33,6 +39,7 @@ function createComparison(imagePath: string | null): ComparisonRecord {
     status: "draft",
     created_at: "2026-10-14T12:00:00.000Z",
     updated_at: "2026-10-14T12:00:00.000Z",
+    ...overrides,
   };
 }
 
@@ -65,6 +72,60 @@ describe("saveComparisonImage cleanup", () => {
       imagePath: previousPath,
       imageStage: "initial",
     });
+    expect(lifecycleMock.updateComparisonImagePath).toHaveBeenCalledWith(
+      "comparison-1",
+      "initial",
+      replacementPath,
+      previousPath,
+      "draft",
+    );
+  });
+
+  it("atomically keeps a completed replacement ready", async () => {
+    lifecycleMock.fetchComparisonById
+      .mockResolvedValueOnce(
+        createComparison(previousPath, {
+          final_image_path: "user-1/comparison-1/final.jpg",
+          status: "ready",
+        }),
+      )
+      .mockResolvedValueOnce(createComparison(replacementPath));
+
+    await saveComparisonImage({
+      comparisonId: "comparison-1",
+      imageStage: "initial",
+      imageUri: "file:///replacement.png",
+      previousImagePath: previousPath,
+    });
+
+    expect(lifecycleMock.updateComparisonImagePath).toHaveBeenCalledWith(
+      "comparison-1",
+      "initial",
+      replacementPath,
+      previousPath,
+      "ready",
+    );
+  });
+
+  it("blocks analyzed comparisons before uploading a replacement", async () => {
+    lifecycleMock.fetchComparisonById.mockResolvedValueOnce(
+      createComparison(previousPath, {
+        final_image_path: "user-1/comparison-1/final.jpg",
+        status: "analyzed",
+      }),
+    );
+
+    await expect(
+      saveComparisonImage({
+        comparisonId: "comparison-1",
+        imageStage: "initial",
+        imageUri: "file:///replacement.png",
+        previousImagePath: previousPath,
+      }),
+    ).rejects.toBeInstanceOf(AnalyzedComparisonEditError);
+
+    expect(lifecycleMock.uploadComparisonImage).not.toHaveBeenCalled();
+    expect(lifecycleMock.updateComparisonImagePath).not.toHaveBeenCalled();
   });
 
   it("removes an unreferenced upload when the database update fails", async () => {
