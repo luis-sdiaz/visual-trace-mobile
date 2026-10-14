@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { EmailConfirmationResend } from "@/components/auth/EmailConfirmationResend";
 import { Button } from "@/components/ui/Button";
 import { Colors } from "@/constants/colors";
 import { Radius } from "@/constants/radius";
@@ -28,6 +29,9 @@ export default function RegisterScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [confirmationEmail, setConfirmationEmail] = useState<string | null>(
+    null,
+  );
 
   const isEmailValid = email.trim().includes("@");
   const isPasswordValid = password.length >= 8;
@@ -53,6 +57,7 @@ export default function RegisterScreen() {
     setIsLoading(true);
     setErrorMessage(null);
     setSuccessMessage(null);
+    setConfirmationEmail(null);
 
     const { data, error } = await supabase.auth.signUp({
       email: email.trim().toLowerCase(),
@@ -100,8 +105,9 @@ export default function RegisterScreen() {
     }
 
     setSuccessMessage(
-      "Cuenta creada correctamente. Revisa tu correo electrónico para confirmar tu cuenta.",
+      "Cuenta creada. Confirma tu correo electrónico antes de iniciar sesión.",
     );
+    setConfirmationEmail(email.trim().toLowerCase());
 
     setPassword("");
     setConfirmPassword("");
@@ -218,6 +224,10 @@ export default function RegisterScreen() {
             {successMessage ? (
               <View style={styles.successCard}>
                 <Text style={styles.successText}>{successMessage}</Text>
+
+                {confirmationEmail ? (
+                  <EmailConfirmationResend email={confirmationEmail} />
+                ) : null}
               </View>
             ) : null}
           </View>
