@@ -27,6 +27,55 @@ const ALLOWED_IMAGE_EXTENSIONS = ["jpg", "png", "webp", "heic", "heif"];
 const DEFAULT_RECENT_COMPARISONS_LIMIT = 10;
 const MAX_RECENT_COMPARISONS_LIMIT = 50;
 
+export class ComparisonNotFoundError extends Error {
+  constructor() {
+    super("Comparison could not be found.");
+    this.name = "ComparisonNotFoundError";
+  }
+}
+
+export function isComparisonComplete(
+  comparison: ComparisonRecord,
+): boolean {
+  return Boolean(
+    comparison.initial_image_path && comparison.final_image_path,
+  );
+}
+
+export async function fetchComparisonById(
+  comparisonId: string,
+): Promise<ComparisonRecord> {
+  if (!comparisonId) {
+    throw new Error("Comparison ID is required.");
+  }
+
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    throw new Error("User must be authenticated.");
+  }
+
+  const { data, error } = await supabase
+    .from("comparisons")
+    .select("*")
+    .eq("id", comparisonId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  if (!data) {
+    throw new ComparisonNotFoundError();
+  }
+
+  return data as ComparisonRecord;
+}
+
 export async function fetchRecentComparisons(
   limit = DEFAULT_RECENT_COMPARISONS_LIMIT,
 ): Promise<ComparisonRecord[]> {
