@@ -1,6 +1,7 @@
 import { router, useFocusEffect } from "expo-router";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   AppState,
   Image,
   Pressable,
@@ -20,6 +21,80 @@ import { useAuth } from "@/context/AuthContext";
 import { useComparison } from "@/context/ComparisonContext";
 import { recoverComparison } from "@/services/comparisonRecoveryService";
 
+type PrivateImageStatus = "loading" | "available" | "error" | "retrying";
+
+type PrivateComparisonImageProps = {
+  accessibilityLabel: string;
+  uri: string;
+  onRetry: () => Promise<boolean>;
+};
+
+function PrivateComparisonImage({
+  accessibilityLabel,
+  uri,
+  onRetry,
+}: PrivateComparisonImageProps) {
+  const [status, setStatus] = useState<PrivateImageStatus>("loading");
+
+  async function handleRetry() {
+    if (status === "retrying") {
+      return;
+    }
+
+    setStatus("retrying");
+
+    const refreshed = await onRetry();
+
+    if (!refreshed) {
+      setStatus("error");
+    }
+  }
+
+  const isAvailable = status === "available";
+
+  return (
+    <View style={styles.imageFrame}>
+      <Image
+        accessibilityLabel={accessibilityLabel}
+        onError={() => setStatus("error")}
+        onLoad={() => setStatus("available")}
+        onLoadStart={() => setStatus("loading")}
+        source={{ uri }}
+        style={[styles.image, !isAvailable && styles.hiddenImage]}
+      />
+
+      {!isAvailable ? (
+        <View style={styles.imageFeedback}>
+          {status === "error" ? (
+            <>
+              <Text style={styles.imageErrorTitle}>No pudimos cargarla</Text>
+              <Text style={styles.imageErrorDescription}>
+                El acceso privado puede haber caducado.
+              </Text>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => void handleRetry()}
+                style={styles.retryButton}
+              >
+                <Text style={styles.retryButtonText}>Reintentar</Text>
+              </Pressable>
+            </>
+          ) : (
+            <>
+              <ActivityIndicator color={Colors.primary} />
+              <Text style={styles.loadingText}>
+                {status === "retrying"
+                  ? "Recuperando fotografía..."
+                  : "Cargando fotografía..."}
+              </Text>
+            </>
+          )}
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
 export default function ComparisonResultScreen() {
   const { user } = useAuth();
   const {
@@ -31,7 +106,7 @@ export default function ComparisonResultScreen() {
   } = useComparison();
   const userId = user?.id;
   const refreshSequenceRef = useRef(0);
-  const refreshInFlightRef = useRef(false);
+  const refreshInFlightRef = useRef<Promise<boolean> | null>(null);
   const isFocusedRef = useRef(false);
   const restoreComparisonRef = useRef(restoreComparison);
 
@@ -39,48 +114,59 @@ export default function ComparisonResultScreen() {
     restoreComparisonRef.current = restoreComparison;
   }, [restoreComparison]);
 
-  const refreshPrivateImages = useCallback(async () => {
-    if (!comparisonId || !userId || refreshInFlightRef.current) {
-      return;
+  const refreshPrivateImages = useCallback((): Promise<boolean> => {
+    if (!comparisonId || !userId) {
+      return Promise.resolve(false);
+    }
+
+    if (refreshInFlightRef.current) {
+      return refreshInFlightRef.current;
     }
 
     const refreshSequence = ++refreshSequenceRef.current;
     const requestComparisonId = comparisonId;
     const requestUserId = userId;
-    refreshInFlightRef.current = true;
+    const refreshRequest = (async () => {
+      try {
+        const recovery = await recoverComparison(requestComparisonId);
 
-    try {
-      const recovery = await recoverComparison(requestComparisonId);
+        if (
+          refreshSequence !== refreshSequenceRef.current ||
+          requestComparisonId !== comparisonId ||
+          requestUserId !== userId ||
+          !isFocusedRef.current
+        ) {
+          return false;
+        }
 
-      if (
-        refreshSequence !== refreshSequenceRef.current ||
-        requestComparisonId !== comparisonId ||
-        requestUserId !== userId ||
-        !isFocusedRef.current
-      ) {
-        return;
+        restoreComparisonRef.current({
+          comparisonId: recovery.comparison.id,
+          name: recovery.comparison.name,
+          initialImageUri: recovery.initialImageUri,
+          finalImageUri: recovery.finalImageUri,
+          initialImageIsTransient: recovery.initialImageUri !== null,
+          finalImageIsTransient: recovery.finalImageUri !== null,
+        });
+
+        return true;
+      } catch (error) {
+        console.error("Failed to refresh private comparison images:", error);
+        return false;
+      } finally {
+        if (refreshSequence === refreshSequenceRef.current) {
+          refreshInFlightRef.current = null;
+        }
       }
+    })();
 
-      restoreComparisonRef.current({
-        comparisonId: recovery.comparison.id,
-        name: recovery.comparison.name,
-        initialImageUri: recovery.initialImageUri,
-        finalImageUri: recovery.finalImageUri,
-        initialImageIsTransient: recovery.initialImageUri !== null,
-        finalImageIsTransient: recovery.finalImageUri !== null,
-      });
-    } catch (error) {
-      console.error("Failed to refresh private comparison images:", error);
-    } finally {
-      if (refreshSequence === refreshSequenceRef.current) {
-        refreshInFlightRef.current = false;
-      }
-    }
+    refreshInFlightRef.current = refreshRequest;
+
+    return refreshRequest;
   }, [comparisonId, userId]);
 
   useEffect(() => {
     refreshSequenceRef.current += 1;
-    refreshInFlightRef.current = false;
+    refreshInFlightRef.current = null;
   }, [comparisonId, userId]);
 
   useFocusEffect(
@@ -91,7 +177,7 @@ export default function ComparisonResultScreen() {
       return () => {
         isFocusedRef.current = false;
         refreshSequenceRef.current += 1;
-        refreshInFlightRef.current = false;
+        refreshInFlightRef.current = null;
       };
     }, [refreshPrivateImages]),
   );
@@ -168,10 +254,11 @@ export default function ComparisonResultScreen() {
               <Text style={styles.imageLabel}>Antes</Text>
             </View>
 
-            <Image
+            <PrivateComparisonImage
               accessibilityLabel="Fotografía del estado inicial"
-              source={{ uri: initialImageUri }}
-              style={styles.image}
+              key={initialImageUri}
+              onRetry={refreshPrivateImages}
+              uri={initialImageUri}
             />
           </View>
 
@@ -192,10 +279,11 @@ export default function ComparisonResultScreen() {
               <Text style={styles.imageLabel}>Después</Text>
             </View>
 
-            <Image
+            <PrivateComparisonImage
               accessibilityLabel="Fotografía del estado final"
-              source={{ uri: finalImageUri }}
-              style={styles.image}
+              key={finalImageUri}
+              onRetry={refreshPrivateImages}
+              uri={finalImageUri}
             />
           </View>
         </View>
@@ -332,8 +420,61 @@ const styles = StyleSheet.create({
 
   image: {
     width: "100%",
-    aspectRatio: 4 / 3,
+    height: "100%",
     resizeMode: "cover",
+  },
+
+  imageFrame: {
+    width: "100%",
+    aspectRatio: 4 / 3,
+  },
+
+  hiddenImage: {
+    opacity: 0,
+  },
+
+  imageFeedback: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: Spacing.xl,
+    backgroundColor: Colors.surfaceSecondary,
+  },
+
+  loadingText: {
+    ...Typography.body,
+    color: Colors.textSecondary,
+    marginTop: Spacing.md,
+  },
+
+  imageErrorTitle: {
+    ...Typography.title,
+    color: Colors.textPrimary,
+    textAlign: "center",
+  },
+
+  imageErrorDescription: {
+    ...Typography.body,
+    color: Colors.textSecondary,
+    textAlign: "center",
+    marginTop: Spacing.xs,
+  },
+
+  retryButton: {
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    marginTop: Spacing.md,
+    backgroundColor: Colors.primarySoft,
+    borderRadius: Radius.full,
+  },
+
+  retryButtonText: {
+    ...Typography.label,
+    color: Colors.primary,
   },
 
   connector: {
