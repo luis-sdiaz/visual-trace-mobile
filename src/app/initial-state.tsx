@@ -18,8 +18,7 @@ import { Radius } from "@/constants/radius";
 import { Spacing } from "@/constants/spacing";
 import { Typography } from "@/constants/typography";
 import { useComparison } from "@/context/ComparisonContext";
-import { updateComparisonImagePath } from "@/services/comparisonService";
-import { uploadComparisonImage } from "@/services/imageStorageService";
+import { saveComparisonImage } from "@/services/comparisonImageLifecycleService";
 
 export default function InitialStateScreen() {
   const {
@@ -35,6 +34,29 @@ export default function InitialStateScreen() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const uploadingRef = useRef(false);
+
+  function acceptSelectedImage(uri: string) {
+    if (!initialImagePath) {
+      setInitialImageUri(uri);
+      setErrorMessage(null);
+      return;
+    }
+
+    Alert.alert(
+      "Reemplazar fotografía inicial",
+      "La fotografía guardada se conservará hasta que el reemplazo termine correctamente.",
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Reemplazar",
+          onPress: () => {
+            setInitialImageUri(uri);
+            setErrorMessage(null);
+          },
+        },
+      ],
+    );
+  }
 
   async function handleTakePhoto() {
     if (uploadingRef.current) {
@@ -58,8 +80,7 @@ export default function InitialStateScreen() {
     });
 
     if (!result.canceled) {
-      setInitialImageUri(result.assets[0].uri);
-      setErrorMessage(null);
+      acceptSelectedImage(result.assets[0].uri);
     }
   }
 
@@ -85,8 +106,7 @@ export default function InitialStateScreen() {
     });
 
     if (!result.canceled) {
-      setInitialImageUri(result.assets[0].uri);
-      setErrorMessage(null);
+      acceptSelectedImage(result.assets[0].uri);
     }
   }
 
@@ -113,13 +133,12 @@ export default function InitialStateScreen() {
         return;
       }
 
-      const imagePath = await uploadComparisonImage({
+      const imagePath = await saveComparisonImage({
         comparisonId,
         imageUri: initialImageUri,
         imageStage: "initial",
+        previousImagePath: initialImagePath,
       });
-
-      await updateComparisonImagePath(comparisonId, "initial", imagePath);
       markInitialImageSaved(imagePath);
 
       router.push("/final-state");
@@ -199,7 +218,9 @@ export default function InitialStateScreen() {
               onPress={handleTakePhoto}
               style={styles.primaryAction}
             >
-              <Text style={styles.primaryActionText}>Tomar foto</Text>
+              <Text style={styles.primaryActionText}>
+                {initialImagePath ? "Tomar nueva foto" : "Tomar foto"}
+              </Text>
             </Pressable>
 
             <Pressable
@@ -208,7 +229,11 @@ export default function InitialStateScreen() {
               onPress={handlePickImage}
               style={styles.secondaryAction}
             >
-              <Text style={styles.secondaryActionText}>Elegir de galería</Text>
+              <Text style={styles.secondaryActionText}>
+                {initialImagePath
+                  ? "Elegir reemplazo de galería"
+                  : "Elegir de galería"}
+              </Text>
             </Pressable>
           </View>
 

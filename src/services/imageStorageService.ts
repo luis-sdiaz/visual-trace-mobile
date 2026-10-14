@@ -2,6 +2,7 @@ import { File } from "expo-file-system";
 import { Platform } from "react-native";
 
 import { supabase } from "@/lib/supabase";
+import { isOwnedComparisonImagePath } from "@/services/comparisonImagePath";
 
 const STORAGE_BUCKET = "comparison-images";
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
@@ -15,6 +16,7 @@ type UploadComparisonImageParams = {
   comparisonId: string;
   imageUri: string;
   imageStage: ImageStage;
+  isReplacement?: boolean;
 };
 
 type ResolveComparisonImageUrlParams = {
@@ -107,6 +109,7 @@ export async function uploadComparisonImage({
   comparisonId,
   imageUri,
   imageStage,
+  isReplacement = false,
 }: UploadComparisonImageParams): Promise<string> {
   if (!comparisonId || !imageUri) {
     throw new Error("Comparison ID and image are required.");
@@ -133,13 +136,16 @@ export async function uploadComparisonImage({
 
   const extension = IMAGE_EXTENSIONS[contentType];
 
-  const storagePath = `${user.id}/${comparisonId}/${imageStage}.${extension}`;
+  const versionSuffix = isReplacement
+    ? `-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`
+    : "";
+  const storagePath = `${user.id}/${comparisonId}/${imageStage}${versionSuffix}.${extension}`;
 
   const { data, error } = await supabase.storage
     .from(STORAGE_BUCKET)
     .upload(storagePath, buffer, {
       contentType,
-      upsert: true,
+      upsert: !isReplacement,
     });
 
   if (error) {
@@ -180,12 +186,13 @@ export async function resolveComparisonImageUrl({
     throw new Error("User must be authenticated.");
   }
 
-  const expectedPrefix = `${user.id}/${comparisonId}/${imageStage}.`;
-  const extension = imagePath.slice(expectedPrefix.length).toLowerCase();
-
   if (
-    !imagePath.startsWith(expectedPrefix) ||
-    !Object.values(IMAGE_EXTENSIONS).includes(extension)
+    !isOwnedComparisonImagePath({
+      comparisonId,
+      imagePath,
+      imageStage,
+      userId: user.id,
+    })
   ) {
     throw new Error("Image path does not match this comparison.");
   }

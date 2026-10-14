@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabase";
 
+import { isOwnedComparisonImagePath } from "@/services/comparisonImagePath";
 import type { ImageStage } from "@/services/imageStorageService";
 
 export type ComparisonStatus = "draft" | "ready" | "analyzed";
@@ -23,7 +24,6 @@ const IMAGE_PATH_COLUMNS: Record<
   final: "final_image_path",
 };
 
-const ALLOWED_IMAGE_EXTENSIONS = ["jpg", "png", "webp", "heic", "heif"];
 const DEFAULT_RECENT_COMPARISONS_LIMIT = 10;
 const MAX_RECENT_COMPARISONS_LIMIT = 50;
 
@@ -217,6 +217,7 @@ export async function updateComparisonImagePath(
   comparisonId: string,
   imageStage: ImageStage,
   imagePath: string,
+  expectedCurrentPath?: string | null,
 ): Promise<void> {
   if (!comparisonId || !imagePath) {
     throw new Error("Comparison ID and image path are required.");
@@ -235,28 +236,36 @@ export async function updateComparisonImagePath(
     throw new Error("User must be authenticated.");
   }
 
-  const expectedPrefix = `${user.id}/${comparisonId}/${imageStage}.`;
-
-  const extension = imagePath.slice(expectedPrefix.length).toLowerCase();
-
   if (
-    !imagePath.startsWith(expectedPrefix) ||
-    !ALLOWED_IMAGE_EXTENSIONS.includes(extension)
+    !isOwnedComparisonImagePath({
+      comparisonId,
+      imagePath,
+      imageStage,
+      userId: user.id,
+    })
   ) {
     throw new Error("Image path does not match this comparison.");
   }
 
   const column = IMAGE_PATH_COLUMNS[imageStage];
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("comparisons")
     .update({
       [column]: imagePath,
     })
     .eq("id", comparisonId)
-    .eq("user_id", user.id)
+    .eq("user_id", user.id);
+
+  if (expectedCurrentPath === null) {
+    query = query.is(column, null);
+  } else if (expectedCurrentPath !== undefined) {
+    query = query.eq(column, expectedCurrentPath);
+  }
+
+  const { data, error } = await query
     .select("id")
-    .single();
+    .maybeSingle();
 
   if (error || !data) {
     throw error ?? new Error("Comparison image could not be saved.");

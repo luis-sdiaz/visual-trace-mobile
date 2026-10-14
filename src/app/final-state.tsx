@@ -20,9 +20,8 @@ import { Typography } from "@/constants/typography";
 import { useComparison } from "@/context/ComparisonContext";
 import {
   markComparisonReady,
-  updateComparisonImagePath,
 } from "@/services/comparisonService";
-import { uploadComparisonImage } from "@/services/imageStorageService";
+import { saveComparisonImage } from "@/services/comparisonImageLifecycleService";
 
 export default function FinalStateScreen() {
   const {
@@ -38,6 +37,29 @@ export default function FinalStateScreen() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const uploadingRef = useRef(false);
+
+  function acceptSelectedImage(uri: string) {
+    if (!finalImagePath) {
+      setFinalImageUri(uri);
+      setErrorMessage(null);
+      return;
+    }
+
+    Alert.alert(
+      "Reemplazar fotografía final",
+      "La fotografía guardada se conservará hasta que el reemplazo termine correctamente.",
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Reemplazar",
+          onPress: () => {
+            setFinalImageUri(uri);
+            setErrorMessage(null);
+          },
+        },
+      ],
+    );
+  }
 
   async function handleTakePhoto() {
     if (uploadingRef.current) {
@@ -61,8 +83,7 @@ export default function FinalStateScreen() {
     });
 
     if (!result.canceled) {
-      setFinalImageUri(result.assets[0].uri);
-      setErrorMessage(null);
+      acceptSelectedImage(result.assets[0].uri);
     }
   }
 
@@ -88,8 +109,7 @@ export default function FinalStateScreen() {
     });
 
     if (!result.canceled) {
-      setFinalImageUri(result.assets[0].uri);
-      setErrorMessage(null);
+      acceptSelectedImage(result.assets[0].uri);
     }
   }
 
@@ -117,13 +137,12 @@ export default function FinalStateScreen() {
         return;
       }
 
-      const imagePath = await uploadComparisonImage({
+      const imagePath = await saveComparisonImage({
         comparisonId,
         imageUri: finalImageUri,
         imageStage: "final",
+        previousImagePath: finalImagePath,
       });
-
-      await updateComparisonImagePath(comparisonId, "final", imagePath);
       markFinalImageSaved(imagePath);
       await markComparisonReady(comparisonId);
 
@@ -204,7 +223,9 @@ export default function FinalStateScreen() {
               onPress={handleTakePhoto}
               style={styles.primaryAction}
             >
-              <Text style={styles.primaryActionText}>Tomar foto</Text>
+              <Text style={styles.primaryActionText}>
+                {finalImagePath ? "Tomar nueva foto" : "Tomar foto"}
+              </Text>
             </Pressable>
 
             <Pressable
@@ -213,7 +234,11 @@ export default function FinalStateScreen() {
               onPress={handlePickImage}
               style={styles.secondaryAction}
             >
-              <Text style={styles.secondaryActionText}>Elegir de galería</Text>
+              <Text style={styles.secondaryActionText}>
+                {finalImagePath
+                  ? "Elegir reemplazo de galería"
+                  : "Elegir de galería"}
+              </Text>
             </Pressable>
           </View>
 
