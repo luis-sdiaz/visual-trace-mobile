@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router, useFocusEffect } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -19,10 +19,13 @@ import { Typography } from "@/constants/typography";
 import { useAuth } from "@/context/AuthContext";
 import { useComparison } from "@/context/ComparisonContext";
 import {
+  fetchComparisonById,
   fetchRecentComparisons,
+  isComparisonComplete,
   type ComparisonRecord,
   type ComparisonStatus,
 } from "@/services/comparisonService";
+import { resolveComparisonImageUrl } from "@/services/imageStorageService";
 
 const STATUS_LABELS: Record<ComparisonStatus, string> = {
   draft: "En curso",
@@ -52,6 +55,7 @@ export default function HomeScreen() {
     name,
     initialImageUri,
     finalImageUri,
+    restoreComparison,
     resetComparison,
   } = useComparison();
 
@@ -63,23 +67,45 @@ export default function HomeScreen() {
   const [isLoadingRecent, setIsLoadingRecent] = useState(true);
   const [recentError, setRecentError] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
+  const [openingComparisonId, setOpeningComparisonId] = useState<string | null>(
+    null,
+  );
+  const [openError, setOpenError] = useState<string | null>(null);
+  const openSequenceRef = useRef(0);
 
   const fullName = user?.user_metadata?.full_name;
 
   const firstName =
     typeof fullName === "string" ? fullName.trim().split(/\s+/)[0] : "";
 
-  const hasDraft =
+  const hasDraftData =
     comparisonId !== null ||
     name.trim().length > 0 ||
     initialImageUri !== null ||
     finalImageUri !== null;
+
+  const currentServerComparison = recentComparisons.find(
+    (comparison) => comparison.id === comparisonId,
+  );
+
+  const hasDraft =
+    hasDraftData &&
+    !isLoadingRecent &&
+    (recentError !== null ||
+      !currentServerComparison ||
+      !isComparisonComplete(currentServerComparison));
 
   useEffect(() => {
     if (!isLoading && !user) {
       router.replace("/");
     }
   }, [isLoading, user]);
+
+  useEffect(() => {
+    openSequenceRef.current += 1;
+    setOpeningComparisonId(null);
+    setOpenError(null);
+  }, [user?.id]);
 
   useFocusEffect(
     useCallback(() => {
@@ -146,23 +172,85 @@ export default function HomeScreen() {
     router.push("/new-comparison");
   }
 
+  async function handleOpenComparison(
+    id: string,
+    preserveLocalImages = false,
+  ) {
+    if (openingComparisonId) {
+      return;
+    }
+
+    const openSequence = ++openSequenceRef.current;
+
+    setOpeningComparisonId(id);
+    setOpenError(null);
+
+    try {
+      const comparison = await fetchComparisonById(id);
+      const [storedInitialImage, storedFinalImage] = await Promise.all([
+        comparison.initial_image_path
+          ? resolveComparisonImageUrl({
+              comparisonId: comparison.id,
+              imagePath: comparison.initial_image_path,
+              imageStage: "initial",
+            })
+          : null,
+        comparison.final_image_path
+          ? resolveComparisonImageUrl({
+              comparisonId: comparison.id,
+              imagePath: comparison.final_image_path,
+              imageStage: "final",
+            })
+          : null,
+      ]);
+
+      if (openSequence !== openSequenceRef.current) {
+        return;
+      }
+
+      const resolvedInitialImage =
+        storedInitialImage ??
+        (preserveLocalImages && comparisonId === id ? initialImageUri : null);
+      const resolvedFinalImage =
+        storedFinalImage ??
+        (preserveLocalImages && comparisonId === id ? finalImageUri : null);
+
+      restoreComparison({
+        comparisonId: comparison.id,
+        name: comparison.name,
+        initialImageUri: resolvedInitialImage,
+        finalImageUri: resolvedFinalImage,
+        initialImageIsTransient: storedInitialImage !== null,
+        finalImageIsTransient: storedFinalImage !== null,
+      });
+
+      if (!comparison.initial_image_path) {
+        router.push("/initial-state");
+      } else if (!comparison.final_image_path) {
+        router.push("/final-state");
+      } else {
+        router.push("/comparison-result");
+      }
+    } catch {
+      if (openSequence === openSequenceRef.current) {
+        setOpenError(
+          "No pudimos abrir esta comparación. Verifica tu conexión y que sus fotografías sigan disponibles.",
+        );
+      }
+    } finally {
+      if (openSequence === openSequenceRef.current) {
+        setOpeningComparisonId(null);
+      }
+    }
+  }
+
   function handleResumeComparison() {
     if (!comparisonId) {
       router.push("/new-comparison");
       return;
     }
 
-    if (!initialImageUri) {
-      router.push("/initial-state");
-      return;
-    }
-
-    if (!finalImageUri) {
-      router.push("/final-state");
-      return;
-    }
-
-    router.push("/comparison-result");
+    void handleOpenComparison(comparisonId, true);
   }
 
   if (isLoading || !user) {
@@ -225,6 +313,7 @@ export default function HomeScreen() {
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Continuar comparación"
+            disabled={openingComparisonId !== null}
             onPress={handleResumeComparison}
             style={({ pressed }) => [
               styles.draftCard,
@@ -242,7 +331,11 @@ export default function HomeScreen() {
                 {name.trim() || "Comparación sin nombre"}
               </Text>
 
-              <Text style={styles.draftAction}>Continuar comparación</Text>
+              <Text style={styles.draftAction}>
+                {openingComparisonId === comparisonId
+                  ? "Abriendo..."
+                  : "Continuar comparación"}
+              </Text>
             </View>
 
             <Ionicons name="chevron-forward" size={20} color={Colors.primary} />
@@ -274,6 +367,17 @@ export default function HomeScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Comparaciones recientes</Text>
 
+          {openError ? (
+            <View style={styles.openErrorCard}>
+              <Ionicons
+                name="alert-circle-outline"
+                size={20}
+                color={Colors.danger}
+              />
+              <Text style={styles.openErrorText}>{openError}</Text>
+            </View>
+          ) : null}
+
           {isLoadingRecent ? (
             <View style={styles.recentFeedbackCard}>
               <ActivityIndicator color={Colors.primary} />
@@ -300,7 +404,17 @@ export default function HomeScreen() {
           ) : recentComparisons.length > 0 ? (
             <View style={styles.recentList}>
               {recentComparisons.map((comparison) => (
-                <View key={comparison.id} style={styles.recentCard}>
+                <Pressable
+                  key={comparison.id}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Abrir ${comparison.name}`}
+                  disabled={openingComparisonId !== null}
+                  onPress={() => void handleOpenComparison(comparison.id)}
+                  style={({ pressed }) => [
+                    styles.recentCard,
+                    pressed && styles.recentCardPressed,
+                  ]}
+                >
                   <View style={styles.recentIcon}>
                     <Ionicons
                       name="images-outline"
@@ -337,7 +451,22 @@ export default function HomeScreen() {
                       {STATUS_LABELS[comparison.status]}
                     </Text>
                   </View>
-                </View>
+
+                  {openingComparisonId === comparison.id ? (
+                    <ActivityIndicator
+                      size="small"
+                      color={Colors.primary}
+                      style={styles.openingIndicator}
+                    />
+                  ) : (
+                    <Ionicons
+                      name="chevron-forward"
+                      size={18}
+                      color={Colors.textMuted}
+                      style={styles.recentChevron}
+                    />
+                  )}
+                </Pressable>
               ))}
             </View>
           ) : (
@@ -567,6 +696,22 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
 
+  openErrorCard: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    padding: Spacing.md,
+    marginBottom: Spacing.md,
+    backgroundColor: Colors.dangerSoft,
+    borderRadius: Radius.md,
+  },
+
+  openErrorText: {
+    flex: 1,
+    ...Typography.label,
+    color: Colors.danger,
+    marginLeft: Spacing.sm,
+  },
+
   recentFeedbackCard: {
     alignItems: "center",
     padding: Spacing.xl,
@@ -614,6 +759,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.border,
     borderRadius: Radius.lg,
+  },
+
+  recentCardPressed: {
+    backgroundColor: Colors.surfaceSecondary,
   },
 
   recentIcon: {
@@ -672,6 +821,14 @@ const styles = StyleSheet.create({
 
   analyzedText: {
     color: Colors.success,
+  },
+
+  openingIndicator: {
+    marginLeft: Spacing.sm,
+  },
+
+  recentChevron: {
+    marginLeft: Spacing.sm,
   },
 
   emptyCard: {

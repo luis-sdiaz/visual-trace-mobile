@@ -14,7 +14,13 @@ import {
   loadComparisonDraft,
   migrateLegacyComparisonDraft,
   saveComparisonDraft,
+  type ComparisonDraft,
 } from "@/storage/comparisonStorage";
+
+type RestoredComparison = ComparisonDraft & {
+  initialImageIsTransient?: boolean;
+  finalImageIsTransient?: boolean;
+};
 
 type ComparisonContextValue = {
   comparisonId: string | null;
@@ -25,6 +31,7 @@ type ComparisonContextValue = {
   setName: (name: string) => void;
   setInitialImageUri: (uri: string | null) => void;
   setFinalImageUri: (uri: string | null) => void;
+  restoreComparison: (draft: RestoredComparison) => void;
   resetComparison: () => void;
 };
 
@@ -38,6 +45,8 @@ export function ComparisonProvider({ children }: PropsWithChildren) {
   const [name, setName] = useState("");
   const [initialImageUri, setInitialImageUri] = useState<string | null>(null);
   const [finalImageUri, setFinalImageUri] = useState<string | null>(null);
+  const [isInitialImageTransient, setIsInitialImageTransient] = useState(false);
+  const [isFinalImageTransient, setIsFinalImageTransient] = useState(false);
   const [hydratedUserId, setHydratedUserId] = useState<string | null>(null);
   const hydrationSequenceRef = useRef(0);
   const persistenceQueueRef = useRef(Promise.resolve());
@@ -50,6 +59,8 @@ export function ComparisonProvider({ children }: PropsWithChildren) {
     setName("");
     setInitialImageUri(null);
     setFinalImageUri(null);
+    setIsInitialImageTransient(false);
+    setIsFinalImageTransient(false);
     setHydratedUserId(null);
 
     if (isAuthLoading || !userId) {
@@ -87,6 +98,8 @@ export function ComparisonProvider({ children }: PropsWithChildren) {
         setName(draft.name);
         setInitialImageUri(draft.initialImageUri);
         setFinalImageUri(draft.finalImageUri);
+        setIsInitialImageTransient(false);
+        setIsFinalImageTransient(false);
       }
 
       setHydratedUserId(authenticatedUserId);
@@ -115,8 +128,8 @@ export function ComparisonProvider({ children }: PropsWithChildren) {
           ? saveComparisonDraft(userId, {
               comparisonId,
               name,
-              initialImageUri,
-              finalImageUri,
+              initialImageUri: isInitialImageTransient ? null : initialImageUri,
+              finalImageUri: isFinalImageTransient ? null : finalImageUri,
             })
           : clearComparisonDraft(userId),
       );
@@ -125,15 +138,38 @@ export function ComparisonProvider({ children }: PropsWithChildren) {
     name,
     initialImageUri,
     finalImageUri,
+    isInitialImageTransient,
+    isFinalImageTransient,
     hydratedUserId,
     user?.id,
   ]);
+
+  function handleSetInitialImageUri(uri: string | null) {
+    setIsInitialImageTransient(false);
+    setInitialImageUri(uri);
+  }
+
+  function handleSetFinalImageUri(uri: string | null) {
+    setIsFinalImageTransient(false);
+    setFinalImageUri(uri);
+  }
+
+  function restoreComparison(draft: RestoredComparison) {
+    setComparisonId(draft.comparisonId);
+    setName(draft.name);
+    setInitialImageUri(draft.initialImageUri);
+    setFinalImageUri(draft.finalImageUri);
+    setIsInitialImageTransient(draft.initialImageIsTransient ?? false);
+    setIsFinalImageTransient(draft.finalImageIsTransient ?? false);
+  }
 
   function resetComparison() {
     setComparisonId(null);
     setName("");
     setInitialImageUri(null);
     setFinalImageUri(null);
+    setIsInitialImageTransient(false);
+    setIsFinalImageTransient(false);
   }
 
   return (
@@ -145,8 +181,9 @@ export function ComparisonProvider({ children }: PropsWithChildren) {
         finalImageUri,
         setComparisonId,
         setName,
-        setInitialImageUri,
-        setFinalImageUri,
+        setInitialImageUri: handleSetInitialImageUri,
+        setFinalImageUri: handleSetFinalImageUri,
+        restoreComparison,
         resetComparison,
       }}
     >
