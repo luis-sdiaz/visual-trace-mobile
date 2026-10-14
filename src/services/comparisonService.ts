@@ -24,6 +24,42 @@ const IMAGE_PATH_COLUMNS: Record<
 };
 
 const ALLOWED_IMAGE_EXTENSIONS = ["jpg", "png", "webp", "heic", "heif"];
+const DEFAULT_RECENT_COMPARISONS_LIMIT = 10;
+const MAX_RECENT_COMPARISONS_LIMIT = 50;
+
+export async function fetchRecentComparisons(
+  limit = DEFAULT_RECENT_COMPARISONS_LIMIT,
+): Promise<ComparisonRecord[]> {
+  if (
+    !Number.isInteger(limit) ||
+    limit < 1 ||
+    limit > MAX_RECENT_COMPARISONS_LIMIT
+  ) {
+    throw new Error("Recent comparisons limit must be between 1 and 50.");
+  }
+
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    throw new Error("User must be authenticated.");
+  }
+
+  const { data, error } = await supabase
+    .from("comparisons")
+    .select("*")
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    throw error;
+  }
+
+  return (data ?? []) as ComparisonRecord[];
+}
 
 export async function createComparisonDraft(
   name: string,
