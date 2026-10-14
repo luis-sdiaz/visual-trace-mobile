@@ -12,7 +12,9 @@ const completeComparison = {
 };
 
 const loadImages = vi.fn().mockResolvedValue({});
-const analyzeImages = vi.fn().mockResolvedValue({ report: {} });
+const analysis = { model: "gemini-test", report: { contractVersion: "1.0" } };
+const analyzeImages = vi.fn().mockResolvedValue(analysis);
+const persistReport = vi.fn().mockResolvedValue({ id: "report-1", ...analysis });
 
 function request(body: unknown, authorization = "Bearer valid") {
   return new Request("http://localhost/analyze-comparison", {
@@ -29,6 +31,7 @@ describe("analyze-comparison authorization", () => {
       findComparison: vi.fn(),
       loadImages,
       analyzeImages,
+      persistReport,
     });
     expect((await handler(new Request("http://localhost"))).status).toBe(405);
   });
@@ -39,6 +42,7 @@ describe("analyze-comparison authorization", () => {
       findComparison: vi.fn(),
       loadImages,
       analyzeImages,
+      persistReport,
     });
     expect((await handler(request({ comparisonId }, ""))).status).toBe(401);
     expect((await handler(request({ comparisonId }))).status).toBe(401);
@@ -51,6 +55,7 @@ describe("analyze-comparison authorization", () => {
       findComparison,
       loadImages,
       analyzeImages,
+      persistReport,
     });
     expect((await handler(request({ comparisonId: "not-a-uuid" }))).status).toBe(400);
     expect(findComparison).not.toHaveBeenCalled();
@@ -62,6 +67,7 @@ describe("analyze-comparison authorization", () => {
       findComparison: vi.fn().mockResolvedValue(null),
       loadImages,
       analyzeImages,
+      persistReport,
     });
     expect((await handler(request({ comparisonId }))).status).toBe(404);
   });
@@ -75,6 +81,7 @@ describe("analyze-comparison authorization", () => {
       }),
       loadImages,
       analyzeImages,
+      persistReport,
     });
     expect((await handler(request({ comparisonId }))).status).toBe(409);
   });
@@ -86,6 +93,7 @@ describe("analyze-comparison authorization", () => {
       findComparison,
       loadImages,
       analyzeImages,
+      persistReport,
     });
     const response = await handler(request({ comparisonId, userId: "attacker" }));
     expect(response.status).toBe(200);
@@ -94,5 +102,24 @@ describe("analyze-comparison authorization", () => {
       user.id,
       "Bearer valid",
     );
+    expect(persistReport).toHaveBeenCalledWith({
+      comparison: completeComparison,
+      analysis,
+    });
+  });
+
+  it("does not report success when transactional persistence fails", async () => {
+    const handler = createAnalyzeComparisonHandler({
+      authenticate: vi.fn().mockResolvedValue(user),
+      findComparison: vi.fn().mockResolvedValue(completeComparison),
+      loadImages,
+      analyzeImages,
+      persistReport: vi.fn().mockRejectedValue(new Error("database unavailable")),
+    });
+    const response = await handler(request({ comparisonId }));
+    expect(response.status).toBe(500);
+    await expect(response.json()).resolves.toMatchObject({
+      code: "analysis_persistence_failed",
+    });
   });
 });

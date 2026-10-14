@@ -18,7 +18,14 @@ export type AnalyzeDependencies = {
     comparison: AuthorizedComparison,
     authorization: string,
   ) => Promise<{ initial: unknown; final: unknown }>;
-  analyzeImages: (images: { initial: unknown; final: unknown }) => Promise<unknown>;
+  analyzeImages: (images: { initial: unknown; final: unknown }) => Promise<{
+    model: string;
+    report: { contractVersion: string } & Record<string, unknown>;
+  }>;
+  persistReport: (input: {
+    comparison: AuthorizedComparison;
+    analysis: { model: string; report: { contractVersion: string } & Record<string, unknown> };
+  }) => Promise<unknown>;
 };
 
 const UUID_PATTERN =
@@ -132,9 +139,9 @@ export function createAnalyzeComparisonHandler(dependencies: AnalyzeDependencies
       return jsonResponse(status, code, "No fue posible preparar las fotografías para el análisis.");
     }
 
+    let analysis: Awaited<ReturnType<AnalyzeDependencies["analyzeImages"]>>;
     try {
-      const analysis = await dependencies.analyzeImages(images);
-      return new Response(JSON.stringify(analysis), { status: 200, headers: JSON_HEADERS });
+      analysis = await dependencies.analyzeImages(images);
     } catch (error) {
       const code =
         typeof error === "object" && error !== null && "code" in error
@@ -142,6 +149,21 @@ export function createAnalyzeComparisonHandler(dependencies: AnalyzeDependencies
           : "gemini_network_error";
       const status = code === "provider_quota_exceeded" ? 429 : code === "gemini_timeout" ? 504 : 502;
       return jsonResponse(status, code, "No fue posible completar el análisis visual.");
+    }
+
+    try {
+      const persisted = await dependencies.persistReport({ comparison, analysis });
+      return new Response(JSON.stringify(persisted), { status: 200, headers: JSON_HEADERS });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "";
+      const stale = message.includes("comparison_images_changed");
+      return jsonResponse(
+        stale ? 409 : 500,
+        stale ? "analysis_stale" : "analysis_persistence_failed",
+        stale
+          ? "Las fotografías cambiaron durante el análisis."
+          : "El informe no pudo guardarse.",
+      );
     }
   };
 }

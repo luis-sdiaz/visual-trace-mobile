@@ -7,14 +7,18 @@ import { createGeminiClient } from "./geminiClient.ts";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL");
 const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
+const supabaseServiceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 const geminiApiKey = Deno.env.get("GEMINI_API_KEY");
 const geminiModel = Deno.env.get("GEMINI_MODEL") ?? undefined;
 
-if (!supabaseUrl || !supabaseAnonKey || !geminiApiKey) {
+if (!supabaseUrl || !supabaseAnonKey || !supabaseServiceRoleKey || !geminiApiKey) {
   throw new Error("Supabase Edge Function environment is not configured.");
 }
 
 const gemini = createGeminiClient({ apiKey: geminiApiKey, model: geminiModel });
+const serviceClient = createClient(supabaseUrl, supabaseServiceRoleKey, {
+  auth: { persistSession: false, autoRefreshToken: false },
+});
 
 const handler = createAnalyzeComparisonHandler({
   async authenticate(authorization) {
@@ -67,6 +71,20 @@ const handler = createAnalyzeComparisonHandler({
       images.initial as Awaited<ReturnType<typeof loadAuthorizedComparisonImages>>["initial"],
       images.final as Awaited<ReturnType<typeof loadAuthorizedComparisonImages>>["final"],
     );
+  },
+
+  async persistReport({ comparison, analysis }) {
+    const { data, error } = await serviceClient.rpc("persist_ai_analysis_report", {
+      p_comparison_id: comparison.id,
+      p_user_id: comparison.user_id,
+      p_model: analysis.model,
+      p_contract_version: analysis.report.contractVersion,
+      p_result: analysis.report,
+      p_initial_image_path: comparison.initial_image_path,
+      p_final_image_path: comparison.final_image_path,
+    });
+    if (error) throw error;
+    return data;
   },
 });
 
