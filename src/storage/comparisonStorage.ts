@@ -8,6 +8,8 @@ export type ComparisonDraft = {
   name: string;
   initialImageUri: string | null;
   finalImageUri: string | null;
+  initialImagePath?: string | null;
+  initialImageIsDirty?: boolean;
 };
 
 type StoredComparisonDraft = ComparisonDraft & {
@@ -25,8 +27,7 @@ function getComparisonDraftKey(userId: string): string {
 function parseComparisonDraft(value: string): ComparisonDraft | null {
   try {
     const draft = JSON.parse(value) as Partial<ComparisonDraft>;
-
-    return {
+    const parsedDraft: ComparisonDraft = {
       comparisonId:
         typeof draft.comparisonId === "string" ? draft.comparisonId : null,
       name: typeof draft.name === "string" ? draft.name : "",
@@ -37,6 +38,19 @@ function parseComparisonDraft(value: string): ComparisonDraft | null {
       finalImageUri:
         typeof draft.finalImageUri === "string" ? draft.finalImageUri : null,
     };
+
+    if (
+      draft.initialImagePath === null ||
+      typeof draft.initialImagePath === "string"
+    ) {
+      parsedDraft.initialImagePath = draft.initialImagePath;
+    }
+
+    if (typeof draft.initialImageIsDirty === "boolean") {
+      parsedDraft.initialImageIsDirty = draft.initialImageIsDirty;
+    }
+
+    return parsedDraft;
   } catch {
     return null;
   }

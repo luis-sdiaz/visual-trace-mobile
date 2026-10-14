@@ -22,7 +22,14 @@ import { updateComparisonImagePath } from "@/services/comparisonService";
 import { uploadComparisonImage } from "@/services/imageStorageService";
 
 export default function InitialStateScreen() {
-  const { comparisonId, initialImageUri, setInitialImageUri } = useComparison();
+  const {
+    comparisonId,
+    initialImageUri,
+    initialImagePath,
+    initialImageIsDirty,
+    markInitialImageSaved,
+    setInitialImageUri,
+  } = useComparison();
 
   const [isUploading, setIsUploading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -101,6 +108,11 @@ export default function InitialStateScreen() {
     setErrorMessage(null);
 
     try {
+      if (!initialImageIsDirty && initialImagePath) {
+        router.push("/final-state");
+        return;
+      }
+
       const imagePath = await uploadComparisonImage({
         comparisonId,
         imageUri: initialImageUri,
@@ -108,6 +120,7 @@ export default function InitialStateScreen() {
       });
 
       await updateComparisonImagePath(comparisonId, "initial", imagePath);
+      markInitialImageSaved(imagePath);
 
       router.push("/final-state");
     } catch (error) {

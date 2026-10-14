@@ -236,6 +236,8 @@ export default function HomeScreen() {
         comparisonId: comparison.id,
         name: comparison.name,
         initialImageUri: resolvedInitialImage,
+        initialImagePath: comparison.initial_image_path,
+        initialImageIsDirty: false,
         finalImageUri: resolvedFinalImage,
         initialImageIsTransient: storedInitialImage !== null,
         finalImageIsTransient: storedFinalImage !== null,

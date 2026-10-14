@@ -26,10 +26,13 @@ type ComparisonContextValue = {
   comparisonId: string | null;
   name: string;
   initialImageUri: string | null;
+  initialImagePath: string | null;
+  initialImageIsDirty: boolean;
   finalImageUri: string | null;
   setComparisonId: (id: string | null) => void;
   setName: (name: string) => void;
   setInitialImageUri: (uri: string | null) => void;
+  markInitialImageSaved: (path: string) => void;
   setFinalImageUri: (uri: string | null) => void;
   restoreComparison: (draft: RestoredComparison) => void;
   resetComparison: () => void;
@@ -44,6 +47,8 @@ export function ComparisonProvider({ children }: PropsWithChildren) {
   const [comparisonId, setComparisonId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [initialImageUri, setInitialImageUri] = useState<string | null>(null);
+  const [initialImagePath, setInitialImagePath] = useState<string | null>(null);
+  const [initialImageIsDirty, setInitialImageIsDirty] = useState(false);
   const [finalImageUri, setFinalImageUri] = useState<string | null>(null);
   const [isInitialImageTransient, setIsInitialImageTransient] = useState(false);
   const [isFinalImageTransient, setIsFinalImageTransient] = useState(false);
@@ -65,6 +70,8 @@ export function ComparisonProvider({ children }: PropsWithChildren) {
       setComparisonId(null);
       setName("");
       setInitialImageUri(null);
+      setInitialImagePath(null);
+      setInitialImageIsDirty(false);
       setFinalImageUri(null);
       setIsInitialImageTransient(false);
       setIsFinalImageTransient(false);
@@ -101,6 +108,11 @@ export function ComparisonProvider({ children }: PropsWithChildren) {
         setComparisonId(draft.comparisonId);
         setName(draft.name);
         setInitialImageUri(draft.initialImageUri);
+        setInitialImagePath(draft.initialImagePath ?? null);
+        setInitialImageIsDirty(
+          draft.initialImageIsDirty ??
+            Boolean(draft.initialImageUri && !draft.initialImagePath),
+        );
         setFinalImageUri(draft.finalImageUri);
         setIsInitialImageTransient(false);
         setIsFinalImageTransient(false);
@@ -133,6 +145,8 @@ export function ComparisonProvider({ children }: PropsWithChildren) {
               comparisonId,
               name,
               initialImageUri: isInitialImageTransient ? null : initialImageUri,
+              initialImagePath,
+              initialImageIsDirty,
               finalImageUri: isFinalImageTransient ? null : finalImageUri,
             })
           : clearComparisonDraft(userId),
@@ -141,6 +155,8 @@ export function ComparisonProvider({ children }: PropsWithChildren) {
     comparisonId,
     name,
     initialImageUri,
+    initialImagePath,
+    initialImageIsDirty,
     finalImageUri,
     isInitialImageTransient,
     isFinalImageTransient,
@@ -151,6 +167,12 @@ export function ComparisonProvider({ children }: PropsWithChildren) {
   function handleSetInitialImageUri(uri: string | null) {
     setIsInitialImageTransient(false);
     setInitialImageUri(uri);
+    setInitialImageIsDirty(uri !== null);
+  }
+
+  function markInitialImageSaved(path: string) {
+    setInitialImagePath(path);
+    setInitialImageIsDirty(false);
   }
 
   function handleSetFinalImageUri(uri: string | null) {
@@ -162,6 +184,8 @@ export function ComparisonProvider({ children }: PropsWithChildren) {
     setComparisonId(draft.comparisonId);
     setName(draft.name);
     setInitialImageUri(draft.initialImageUri);
+    setInitialImagePath(draft.initialImagePath ?? null);
+    setInitialImageIsDirty(draft.initialImageIsDirty ?? false);
     setFinalImageUri(draft.finalImageUri);
     setIsInitialImageTransient(draft.initialImageIsTransient ?? false);
     setIsFinalImageTransient(draft.finalImageIsTransient ?? false);
@@ -171,6 +195,8 @@ export function ComparisonProvider({ children }: PropsWithChildren) {
     setComparisonId(null);
     setName("");
     setInitialImageUri(null);
+    setInitialImagePath(null);
+    setInitialImageIsDirty(false);
     setFinalImageUri(null);
     setIsInitialImageTransient(false);
     setIsFinalImageTransient(false);
@@ -182,10 +208,13 @@ export function ComparisonProvider({ children }: PropsWithChildren) {
         comparisonId,
         name,
         initialImageUri,
+        initialImagePath,
+        initialImageIsDirty,
         finalImageUri,
         setComparisonId,
         setName,
         setInitialImageUri: handleSetInitialImageUri,
+        markInitialImageSaved,
         setFinalImageUri: handleSetFinalImageUri,
         restoreComparison,
         resetComparison,

@@ -143,6 +143,8 @@ export default function ComparisonResultScreen() {
           comparisonId: recovery.comparison.id,
           name: recovery.comparison.name,
           initialImageUri: recovery.initialImageUri,
+          initialImagePath: recovery.comparison.initial_image_path,
+          initialImageIsDirty: false,
           finalImageUri: recovery.finalImageUri,
           initialImageIsTransient: recovery.initialImageUri !== null,
           finalImageIsTransient: recovery.finalImageUri !== null,
