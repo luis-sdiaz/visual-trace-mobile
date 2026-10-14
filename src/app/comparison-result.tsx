@@ -20,6 +20,7 @@ import { Typography } from "@/constants/typography";
 import { useAuth } from "@/context/AuthContext";
 import { useComparison } from "@/context/ComparisonContext";
 import { recoverComparison } from "@/services/comparisonRecoveryService";
+import { createSingleFlight } from "@/utils/singleFlight";
 
 type PrivateImageStatus = "loading" | "available" | "error" | "retrying";
 
@@ -106,7 +107,7 @@ export default function ComparisonResultScreen() {
   } = useComparison();
   const userId = user?.id;
   const refreshSequenceRef = useRef(0);
-  const refreshInFlightRef = useRef<Promise<boolean> | null>(null);
+  const [refreshSingleFlight] = useState(() => createSingleFlight<boolean>());
   const isFocusedRef = useRef(false);
   const restoreComparisonRef = useRef(restoreComparison);
 
@@ -119,14 +120,11 @@ export default function ComparisonResultScreen() {
       return Promise.resolve(false);
     }
 
-    if (refreshInFlightRef.current) {
-      return refreshInFlightRef.current;
-    }
+    return refreshSingleFlight.run(async () => {
+      const refreshSequence = ++refreshSequenceRef.current;
+      const requestComparisonId = comparisonId;
+      const requestUserId = userId;
 
-    const refreshSequence = ++refreshSequenceRef.current;
-    const requestComparisonId = comparisonId;
-    const requestUserId = userId;
-    const refreshRequest = (async () => {
       try {
         const recovery = await recoverComparison(requestComparisonId);
 
@@ -156,22 +154,14 @@ export default function ComparisonResultScreen() {
       } catch (error) {
         console.error("Failed to refresh private comparison images:", error);
         return false;
-      } finally {
-        if (refreshSequence === refreshSequenceRef.current) {
-          refreshInFlightRef.current = null;
-        }
       }
-    })();
-
-    refreshInFlightRef.current = refreshRequest;
-
-    return refreshRequest;
-  }, [comparisonId, userId]);
+    });
+  }, [comparisonId, refreshSingleFlight, userId]);
 
   useEffect(() => {
     refreshSequenceRef.current += 1;
-    refreshInFlightRef.current = null;
-  }, [comparisonId, userId]);
+    refreshSingleFlight.clear();
+  }, [comparisonId, refreshSingleFlight, userId]);
 
   useFocusEffect(
     useCallback(() => {
@@ -181,9 +171,9 @@ export default function ComparisonResultScreen() {
       return () => {
         isFocusedRef.current = false;
         refreshSequenceRef.current += 1;
-        refreshInFlightRef.current = null;
+        refreshSingleFlight.clear();
       };
-    }, [refreshPrivateImages]),
+    }, [refreshPrivateImages, refreshSingleFlight]),
   );
 
   useEffect(() => {

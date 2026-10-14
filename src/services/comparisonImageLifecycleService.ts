@@ -27,6 +27,13 @@ export class AnalyzedComparisonEditError extends Error {
   }
 }
 
+export function shouldUploadComparisonImage(
+  imagePath: string | null,
+  imageIsDirty: boolean,
+): boolean {
+  return imageIsDirty || imagePath === null;
+}
+
 export async function saveComparisonImage({
   comparisonId,
   imageStage,

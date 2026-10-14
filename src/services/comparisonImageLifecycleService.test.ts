@@ -20,6 +20,7 @@ vi.mock("@/services/imageStorageService", () => ({
 import {
   AnalyzedComparisonEditError,
   saveComparisonImage,
+  shouldUploadComparisonImage,
 } from "@/services/comparisonImageLifecycleService";
 import type { ComparisonRecord } from "@/services/comparisonService";
 
@@ -128,6 +129,26 @@ describe("saveComparisonImage cleanup", () => {
     expect(lifecycleMock.updateComparisonImagePath).not.toHaveBeenCalled();
   });
 
+  it("does not write anything when the upload itself fails", async () => {
+    const uploadError = new Error("upload unavailable");
+    lifecycleMock.fetchComparisonById.mockResolvedValueOnce(
+      createComparison(previousPath),
+    );
+    lifecycleMock.uploadComparisonImage.mockRejectedValue(uploadError);
+
+    await expect(
+      saveComparisonImage({
+        comparisonId: "comparison-1",
+        imageStage: "initial",
+        imageUri: "file:///replacement.png",
+        previousImagePath: previousPath,
+      }),
+    ).rejects.toBe(uploadError);
+
+    expect(lifecycleMock.updateComparisonImagePath).not.toHaveBeenCalled();
+    expect(lifecycleMock.removeComparisonImage).not.toHaveBeenCalled();
+  });
+
   it("removes an unreferenced upload when the database update fails", async () => {
     const databaseError = new Error("database unavailable");
     lifecycleMock.fetchComparisonById
@@ -185,5 +206,41 @@ describe("saveComparisonImage cleanup", () => {
     ).resolves.toBe(replacementPath);
 
     expect(lifecycleMock.removeComparisonImage).not.toHaveBeenCalled();
+  });
+
+  it("keeps a successful replacement when old-object cleanup fails", async () => {
+    lifecycleMock.fetchComparisonById
+      .mockResolvedValueOnce(createComparison(previousPath))
+      .mockResolvedValueOnce(createComparison(replacementPath));
+    lifecycleMock.removeComparisonImage.mockRejectedValue(
+      new Error("storage cleanup unavailable"),
+    );
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    await expect(
+      saveComparisonImage({
+        comparisonId: "comparison-1",
+        imageStage: "initial",
+        imageUri: "file:///replacement.png",
+        previousImagePath: previousPath,
+      }),
+    ).resolves.toBe(replacementPath);
+
+    expect(consoleError).toHaveBeenCalledWith(
+      "Failed to clean up a superseded comparison image:",
+      expect.any(Error),
+    );
+    consoleError.mockRestore();
+  });
+});
+
+describe("shouldUploadComparisonImage", () => {
+  it("skips an unchanged stored image", () => {
+    expect(shouldUploadComparisonImage(previousPath, false)).toBe(false);
+  });
+
+  it("uploads new and deliberately replaced images", () => {
+    expect(shouldUploadComparisonImage(null, true)).toBe(true);
+    expect(shouldUploadComparisonImage(previousPath, true)).toBe(true);
   });
 });

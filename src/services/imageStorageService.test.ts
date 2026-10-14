@@ -4,6 +4,8 @@ const storageMock = vi.hoisted(() => ({
   createSignedUrl: vi.fn(),
   from: vi.fn(),
   getUser: vi.fn(),
+  remove: vi.fn(),
+  upload: vi.fn(),
 }));
 
 vi.mock("expo-file-system", () => ({
@@ -25,7 +27,11 @@ vi.mock("@/lib/supabase", () => ({
   },
 }));
 
-import { resolveComparisonImageUrl } from "@/services/imageStorageService";
+import {
+  removeComparisonImage,
+  resolveComparisonImageUrl,
+  uploadComparisonImage,
+} from "@/services/imageStorageService";
 
 describe("resolveComparisonImageUrl", () => {
   beforeEach(() => {
@@ -35,7 +41,17 @@ describe("resolveComparisonImageUrl", () => {
     });
     storageMock.from.mockReturnValue({
       createSignedUrl: storageMock.createSignedUrl,
+      remove: storageMock.remove,
+      upload: storageMock.upload,
     });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        arrayBuffer: async () => new Uint8Array([1, 2, 3]).buffer,
+        headers: { get: () => "image/png" },
+        ok: true,
+      }),
+    );
   });
 
   it("creates a short-lived URL in the private comparison bucket", async () => {
@@ -85,5 +101,59 @@ describe("resolveComparisonImageUrl", () => {
         imageStage: "final",
       }),
     ).rejects.toBe(storageError);
+  });
+
+  it("creates a versioned non-overwriting path for a replacement", async () => {
+    storageMock.upload.mockImplementation(
+      async (path: string, _buffer: ArrayBuffer, options: unknown) => ({
+        data: { path },
+        error: null,
+        options,
+      }),
+    );
+
+    const imagePath = await uploadComparisonImage({
+      comparisonId: "comparison-1",
+      imageStage: "initial",
+      imageUri: "file:///replacement.png",
+      isReplacement: true,
+    });
+
+    expect(imagePath).toMatch(
+      /^user-1\/comparison-1\/initial-[a-z0-9]+-[a-z0-9]+\.png$/,
+    );
+    expect(storageMock.upload).toHaveBeenCalledWith(
+      imagePath,
+      expect.any(ArrayBuffer),
+      { contentType: "image/png", upsert: false },
+    );
+  });
+
+  it("removes only an owned image within the requested comparison", async () => {
+    storageMock.remove.mockResolvedValue({ data: [], error: null });
+
+    await expect(
+      removeComparisonImage({
+        comparisonId: "comparison-1",
+        imagePath: "user-1/comparison-1/final-old.webp",
+        imageStage: "final",
+      }),
+    ).resolves.toBeUndefined();
+    expect(storageMock.remove).toHaveBeenCalledWith([
+      "user-1/comparison-1/final-old.webp",
+    ]);
+  });
+
+  it("refuses to remove another user's image before accessing storage", async () => {
+    storageMock.from.mockClear();
+
+    await expect(
+      removeComparisonImage({
+        comparisonId: "comparison-1",
+        imagePath: "user-2/comparison-1/final-old.webp",
+        imageStage: "final",
+      }),
+    ).rejects.toThrow("Image path does not match this comparison.");
+    expect(storageMock.from).not.toHaveBeenCalled();
   });
 });

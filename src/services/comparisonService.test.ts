@@ -20,6 +20,7 @@ import {
   fetchRecentComparisons,
   markComparisonReady,
   type ComparisonRecord,
+  updateComparisonImagePath,
 } from "@/services/comparisonService";
 
 type QueryResult = {
@@ -30,6 +31,7 @@ type QueryResult = {
 function createQuery(result: QueryResult) {
   const query = {
     eq: vi.fn(),
+    is: vi.fn(),
     limit: vi.fn(),
     maybeSingle: vi.fn().mockResolvedValue(result),
     not: vi.fn(),
@@ -43,6 +45,7 @@ function createQuery(result: QueryResult) {
   };
 
   query.eq.mockReturnValue(query);
+  query.is.mockReturnValue(query);
   query.limit.mockReturnValue(query);
   query.not.mockReturnValue(query);
   query.order.mockReturnValue(query);
@@ -175,5 +178,45 @@ describe("comparisonService", () => {
     await expect(fetchComparisonById("missing")).rejects.toBeInstanceOf(
       ComparisonNotFoundError,
     );
+  });
+
+  it("updates the image and derived status in one owned row", async () => {
+    const query = createQuery({ data: { id: "comparison-1" }, error: null });
+    const replacementPath =
+      "user-1/comparison-1/final-version-2.png";
+
+    supabaseMock.from.mockReturnValueOnce(query);
+
+    await expect(
+      updateComparisonImagePath(
+        "comparison-1",
+        "final",
+        replacementPath,
+        "user-1/comparison-1/final.jpg",
+        "ready",
+      ),
+    ).resolves.toBeUndefined();
+
+    expect(query.update).toHaveBeenCalledWith({
+      final_image_path: replacementPath,
+      status: "ready",
+    });
+    expect(query.eq).toHaveBeenCalledWith("user_id", "user-1");
+    expect(query.eq).toHaveBeenCalledWith(
+      "final_image_path",
+      "user-1/comparison-1/final.jpg",
+    );
+  });
+
+  it("rejects a cross-user image path before issuing an update", async () => {
+    await expect(
+      updateComparisonImagePath(
+        "comparison-1",
+        "initial",
+        "user-2/comparison-1/initial-version.jpg",
+      ),
+    ).rejects.toThrow("Image path does not match this comparison.");
+
+    expect(supabaseMock.from).not.toHaveBeenCalled();
   });
 });

@@ -24,7 +24,9 @@ import {
 import {
   AnalyzedComparisonEditError,
   saveComparisonImage,
+  shouldUploadComparisonImage,
 } from "@/services/comparisonImageLifecycleService";
+import { getSelectedImageUri } from "@/utils/imageSelection";
 
 export default function FinalStateScreen() {
   const {
@@ -85,8 +87,10 @@ export default function FinalStateScreen() {
       quality: 0.8,
     });
 
-    if (!result.canceled) {
-      acceptSelectedImage(result.assets[0].uri);
+    const selectedImageUri = getSelectedImageUri(result);
+
+    if (selectedImageUri) {
+      acceptSelectedImage(selectedImageUri);
     }
   }
 
@@ -111,8 +115,10 @@ export default function FinalStateScreen() {
       quality: 0.8,
     });
 
-    if (!result.canceled) {
-      acceptSelectedImage(result.assets[0].uri);
+    const selectedImageUri = getSelectedImageUri(result);
+
+    if (selectedImageUri) {
+      acceptSelectedImage(selectedImageUri);
     }
   }
 
@@ -134,7 +140,7 @@ export default function FinalStateScreen() {
     setErrorMessage(null);
 
     try {
-      if (!finalImageIsDirty && finalImagePath) {
+      if (!shouldUploadComparisonImage(finalImagePath, finalImageIsDirty)) {
         await markComparisonReady(comparisonId);
         router.push("/comparison-result");
         return;

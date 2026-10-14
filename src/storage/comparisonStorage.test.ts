@@ -53,6 +53,28 @@ describe("comparisonStorage", () => {
     expect(storage.size).toBe(2);
   });
 
+  it("persists storage identity and change flags without a signed URL", async () => {
+    const recoveredDraft: ComparisonDraft = {
+      comparisonId: "comparison-1",
+      name: "Sala",
+      initialImageUri: null,
+      finalImageUri: null,
+      initialImagePath: "user-1/comparison-1/initial.jpg",
+      initialImageIsDirty: false,
+      finalImagePath: "user-1/comparison-1/final.jpg",
+      finalImageIsDirty: false,
+    };
+
+    await saveComparisonDraft("user-1", recoveredDraft);
+
+    await expect(loadComparisonDraft("user-1")).resolves.toEqual(
+      recoveredDraft,
+    );
+    expect(storage.get("@visualtrace/comparison-draft:user-1")).not.toContain(
+      "https://",
+    );
+  });
+
   it("rejects stored content whose owner does not match the key", async () => {
     storage.set(
       "@visualtrace/comparison-draft:user-1",

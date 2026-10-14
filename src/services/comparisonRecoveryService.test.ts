@@ -78,4 +78,44 @@ describe("recoverComparison", () => {
       "storage unavailable",
     );
   });
+
+  it("requests fresh signed URLs each time an expired comparison is recovered", async () => {
+    const comparison = createComparison();
+    recoveryMock.fetchComparisonById.mockResolvedValue(comparison);
+    let version = 0;
+    recoveryMock.resolveComparisonImageUrl.mockImplementation(
+      async ({ imageStage }: { imageStage: string }) =>
+        `https://signed.example/${imageStage}?version=${++version}`,
+    );
+
+    const expiredRecovery = await recoverComparison(comparison.id);
+    const refreshedRecovery = await recoverComparison(comparison.id);
+
+    expect(refreshedRecovery.initialImageUri).not.toBe(
+      expiredRecovery.initialImageUri,
+    );
+    expect(refreshedRecovery.finalImageUri).not.toBe(
+      expiredRecovery.finalImageUri,
+    );
+    expect(recoveryMock.resolveComparisonImageUrl).toHaveBeenCalledTimes(4);
+  });
+
+  it("allows recovery to be retried after a temporary signing failure", async () => {
+    const comparison = createComparison();
+    recoveryMock.fetchComparisonById.mockResolvedValue(comparison);
+    recoveryMock.resolveComparisonImageUrl
+      .mockRejectedValueOnce(new Error("signed URL expired"))
+      .mockResolvedValueOnce("https://signed.example/final-first-attempt")
+      .mockResolvedValueOnce("https://signed.example/initial-retry")
+      .mockResolvedValueOnce("https://signed.example/final-retry");
+
+    await expect(recoverComparison(comparison.id)).rejects.toThrow(
+      "signed URL expired",
+    );
+    await expect(recoverComparison(comparison.id)).resolves.toEqual({
+      comparison,
+      initialImageUri: "https://signed.example/initial-retry",
+      finalImageUri: "https://signed.example/final-retry",
+    });
+  });
 });
