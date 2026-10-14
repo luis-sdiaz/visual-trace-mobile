@@ -25,6 +25,7 @@ import {
   type ComparisonStatus,
 } from "@/services/comparisonService";
 import { recoverComparison } from "@/services/comparisonRecoveryService";
+import { getAccountGreeting } from "@/utils/accountDisplay";
 
 const STATUS_LABELS: Record<ComparisonStatus, string> = {
   draft: "En curso",
@@ -72,10 +73,7 @@ export default function HomeScreen() {
   const [openError, setOpenError] = useState<string | null>(null);
   const openSequenceRef = useRef(0);
 
-  const fullName = user?.user_metadata?.full_name;
-
-  const firstName =
-    typeof fullName === "string" ? fullName.trim().split(/\s+/)[0] : "";
+  const accountGreeting = getAccountGreeting(user?.user_metadata);
 
   const hasDraftData =
     comparisonId !== null ||
@@ -279,9 +277,7 @@ export default function HomeScreen() {
         </View>
 
         <View style={styles.header}>
-          {firstName ? (
-            <Text style={styles.greeting}>Hola, {firstName}</Text>
-          ) : null}
+          <Text style={styles.greeting}>{accountGreeting}</Text>
 
           <Text style={styles.title}>Tus comparaciones</Text>
 
