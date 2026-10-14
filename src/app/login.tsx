@@ -1,6 +1,7 @@
 import { router } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -15,9 +16,11 @@ import { Colors } from "@/constants/colors";
 import { Radius } from "@/constants/radius";
 import { Spacing } from "@/constants/spacing";
 import { Typography } from "@/constants/typography";
+import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
 
 export default function LoginScreen() {
+  const { user, isLoading: isAuthLoading } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -27,6 +30,12 @@ export default function LoginScreen() {
   const isPasswordValid = password.length > 0;
 
   const isFormValid = isEmailValid && isPasswordValid;
+
+  useEffect(() => {
+    if (!isAuthLoading && user) {
+      router.replace("/home");
+    }
+  }, [isAuthLoading, user]);
 
   async function handleLogin() {
     if (!isFormValid || isLoading) {
@@ -51,6 +60,14 @@ export default function LoginScreen() {
     }
 
     router.replace("/home");
+  }
+
+  if (isAuthLoading || user) {
+    return (
+      <SafeAreaView style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+      </SafeAreaView>
+    );
   }
 
   return (
@@ -147,6 +164,13 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: Colors.background,
+  },
+
+  loadingContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
     backgroundColor: Colors.background,
   },
 
