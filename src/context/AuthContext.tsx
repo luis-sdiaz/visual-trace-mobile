@@ -24,24 +24,27 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   useEffect(() => {
     let isMounted = true;
+    let sessionRevision = 0;
 
     async function loadSession() {
-      const { data, error } = await supabase.auth.getSession();
+      const requestRevision = sessionRevision;
 
-      if (!isMounted) {
-        return;
+      try {
+        const { data, error } = await supabase.auth.getSession();
+
+        if (!isMounted || requestRevision !== sessionRevision) {
+          return;
+        }
+
+        setSession(error ? null : data.session);
+        setIsLoading(false);
+      } catch {
+        if (isMounted && requestRevision === sessionRevision) {
+          setSession(null);
+          setIsLoading(false);
+        }
       }
-
-      if (error) {
-        setSession(null);
-      } else {
-        setSession(data.session);
-      }
-
-      setIsLoading(false);
     }
-
-    void loadSession();
 
     const {
       data: { subscription },
@@ -50,9 +53,12 @@ export function AuthProvider({ children }: PropsWithChildren) {
         return;
       }
 
+      sessionRevision += 1;
       setSession(nextSession);
       setIsLoading(false);
     });
+
+    void loadSession();
 
     return () => {
       isMounted = false;
