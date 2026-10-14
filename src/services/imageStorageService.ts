@@ -26,6 +26,12 @@ type ResolveComparisonImageUrlParams = {
   expiresIn?: number;
 };
 
+type RemoveComparisonImageParams = {
+  comparisonId: string;
+  imagePath: string;
+  imageStage: ImageStage;
+};
+
 const IMAGE_EXTENSIONS: Record<string, string> = {
   "image/jpeg": "jpg",
   "image/png": "png",
@@ -210,4 +216,42 @@ export async function resolveComparisonImageUrl({
   }
 
   return data.signedUrl;
+}
+
+export async function removeComparisonImage({
+  comparisonId,
+  imagePath,
+  imageStage,
+}: RemoveComparisonImageParams): Promise<void> {
+  if (!comparisonId || !imagePath) {
+    throw new Error("Comparison ID and image path are required.");
+  }
+
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    throw new Error("User must be authenticated.");
+  }
+
+  if (
+    !isOwnedComparisonImagePath({
+      comparisonId,
+      imagePath,
+      imageStage,
+      userId: user.id,
+    })
+  ) {
+    throw new Error("Image path does not match this comparison.");
+  }
+
+  const { error } = await supabase.storage
+    .from(STORAGE_BUCKET)
+    .remove([imagePath]);
+
+  if (error) {
+    throw error;
+  }
 }

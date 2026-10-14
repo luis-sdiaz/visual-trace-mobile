@@ -3,6 +3,7 @@ import {
   updateComparisonImagePath,
 } from "@/services/comparisonService";
 import {
+  removeComparisonImage,
   uploadComparisonImage,
   type ImageStage,
 } from "@/services/imageStorageService";
@@ -39,12 +40,65 @@ export async function saveComparisonImage({
     isReplacement: previousImagePath !== null,
   });
 
-  await updateComparisonImagePath(
-    comparisonId,
-    imageStage,
-    imagePath,
-    previousImagePath,
-  );
+  let imagePathWasSaved = false;
+
+  try {
+    await updateComparisonImagePath(
+      comparisonId,
+      imageStage,
+      imagePath,
+      previousImagePath,
+    );
+    imagePathWasSaved = true;
+  } catch (saveError) {
+    try {
+      const latestComparison = await fetchComparisonById(comparisonId);
+      imagePathWasSaved =
+        latestComparison[IMAGE_PATH_COLUMNS[imageStage]] === imagePath;
+
+      if (!imagePathWasSaved) {
+        try {
+          await removeComparisonImage({
+            comparisonId,
+            imagePath,
+            imageStage,
+          });
+        } catch (cleanupError) {
+          console.error(
+            "Failed to remove an unreferenced comparison image:",
+            cleanupError,
+          );
+        }
+      }
+    } catch {
+      // The write result is unknown, so retaining the new object is safer.
+    }
+
+    if (!imagePathWasSaved) {
+      throw saveError;
+    }
+  }
+
+  if (previousImagePath && previousImagePath !== imagePath) {
+    try {
+      const latestComparison = await fetchComparisonById(comparisonId);
+      const referencedImagePath =
+        latestComparison[IMAGE_PATH_COLUMNS[imageStage]];
+
+      if (referencedImagePath === imagePath) {
+        await removeComparisonImage({
+          comparisonId,
+          imagePath: previousImagePath,
+          imageStage,
+        });
+      }
+    } catch (cleanupError) {
+      console.error(
+        "Failed to clean up a superseded comparison image:",
+        cleanupError,
+      );
+    }
+  }
 
   return imagePath;
 }
