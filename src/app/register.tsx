@@ -1,5 +1,5 @@
 import { router } from "expo-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -20,6 +20,12 @@ import { Typography } from "@/constants/typography";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { getAuthenticationErrorFeedback } from "@/services/authService";
+import {
+  normalizeEmail,
+  normalizeFullName,
+  validateRegistrationForm,
+  type RegistrationField,
+} from "@/utils/authValidation";
 
 export default function RegisterScreen() {
   const { user, isLoading: isAuthLoading } = useAuth();
@@ -33,16 +39,19 @@ export default function RegisterScreen() {
   const [confirmationEmail, setConfirmationEmail] = useState<string | null>(
     null,
   );
+  const [touchedFields, setTouchedFields] = useState<
+    Partial<Record<RegistrationField, boolean>>
+  >({});
+  const [hasSubmitted, setHasSubmitted] = useState(false);
+  const submissionRef = useRef(false);
 
-  const isEmailValid = email.trim().includes("@");
-  const isPasswordValid = password.length >= 8;
-  const doPasswordsMatch = password === confirmPassword;
-
-  const isFormValid =
-    fullName.trim().length >= 2 &&
-    isEmailValid &&
-    isPasswordValid &&
-    doPasswordsMatch;
+  const validationErrors = validateRegistrationForm({
+    fullName,
+    email,
+    password,
+    confirmPassword,
+  });
+  const isFormValid = Object.keys(validationErrors).length === 0;
 
   useEffect(() => {
     if (!isAuthLoading && user) {
@@ -50,11 +59,34 @@ export default function RegisterScreen() {
     }
   }, [isAuthLoading, user]);
 
+  function clearRequestFeedback() {
+    setErrorMessage(null);
+    setSuccessMessage(null);
+    setConfirmationEmail(null);
+  }
+
+  function markFieldTouched(field: RegistrationField) {
+    setTouchedFields((current) => ({ ...current, [field]: true }));
+  }
+
+  function shouldShowFieldError(field: RegistrationField) {
+    return Boolean(
+      validationErrors[field] && (hasSubmitted || touchedFields[field]),
+    );
+  }
+
   async function handleRegister() {
-    if (!isFormValid || isLoading) {
+    if (submissionRef.current) {
       return;
     }
 
+    setHasSubmitted(true);
+
+    if (!isFormValid) {
+      return;
+    }
+
+    submissionRef.current = true;
     setIsLoading(true);
     setErrorMessage(null);
     setSuccessMessage(null);
@@ -62,11 +94,11 @@ export default function RegisterScreen() {
 
     try {
       const { data, error } = await supabase.auth.signUp({
-        email: email.trim().toLowerCase(),
+        email: normalizeEmail(email),
         password,
         options: {
           data: {
-            full_name: fullName.trim(),
+            full_name: normalizeFullName(fullName),
           },
         },
       });
@@ -86,15 +118,18 @@ export default function RegisterScreen() {
       setSuccessMessage(
         "Cuenta creada. Confirma tu correo electrónico antes de iniciar sesión.",
       );
-      setConfirmationEmail(email.trim().toLowerCase());
+      setConfirmationEmail(normalizeEmail(email));
 
       setPassword("");
       setConfirmPassword("");
+      setHasSubmitted(false);
+      setTouchedFields({});
     } catch (error) {
       setErrorMessage(
         getAuthenticationErrorFeedback(error, "register").message,
       );
     } finally {
+      submissionRef.current = false;
       setIsLoading(false);
     }
   }
@@ -140,13 +175,29 @@ export default function RegisterScreen() {
 
               <TextInput
                 value={fullName}
-                onChangeText={setFullName}
+                onChangeText={(value) => {
+                  setFullName(value);
+                  clearRequestFeedback();
+                }}
+                onBlur={() => markFieldTouched("fullName")}
                 placeholder="Ej. Luis Sebastián Díaz"
                 placeholderTextColor={Colors.textMuted}
                 autoCapitalize="words"
                 autoComplete="name"
-                style={styles.input}
+                editable={!isLoading}
+                maxLength={80}
+                accessibilityLabel="Nombre completo"
+                style={[
+                  styles.input,
+                  shouldShowFieldError("fullName") && styles.inputError,
+                ]}
               />
+
+              {shouldShowFieldError("fullName") ? (
+                <Text accessibilityLiveRegion="polite" style={styles.fieldError}>
+                  {validationErrors.fullName}
+                </Text>
+              ) : null}
             </View>
 
             <View style={styles.field}>
@@ -154,15 +205,31 @@ export default function RegisterScreen() {
 
               <TextInput
                 value={email}
-                onChangeText={setEmail}
+                onChangeText={(value) => {
+                  setEmail(value);
+                  clearRequestFeedback();
+                }}
+                onBlur={() => markFieldTouched("email")}
                 placeholder="correo@ejemplo.com"
                 placeholderTextColor={Colors.textMuted}
                 autoCapitalize="none"
                 autoCorrect={false}
                 autoComplete="email"
                 keyboardType="email-address"
-                style={styles.input}
+                editable={!isLoading}
+                maxLength={254}
+                accessibilityLabel="Correo electrónico"
+                style={[
+                  styles.input,
+                  shouldShowFieldError("email") && styles.inputError,
+                ]}
               />
+
+              {shouldShowFieldError("email") ? (
+                <Text accessibilityLiveRegion="polite" style={styles.fieldError}>
+                  {validationErrors.email}
+                </Text>
+              ) : null}
             </View>
 
             <View style={styles.field}>
@@ -170,19 +237,36 @@ export default function RegisterScreen() {
 
               <TextInput
                 value={password}
-                onChangeText={setPassword}
+                onChangeText={(value) => {
+                  setPassword(value);
+                  clearRequestFeedback();
+                }}
+                onBlur={() => markFieldTouched("password")}
                 placeholder="Mínimo 8 caracteres"
                 placeholderTextColor={Colors.textMuted}
                 autoCapitalize="none"
                 autoCorrect={false}
                 autoComplete="new-password"
                 secureTextEntry
-                style={styles.input}
+                editable={!isLoading}
+                maxLength={72}
+                accessibilityLabel="Contraseña"
+                style={[
+                  styles.input,
+                  shouldShowFieldError("password") && styles.inputError,
+                ]}
               />
 
               <Text style={styles.helperText}>
-                Utiliza al menos 8 caracteres.
+                Utiliza entre 8 y 72 caracteres, con al menos una letra y un
+                número.
               </Text>
+
+              {shouldShowFieldError("password") ? (
+                <Text accessibilityLiveRegion="polite" style={styles.fieldError}>
+                  {validationErrors.password}
+                </Text>
+              ) : null}
             </View>
 
             <View style={styles.field}>
@@ -190,15 +274,31 @@ export default function RegisterScreen() {
 
               <TextInput
                 value={confirmPassword}
-                onChangeText={setConfirmPassword}
+                onChangeText={(value) => {
+                  setConfirmPassword(value);
+                  clearRequestFeedback();
+                }}
+                onBlur={() => markFieldTouched("confirmPassword")}
                 placeholder="Repite tu contraseña"
                 placeholderTextColor={Colors.textMuted}
                 autoCapitalize="none"
                 autoCorrect={false}
                 autoComplete="new-password"
                 secureTextEntry
-                style={styles.input}
+                editable={!isLoading}
+                maxLength={72}
+                accessibilityLabel="Confirmar contraseña"
+                style={[
+                  styles.input,
+                  shouldShowFieldError("confirmPassword") && styles.inputError,
+                ]}
               />
+
+              {shouldShowFieldError("confirmPassword") ? (
+                <Text accessibilityLiveRegion="polite" style={styles.fieldError}>
+                  {validationErrors.confirmPassword}
+                </Text>
+              ) : null}
             </View>
 
             {errorMessage ? (
@@ -224,7 +324,7 @@ export default function RegisterScreen() {
         <View style={styles.footer}>
           <Button
             label={isLoading ? "Creando cuenta..." : "Crear cuenta"}
-            disabled={!isFormValid || isLoading}
+            disabled={isLoading}
             onPress={handleRegister}
           />
 
@@ -328,6 +428,16 @@ const styles = StyleSheet.create({
     borderRadius: Radius.lg,
     color: Colors.textPrimary,
     fontSize: 16,
+  },
+
+  inputError: {
+    borderColor: Colors.danger,
+  },
+
+  fieldError: {
+    ...Typography.label,
+    color: Colors.danger,
+    marginTop: Spacing.xs,
   },
 
   helperText: {
