@@ -74,6 +74,34 @@ describe("analysisService", () => {
     expect(query.eq).toHaveBeenCalledWith("final_image_path", "final.jpg");
   });
 
+  it("does not return an obsolete report for replaced photographs", async () => {
+    const maybeSingle = vi.fn().mockResolvedValue({ data: null, error: null });
+    const query = { select: vi.fn(), eq: vi.fn(), maybeSingle };
+    query.select.mockReturnValue(query);
+    query.eq.mockReturnValue(query);
+    mocks.from.mockReturnValue(query);
+    await expect(fetchCurrentAnalysisReport({
+      comparisonId: "comparison-1",
+      initialImagePath: "initial-replacement.jpg",
+      finalImagePath: "final.jpg",
+    })).resolves.toBeNull();
+  });
+
+  it("maps the Edge Function quota response for the mobile state", async () => {
+    mocks.invoke.mockResolvedValue({
+      data: null,
+      error: {
+        context: new Response(JSON.stringify({ code: "usage_limit_reached" }), {
+          status: 429,
+          headers: { "Content-Type": "application/json" },
+        }),
+      },
+    });
+    await expect(requestComparisonAnalysis("comparison-1")).rejects.toMatchObject({
+      code: "usage_limit_reached",
+    });
+  });
+
   it("rejects malformed reports", async () => {
     mocks.invoke.mockResolvedValue({ data: { ...record, result: {} }, error: null });
     await expect(requestComparisonAnalysis("comparison-1")).rejects.toMatchObject({
