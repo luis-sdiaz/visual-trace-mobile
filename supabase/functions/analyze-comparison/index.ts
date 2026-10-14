@@ -2,6 +2,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2.117.2";
 
 import { createAnalyzeComparisonHandler } from "./handler.ts";
+import { loadAuthorizedComparisonImages } from "./imageLoader.ts";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL");
 const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
@@ -42,6 +43,18 @@ const handler = createAnalyzeComparisonHandler({
     }
 
     return data;
+  },
+
+  async loadImages(comparison, authorization) {
+    const client = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authorization } },
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    return loadAuthorizedComparisonImages(comparison, async (path) => {
+      const { data, error } = await client.storage.from("comparison-images").download(path);
+      if (error) throw error;
+      return data;
+    });
   },
 });
 

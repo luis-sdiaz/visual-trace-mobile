@@ -14,6 +14,10 @@ export type AnalyzeDependencies = {
     userId: string,
     authorization: string,
   ) => Promise<AuthorizedComparison | null>;
+  loadImages: (
+    comparison: AuthorizedComparison,
+    authorization: string,
+  ) => Promise<unknown>;
 };
 
 const UUID_PATTERN =
@@ -113,6 +117,17 @@ export function createAnalyzeComparisonHandler(dependencies: AnalyzeDependencies
         "comparison_incomplete",
         "La comparación necesita las dos fotografías.",
       );
+    }
+
+    try {
+      await dependencies.loadImages(comparison, authorization);
+    } catch (error) {
+      const code =
+        typeof error === "object" && error !== null && "code" in error
+          ? String(error.code)
+          : "image_load_failed";
+      const status = code === "image_not_found" ? 404 : code === "image_too_large" ? 413 : 422;
+      return jsonResponse(status, code, "No fue posible preparar las fotografías para el análisis.");
     }
 
     return jsonResponse(501, "analysis_not_configured", "El análisis aún no está configurado.", {

@@ -11,6 +11,8 @@ const completeComparison = {
   final_image_path: "user-1/comparison/final.jpg",
 };
 
+const loadImages = vi.fn().mockResolvedValue({});
+
 function request(body: unknown, authorization = "Bearer valid") {
   return new Request("http://localhost/analyze-comparison", {
     method: "POST",
@@ -24,6 +26,7 @@ describe("analyze-comparison authorization", () => {
     const handler = createAnalyzeComparisonHandler({
       authenticate: vi.fn(),
       findComparison: vi.fn(),
+      loadImages,
     });
     expect((await handler(new Request("http://localhost"))).status).toBe(405);
   });
@@ -32,6 +35,7 @@ describe("analyze-comparison authorization", () => {
     const handler = createAnalyzeComparisonHandler({
       authenticate: vi.fn().mockResolvedValue(null),
       findComparison: vi.fn(),
+      loadImages,
     });
     expect((await handler(request({ comparisonId }, ""))).status).toBe(401);
     expect((await handler(request({ comparisonId }))).status).toBe(401);
@@ -42,6 +46,7 @@ describe("analyze-comparison authorization", () => {
     const handler = createAnalyzeComparisonHandler({
       authenticate: vi.fn().mockResolvedValue(user),
       findComparison,
+      loadImages,
     });
     expect((await handler(request({ comparisonId: "not-a-uuid" }))).status).toBe(400);
     expect(findComparison).not.toHaveBeenCalled();
@@ -51,6 +56,7 @@ describe("analyze-comparison authorization", () => {
     const handler = createAnalyzeComparisonHandler({
       authenticate: vi.fn().mockResolvedValue(user),
       findComparison: vi.fn().mockResolvedValue(null),
+      loadImages,
     });
     expect((await handler(request({ comparisonId }))).status).toBe(404);
   });
@@ -62,6 +68,7 @@ describe("analyze-comparison authorization", () => {
         ...completeComparison,
         final_image_path: null,
       }),
+      loadImages,
     });
     expect((await handler(request({ comparisonId }))).status).toBe(409);
   });
@@ -71,6 +78,7 @@ describe("analyze-comparison authorization", () => {
     const handler = createAnalyzeComparisonHandler({
       authenticate: vi.fn().mockResolvedValue(user),
       findComparison,
+      loadImages,
     });
     const response = await handler(request({ comparisonId, userId: "attacker" }));
     expect(response.status).toBe(501);
