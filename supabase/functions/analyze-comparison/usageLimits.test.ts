@@ -8,11 +8,13 @@ describe("AI usage limit configuration", () => {
       AI_GLOBAL_PER_MINUTE: "3",
       AI_GLOBAL_PER_DAY: "10",
       AI_USER_PER_DAY: "6",
+      AI_COMPARISON_PER_DAY: "3",
     };
     expect(readUsageLimits((name) => values[name])).toEqual({
       globalPerMinute: 3,
       globalPerDay: 10,
       userPerDay: 6,
+      comparisonPerDay: 3,
     });
   });
 

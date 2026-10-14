@@ -98,6 +98,7 @@ const handler = createAnalyzeComparisonHandler({
       p_global_per_minute: usageLimits.globalPerMinute,
       p_global_per_day: usageLimits.globalPerDay,
       p_user_per_day: usageLimits.userPerDay,
+      p_comparison_per_day: usageLimits.comparisonPerDay,
     });
     if (error || !data) throw error ?? new Error("Usage reservation failed.");
     return data;

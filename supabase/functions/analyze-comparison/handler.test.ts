@@ -139,6 +139,22 @@ describe("analyze-comparison authorization", () => {
     });
   });
 
+  it("returns a durable report when only attempt completion bookkeeping fails", async () => {
+    const savedReport = { id: "report-1", result: analysis.report };
+    const handler = createAnalyzeComparisonHandler({
+      authenticate: vi.fn().mockResolvedValue(user),
+      findComparison: vi.fn().mockResolvedValue(completeComparison),
+      loadImages,
+      analyzeImages,
+      persistReport: vi.fn().mockResolvedValue(savedReport),
+      reserveUsage,
+      completeUsage: vi.fn().mockRejectedValue(new Error("bookkeeping unavailable")),
+    });
+    const response = await handler(request({ comparisonId }));
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual(savedReport);
+  });
+
   it("returns a cached report without calling Gemini", async () => {
     const cached = { id: "existing-report", result: analysis.report };
     const localAnalyze = vi.fn();

@@ -89,6 +89,7 @@ describe("end-to-end AI analysis orchestration", () => {
     });
     expect((await createAnalyzeComparisonHandler(deps)(post())).status).toBe(status);
     expect(completeUsage).toHaveBeenCalledWith("attempt-1", "failed_uncertain");
+    expect(deps.persistReport).not.toHaveBeenCalled();
   });
 
   it.each(["global_minute", "global_day", "user_day"])(
@@ -163,6 +164,26 @@ describe("AI database and mobile integration safeguards", () => {
     expect(reportsSql).toContain("persist_ai_analysis_report");
     expect(reportsSql).toMatch(/insert into public\.ai_analysis_reports[\s\S]*update public\.comparisons/);
     expect(reportsSql).toContain("to service_role");
+  });
+
+  it("defines retryable history with one active reservation and conservative expiration", () => {
+    const retrySql = readFileSync(
+      resolve(
+        process.cwd(),
+        "supabase/migrations/202610140003_allow_safe_ai_analysis_retries.sql",
+      ),
+      "utf8",
+    );
+    expect(retrySql).toMatch(
+      /create unique index[\s\S]*where status = 'reserved'/,
+    );
+    expect(retrySql).toMatch(
+      /set status = 'failed_uncertain'[\s\S]*interval '5 minutes'/,
+    );
+    expect(retrySql).toMatch(
+      /a\.status = 'reserved'[\s\S]*action', 'in_progress'/,
+    );
+    expect(retrySql).toContain("p_comparison_per_day");
   });
 
   it("renders every required structured report section and human-review warning", () => {

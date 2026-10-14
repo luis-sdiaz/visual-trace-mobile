@@ -185,7 +185,10 @@ export function createAnalyzeComparisonHandler(dependencies: AnalyzeDependencies
 
     try {
       const persisted = await dependencies.persistReport({ comparison, analysis });
-      await dependencies.completeUsage(attemptId, "succeeded");
+      // The report is already durable and the comparison is analyzed. A later
+      // bookkeeping failure must not turn that successful result into an error;
+      // the next request will recover it through the cached-report branch.
+      await dependencies.completeUsage(attemptId, "succeeded").catch(() => undefined);
       return new Response(JSON.stringify(persisted), { status: 200, headers: JSON_HEADERS });
     } catch (error) {
       await dependencies.completeUsage(attemptId, "failed_uncertain").catch(() => undefined);
