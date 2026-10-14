@@ -1,6 +1,12 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router, useFocusEffect } from "expo-router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -66,12 +72,25 @@ export default function HomeScreen() {
   >([]);
   const [isLoadingRecent, setIsLoadingRecent] = useState(true);
   const [recentError, setRecentError] = useState<string | null>(null);
-  const [reloadToken, setReloadToken] = useState(0);
-  const [openingComparisonId, setOpeningComparisonId] = useState<string | null>(
-    null,
-  );
-  const [openError, setOpenError] = useState<string | null>(null);
+  const [openingComparison, setOpeningComparison] = useState<{
+    id: string;
+    userId: string;
+  } | null>(null);
+  const [openErrorState, setOpenErrorState] = useState<{
+    message: string;
+    userId: string;
+  } | null>(null);
   const openSequenceRef = useRef(0);
+  const currentUserIdRef = useRef(user?.id);
+
+  const openingComparisonId =
+    openingComparison && openingComparison.userId === user?.id
+      ? openingComparison.id
+      : null;
+  const openError =
+    openErrorState && openErrorState.userId === user?.id
+      ? openErrorState.message
+      : null;
 
   const accountGreeting = getAccountGreeting(user?.user_metadata);
 
@@ -98,52 +117,57 @@ export default function HomeScreen() {
     }
   }, [isLoading, user]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
+    currentUserIdRef.current = user?.id;
     openSequenceRef.current += 1;
-    setOpeningComparisonId(null);
-    setOpenError(null);
   }, [user?.id]);
 
-  useFocusEffect(
-    useCallback(() => {
-      let isActive = true;
-
+  const loadRecentComparisons = useCallback(
+    async (isActive: () => boolean = () => true) => {
       if (!user) {
-        setRecentComparisons([]);
-        setIsLoadingRecent(false);
-        setRecentError(null);
-        return () => {
-          isActive = false;
-        };
+        if (isActive()) {
+          setRecentComparisons([]);
+          setIsLoadingRecent(false);
+          setRecentError(null);
+        }
+        return;
       }
 
       setIsLoadingRecent(true);
       setRecentError(null);
 
-      void fetchRecentComparisons()
-        .then((comparisons) => {
-          if (isActive) {
-            setRecentComparisons(comparisons);
-          }
-        })
-        .catch(() => {
-          if (isActive) {
-            setRecentComparisons([]);
-            setRecentError(
-              "No pudimos cargar tus comparaciones. Inténtalo nuevamente.",
-            );
-          }
-        })
-        .finally(() => {
-          if (isActive) {
-            setIsLoadingRecent(false);
-          }
-        });
+      try {
+        const comparisons = await fetchRecentComparisons();
+
+        if (isActive()) {
+          setRecentComparisons(comparisons);
+        }
+      } catch {
+        if (isActive()) {
+          setRecentComparisons([]);
+          setRecentError(
+            "No pudimos cargar tus comparaciones. Inténtalo nuevamente.",
+          );
+        }
+      } finally {
+        if (isActive()) {
+          setIsLoadingRecent(false);
+        }
+      }
+    },
+    [user],
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      let isActive = true;
+
+      void loadRecentComparisons(() => isActive);
 
       return () => {
         isActive = false;
       };
-    }, [reloadToken, user]),
+    }, [loadRecentComparisons]),
   );
 
   async function handleSignOut() {
@@ -178,9 +202,14 @@ export default function HomeScreen() {
     }
 
     const openSequence = ++openSequenceRef.current;
+    const requestUserId = user?.id;
 
-    setOpeningComparisonId(id);
-    setOpenError(null);
+    if (!requestUserId) {
+      return;
+    }
+
+    setOpeningComparison({ id, userId: requestUserId });
+    setOpenErrorState(null);
 
     try {
       const {
@@ -189,7 +218,10 @@ export default function HomeScreen() {
         finalImageUri: storedFinalImage,
       } = await recoverComparison(id);
 
-      if (openSequence !== openSequenceRef.current) {
+      if (
+        openSequence !== openSequenceRef.current ||
+        requestUserId !== currentUserIdRef.current
+      ) {
         return;
       }
 
@@ -217,14 +249,22 @@ export default function HomeScreen() {
         router.push("/comparison-result");
       }
     } catch {
-      if (openSequence === openSequenceRef.current) {
-        setOpenError(
-          "No pudimos abrir esta comparación. Verifica tu conexión y que sus fotografías sigan disponibles.",
-        );
+      if (
+        openSequence === openSequenceRef.current &&
+        requestUserId === currentUserIdRef.current
+      ) {
+        setOpenErrorState({
+          userId: requestUserId,
+          message:
+            "No pudimos abrir esta comparación. Verifica tu conexión y que sus fotografías sigan disponibles.",
+        });
       }
     } finally {
-      if (openSequence === openSequenceRef.current) {
-        setOpeningComparisonId(null);
+      if (
+        openSequence === openSequenceRef.current &&
+        requestUserId === currentUserIdRef.current
+      ) {
+        setOpeningComparison(null);
       }
     }
   }
@@ -378,7 +418,7 @@ export default function HomeScreen() {
               <Text style={styles.recentErrorText}>{recentError}</Text>
               <Pressable
                 accessibilityRole="button"
-                onPress={() => setReloadToken((value) => value + 1)}
+                onPress={() => void loadRecentComparisons()}
                 style={styles.retryButton}
               >
                 <Text style={styles.retryButtonText}>Reintentar</Text>
