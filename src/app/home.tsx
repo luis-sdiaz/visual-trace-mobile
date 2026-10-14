@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
-import { useEffect, useState } from "react";
+import { router, useFocusEffect } from "expo-router";
+import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -18,6 +18,31 @@ import { Spacing } from "@/constants/spacing";
 import { Typography } from "@/constants/typography";
 import { useAuth } from "@/context/AuthContext";
 import { useComparison } from "@/context/ComparisonContext";
+import {
+  fetchRecentComparisons,
+  type ComparisonRecord,
+  type ComparisonStatus,
+} from "@/services/comparisonService";
+
+const STATUS_LABELS: Record<ComparisonStatus, string> = {
+  draft: "En curso",
+  ready: "Lista",
+  analyzed: "Analizada",
+};
+
+function formatComparisonDate(value: string): string {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "Fecha no disponible";
+  }
+
+  return new Intl.DateTimeFormat("es-CO", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  }).format(date);
+}
 
 export default function HomeScreen() {
   const { user, isLoading, signOut } = useAuth();
@@ -32,6 +57,12 @@ export default function HomeScreen() {
 
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [recentComparisons, setRecentComparisons] = useState<
+    ComparisonRecord[]
+  >([]);
+  const [isLoadingRecent, setIsLoadingRecent] = useState(true);
+  const [recentError, setRecentError] = useState<string | null>(null);
+  const [reloadToken, setReloadToken] = useState(0);
 
   const fullName = user?.user_metadata?.full_name;
 
@@ -49,6 +80,48 @@ export default function HomeScreen() {
       router.replace("/");
     }
   }, [isLoading, user]);
+
+  useFocusEffect(
+    useCallback(() => {
+      let isActive = true;
+
+      if (!user) {
+        setRecentComparisons([]);
+        setIsLoadingRecent(false);
+        setRecentError(null);
+        return () => {
+          isActive = false;
+        };
+      }
+
+      setIsLoadingRecent(true);
+      setRecentError(null);
+
+      void fetchRecentComparisons()
+        .then((comparisons) => {
+          if (isActive) {
+            setRecentComparisons(comparisons);
+          }
+        })
+        .catch(() => {
+          if (isActive) {
+            setRecentComparisons([]);
+            setRecentError(
+              "No pudimos cargar tus comparaciones. Inténtalo nuevamente.",
+            );
+          }
+        })
+        .finally(() => {
+          if (isActive) {
+            setIsLoadingRecent(false);
+          }
+        });
+
+      return () => {
+        isActive = false;
+      };
+    }, [reloadToken, user]),
+  );
 
   async function handleSignOut() {
     if (isSigningOut) {
@@ -201,22 +274,90 @@ export default function HomeScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Comparaciones recientes</Text>
 
-          <View style={styles.emptyCard}>
-            <View style={styles.emptyIcon}>
-              <Ionicons
-                name="albums-outline"
-                size={28}
-                color={Colors.primary}
-              />
+          {isLoadingRecent ? (
+            <View style={styles.recentFeedbackCard}>
+              <ActivityIndicator color={Colors.primary} />
+              <Text style={styles.recentFeedbackText}>
+                Cargando comparaciones...
+              </Text>
             </View>
+          ) : recentError ? (
+            <View style={styles.recentFeedbackCard}>
+              <Ionicons
+                name="cloud-offline-outline"
+                size={28}
+                color={Colors.danger}
+              />
+              <Text style={styles.recentErrorText}>{recentError}</Text>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => setReloadToken((value) => value + 1)}
+                style={styles.retryButton}
+              >
+                <Text style={styles.retryButtonText}>Reintentar</Text>
+              </Pressable>
+            </View>
+          ) : recentComparisons.length > 0 ? (
+            <View style={styles.recentList}>
+              {recentComparisons.map((comparison) => (
+                <View key={comparison.id} style={styles.recentCard}>
+                  <View style={styles.recentIcon}>
+                    <Ionicons
+                      name="images-outline"
+                      size={22}
+                      color={Colors.primary}
+                    />
+                  </View>
 
-            <Text style={styles.emptyTitle}>Aún no tienes comparaciones</Text>
+                  <View style={styles.recentContent}>
+                    <Text style={styles.recentName} numberOfLines={1}>
+                      {comparison.name}
+                    </Text>
+                    <Text style={styles.recentDate}>
+                      {formatComparisonDate(comparison.created_at)}
+                    </Text>
+                  </View>
 
-            <Text style={styles.emptyDescription}>
-              Tus registros aparecerán aquí después de completar tu primera
-              comparación.
-            </Text>
-          </View>
+                  <View
+                    style={[
+                      styles.statusBadge,
+                      comparison.status === "ready" && styles.readyBadge,
+                      comparison.status === "analyzed" &&
+                        styles.analyzedBadge,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.statusText,
+                        comparison.status === "ready" && styles.readyText,
+                        comparison.status === "analyzed" &&
+                          styles.analyzedText,
+                      ]}
+                    >
+                      {STATUS_LABELS[comparison.status]}
+                    </Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          ) : (
+            <View style={styles.emptyCard}>
+              <View style={styles.emptyIcon}>
+                <Ionicons
+                  name="albums-outline"
+                  size={28}
+                  color={Colors.primary}
+                />
+              </View>
+
+              <Text style={styles.emptyTitle}>Aún no tienes comparaciones</Text>
+
+              <Text style={styles.emptyDescription}>
+                Tus registros aparecerán aquí después de crear tu primera
+                comparación.
+              </Text>
+            </View>
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -424,6 +565,113 @@ const styles = StyleSheet.create({
     ...Typography.title,
     color: Colors.textPrimary,
     marginBottom: Spacing.md,
+  },
+
+  recentFeedbackCard: {
+    alignItems: "center",
+    padding: Spacing.xl,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: Radius.xl,
+  },
+
+  recentFeedbackText: {
+    ...Typography.body,
+    color: Colors.textSecondary,
+    marginTop: Spacing.md,
+  },
+
+  recentErrorText: {
+    ...Typography.body,
+    color: Colors.textSecondary,
+    textAlign: "center",
+    marginTop: Spacing.md,
+  },
+
+  retryButton: {
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    marginTop: Spacing.md,
+    backgroundColor: Colors.primarySoft,
+    borderRadius: Radius.full,
+  },
+
+  retryButtonText: {
+    ...Typography.label,
+    color: Colors.primary,
+  },
+
+  recentList: {
+    gap: Spacing.md,
+  },
+
+  recentCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: Spacing.lg,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: Radius.lg,
+  },
+
+  recentIcon: {
+    width: 42,
+    height: 42,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: Spacing.md,
+    backgroundColor: Colors.primarySoft,
+    borderRadius: Radius.md,
+  },
+
+  recentContent: {
+    flex: 1,
+    marginRight: Spacing.sm,
+  },
+
+  recentName: {
+    ...Typography.label,
+    color: Colors.textPrimary,
+    fontSize: 15,
+  },
+
+  recentDate: {
+    color: Colors.textSecondary,
+    fontSize: 12,
+    lineHeight: 18,
+    marginTop: Spacing.xs,
+  },
+
+  statusBadge: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    backgroundColor: Colors.warningSoft,
+    borderRadius: Radius.full,
+  },
+
+  statusText: {
+    color: Colors.warning,
+    fontSize: 11,
+    lineHeight: 15,
+    fontWeight: "700",
+  },
+
+  readyBadge: {
+    backgroundColor: Colors.primarySoft,
+  },
+
+  readyText: {
+    color: Colors.primary,
+  },
+
+  analyzedBadge: {
+    backgroundColor: Colors.successSoft,
+  },
+
+  analyzedText: {
+    color: Colors.success,
   },
 
   emptyCard: {
