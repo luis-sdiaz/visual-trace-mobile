@@ -5,7 +5,10 @@ import { Colors } from "@/constants/colors";
 import { Radius } from "@/constants/radius";
 import { Spacing } from "@/constants/spacing";
 import { Typography } from "@/constants/typography";
-import { resendSignupConfirmation } from "@/services/authService";
+import {
+  getAuthenticationErrorFeedback,
+  resendSignupConfirmation,
+} from "@/services/authService";
 
 const RESEND_COOLDOWN_SECONDS = 60;
 
@@ -54,21 +57,15 @@ export function EmailConfirmationResend({
           "Solicitud aceptada. Si el correo está pendiente de confirmación, recibirás un nuevo mensaje.",
       });
     } catch (error) {
-      const message = error instanceof Error ? error.message.toLowerCase() : "";
-      const isRateLimited =
-        message.includes("rate limit") ||
-        message.includes("security purposes") ||
-        message.includes("too many requests");
+      const errorFeedback = getAuthenticationErrorFeedback(error, "resend");
 
-      if (isRateLimited) {
+      if (errorFeedback.shouldStartCooldown) {
         setCooldownSeconds(RESEND_COOLDOWN_SECONDS);
       }
 
       setFeedback({
         type: "error",
-        message: isRateLimited
-          ? "Espera un minuto antes de solicitar otro correo."
-          : "No pudimos solicitar otro correo en este momento. Inténtalo nuevamente.",
+        message: errorFeedback.message,
       });
     } finally {
       isRequestingRef.current = false;

@@ -19,6 +19,7 @@ import { Spacing } from "@/constants/spacing";
 import { Typography } from "@/constants/typography";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
+import { getAuthenticationErrorFeedback } from "@/services/authService";
 
 export default function RegisterScreen() {
   const { user, isLoading: isAuthLoading } = useAuth();
@@ -59,58 +60,43 @@ export default function RegisterScreen() {
     setSuccessMessage(null);
     setConfirmationEmail(null);
 
-    const { data, error } = await supabase.auth.signUp({
-      email: email.trim().toLowerCase(),
-      password,
-      options: {
-        data: {
-          full_name: fullName.trim(),
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email: email.trim().toLowerCase(),
+        password,
+        options: {
+          data: {
+            full_name: fullName.trim(),
+          },
         },
-      },
-    });
+      });
 
-    setIsLoading(false);
-
-    if (error) {
-      const message = error.message.toLowerCase();
-
-      if (
-        message.includes("for security purposes") ||
-        message.includes("rate limit")
-      ) {
-        setErrorMessage("Espera unos segundos antes de volver a intentarlo.");
-      } else if (message.includes("already registered")) {
+      if (error) {
         setErrorMessage(
-          "Ya existe una cuenta registrada con este correo electrónico.",
+          getAuthenticationErrorFeedback(error, "register").message,
         );
-      } else if (
-        message.includes("invalid email") ||
-        message.includes("invalid format")
-      ) {
-        setErrorMessage("Ingresa un correo electrónico válido.");
-      } else if (message.includes("password")) {
-        setErrorMessage(
-          "La contraseña no cumple con los requisitos de seguridad.",
-        );
-      } else {
-        setErrorMessage("No pudimos crear tu cuenta. Inténtalo nuevamente.");
+        return;
       }
 
-      return;
+      if (data.session) {
+        router.replace("/home");
+        return;
+      }
+
+      setSuccessMessage(
+        "Cuenta creada. Confirma tu correo electrónico antes de iniciar sesión.",
+      );
+      setConfirmationEmail(email.trim().toLowerCase());
+
+      setPassword("");
+      setConfirmPassword("");
+    } catch (error) {
+      setErrorMessage(
+        getAuthenticationErrorFeedback(error, "register").message,
+      );
+    } finally {
+      setIsLoading(false);
     }
-
-    if (data.session) {
-      router.replace("/home");
-      return;
-    }
-
-    setSuccessMessage(
-      "Cuenta creada. Confirma tu correo electrónico antes de iniciar sesión.",
-    );
-    setConfirmationEmail(email.trim().toLowerCase());
-
-    setPassword("");
-    setConfirmPassword("");
   }
 
   if (isAuthLoading || user) {
@@ -217,7 +203,9 @@ export default function RegisterScreen() {
 
             {errorMessage ? (
               <View style={styles.errorCard}>
-                <Text style={styles.errorText}>{errorMessage}</Text>
+                <Text accessibilityLiveRegion="polite" style={styles.errorText}>
+                  {errorMessage}
+                </Text>
               </View>
             ) : null}
 

@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { EmailConfirmationResend } from "@/components/auth/EmailConfirmationResend";
 import { Button } from "@/components/ui/Button";
 import { Colors } from "@/constants/colors";
 import { Radius } from "@/constants/radius";
@@ -18,6 +19,7 @@ import { Spacing } from "@/constants/spacing";
 import { Typography } from "@/constants/typography";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
+import { getAuthenticationErrorFeedback } from "@/services/authService";
 
 export default function LoginScreen() {
   const { user, isLoading: isAuthLoading } = useAuth();
@@ -25,6 +27,9 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [confirmationEmail, setConfirmationEmail] = useState<string | null>(
+    null,
+  );
 
   const isEmailValid = email.trim().includes("@");
   const isPasswordValid = password.length > 0;
@@ -37,6 +42,12 @@ export default function LoginScreen() {
     }
   }, [isAuthLoading, user]);
 
+  function handleEmailChange(value: string) {
+    setEmail(value);
+    setErrorMessage(null);
+    setConfirmationEmail(null);
+  }
+
   async function handleLogin() {
     if (!isFormValid || isLoading) {
       return;
@@ -44,22 +55,31 @@ export default function LoginScreen() {
 
     setIsLoading(true);
     setErrorMessage(null);
+    setConfirmationEmail(null);
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email: email.trim().toLowerCase(),
-      password,
-    });
+    try {
+      const normalizedEmail = email.trim().toLowerCase();
+      const { error } = await supabase.auth.signInWithPassword({
+        email: normalizedEmail,
+        password,
+      });
 
-    setIsLoading(false);
+      if (error) {
+        const feedback = getAuthenticationErrorFeedback(error, "login");
 
-    if (error) {
-      setErrorMessage(
-        "No pudimos iniciar sesión. Verifica tu correo y contraseña.",
-      );
-      return;
+        setErrorMessage(feedback.message);
+        setConfirmationEmail(
+          feedback.shouldOfferConfirmationResend ? normalizedEmail : null,
+        );
+        return;
+      }
+
+      router.replace("/home");
+    } catch (error) {
+      setErrorMessage(getAuthenticationErrorFeedback(error, "login").message);
+    } finally {
+      setIsLoading(false);
     }
-
-    router.replace("/home");
   }
 
   if (isAuthLoading || user) {
@@ -103,7 +123,7 @@ export default function LoginScreen() {
 
               <TextInput
                 value={email}
-                onChangeText={setEmail}
+                onChangeText={handleEmailChange}
                 placeholder="correo@ejemplo.com"
                 placeholderTextColor={Colors.textMuted}
                 autoCapitalize="none"
@@ -132,7 +152,13 @@ export default function LoginScreen() {
 
             {errorMessage ? (
               <View style={styles.errorCard}>
-                <Text style={styles.errorText}>{errorMessage}</Text>
+                <Text accessibilityLiveRegion="polite" style={styles.errorText}>
+                  {errorMessage}
+                </Text>
+
+                {confirmationEmail ? (
+                  <EmailConfirmationResend email={confirmationEmail} />
+                ) : null}
               </View>
             ) : null}
           </View>
