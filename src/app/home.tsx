@@ -19,13 +19,12 @@ import { Typography } from "@/constants/typography";
 import { useAuth } from "@/context/AuthContext";
 import { useComparison } from "@/context/ComparisonContext";
 import {
-  fetchComparisonById,
   fetchRecentComparisons,
   isComparisonComplete,
   type ComparisonRecord,
   type ComparisonStatus,
 } from "@/services/comparisonService";
-import { resolveComparisonImageUrl } from "@/services/imageStorageService";
+import { recoverComparison } from "@/services/comparisonRecoveryService";
 
 const STATUS_LABELS: Record<ComparisonStatus, string> = {
   draft: "En curso",
@@ -186,23 +185,11 @@ export default function HomeScreen() {
     setOpenError(null);
 
     try {
-      const comparison = await fetchComparisonById(id);
-      const [storedInitialImage, storedFinalImage] = await Promise.all([
-        comparison.initial_image_path
-          ? resolveComparisonImageUrl({
-              comparisonId: comparison.id,
-              imagePath: comparison.initial_image_path,
-              imageStage: "initial",
-            })
-          : null,
-        comparison.final_image_path
-          ? resolveComparisonImageUrl({
-              comparisonId: comparison.id,
-              imagePath: comparison.final_image_path,
-              imageStage: "final",
-            })
-          : null,
-      ]);
+      const {
+        comparison,
+        initialImageUri: storedInitialImage,
+        finalImageUri: storedFinalImage,
+      } = await recoverComparison(id);
 
       if (openSequence !== openSequenceRef.current) {
         return;
