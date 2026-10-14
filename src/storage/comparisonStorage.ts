@@ -10,6 +10,8 @@ export type ComparisonDraft = {
   finalImageUri: string | null;
   initialImagePath?: string | null;
   initialImageIsDirty?: boolean;
+  finalImagePath?: string | null;
+  finalImageIsDirty?: boolean;
 };
 
 type StoredComparisonDraft = ComparisonDraft & {
@@ -48,6 +50,17 @@ function parseComparisonDraft(value: string): ComparisonDraft | null {
 
     if (typeof draft.initialImageIsDirty === "boolean") {
       parsedDraft.initialImageIsDirty = draft.initialImageIsDirty;
+    }
+
+    if (
+      draft.finalImagePath === null ||
+      typeof draft.finalImagePath === "string"
+    ) {
+      parsedDraft.finalImagePath = draft.finalImagePath;
+    }
+
+    if (typeof draft.finalImageIsDirty === "boolean") {
+      parsedDraft.finalImageIsDirty = draft.finalImageIsDirty;
     }
 
     return parsedDraft;

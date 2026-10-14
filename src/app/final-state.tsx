@@ -25,7 +25,14 @@ import {
 import { uploadComparisonImage } from "@/services/imageStorageService";
 
 export default function FinalStateScreen() {
-  const { comparisonId, finalImageUri, setFinalImageUri } = useComparison();
+  const {
+    comparisonId,
+    finalImageUri,
+    finalImagePath,
+    finalImageIsDirty,
+    markFinalImageSaved,
+    setFinalImageUri,
+  } = useComparison();
 
   const [isUploading, setIsUploading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -104,6 +111,12 @@ export default function FinalStateScreen() {
     setErrorMessage(null);
 
     try {
+      if (!finalImageIsDirty && finalImagePath) {
+        await markComparisonReady(comparisonId);
+        router.push("/comparison-result");
+        return;
+      }
+
       const imagePath = await uploadComparisonImage({
         comparisonId,
         imageUri: finalImageUri,
@@ -111,6 +124,7 @@ export default function FinalStateScreen() {
       });
 
       await updateComparisonImagePath(comparisonId, "final", imagePath);
+      markFinalImageSaved(imagePath);
       await markComparisonReady(comparisonId);
 
       router.push("/comparison-result");

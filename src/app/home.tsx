@@ -239,6 +239,8 @@ export default function HomeScreen() {
         initialImagePath: comparison.initial_image_path,
         initialImageIsDirty: false,
         finalImageUri: resolvedFinalImage,
+        finalImagePath: comparison.final_image_path,
+        finalImageIsDirty: false,
         initialImageIsTransient: storedInitialImage !== null,
         finalImageIsTransient: storedFinalImage !== null,
       });

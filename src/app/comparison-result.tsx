@@ -146,6 +146,8 @@ export default function ComparisonResultScreen() {
           initialImagePath: recovery.comparison.initial_image_path,
           initialImageIsDirty: false,
           finalImageUri: recovery.finalImageUri,
+          finalImagePath: recovery.comparison.final_image_path,
+          finalImageIsDirty: false,
           initialImageIsTransient: recovery.initialImageUri !== null,
           finalImageIsTransient: recovery.finalImageUri !== null,
         });
