@@ -18,7 +18,10 @@ import { Radius } from "@/constants/radius";
 import { Spacing } from "@/constants/spacing";
 import { Typography } from "@/constants/typography";
 import { useComparison } from "@/context/ComparisonContext";
-import { updateComparisonImagePath } from "@/services/comparisonService";
+import {
+  markComparisonReady,
+  updateComparisonImagePath,
+} from "@/services/comparisonService";
 import { uploadComparisonImage } from "@/services/imageStorageService";
 
 export default function FinalStateScreen() {
@@ -108,6 +111,7 @@ export default function FinalStateScreen() {
       });
 
       await updateComparisonImagePath(comparisonId, "final", imagePath);
+      await markComparisonReady(comparisonId);
 
       router.push("/comparison-result");
     } catch (error) {

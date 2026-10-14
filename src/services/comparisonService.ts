@@ -142,3 +142,66 @@ export async function updateComparisonImagePath(
     throw error ?? new Error("Comparison image could not be saved.");
   }
 }
+
+export async function markComparisonReady(
+  comparisonId: string,
+): Promise<ComparisonRecord> {
+  if (!comparisonId) {
+    throw new Error("Comparison ID is required.");
+  }
+
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    throw new Error("User must be authenticated.");
+  }
+
+  const { data: comparison, error: comparisonError } = await supabase
+    .from("comparisons")
+    .select("*")
+    .eq("id", comparisonId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (comparisonError) {
+    throw comparisonError;
+  }
+
+  if (!comparison) {
+    throw new Error("Comparison could not be found.");
+  }
+
+  const record = comparison as ComparisonRecord;
+
+  if (!record.initial_image_path || !record.final_image_path) {
+    throw new Error("Both comparison images are required.");
+  }
+
+  if (record.status !== "draft") {
+    return record;
+  }
+
+  const { data: updatedComparison, error: updateError } = await supabase
+    .from("comparisons")
+    .update({ status: "ready" satisfies ComparisonStatus })
+    .eq("id", comparisonId)
+    .eq("user_id", user.id)
+    .eq("status", "draft")
+    .not("initial_image_path", "is", null)
+    .not("final_image_path", "is", null)
+    .select("*")
+    .maybeSingle();
+
+  if (updateError) {
+    throw updateError;
+  }
+
+  if (!updatedComparison) {
+    throw new Error("Comparison could not be marked as ready.");
+  }
+
+  return updatedComparison as ComparisonRecord;
+}
