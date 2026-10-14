@@ -1,5 +1,7 @@
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
+import { useCallback, useEffect, useRef } from "react";
 import {
+  AppState,
   Image,
   Pressable,
   ScrollView,
@@ -14,10 +16,95 @@ import { Colors } from "@/constants/colors";
 import { Radius } from "@/constants/radius";
 import { Spacing } from "@/constants/spacing";
 import { Typography } from "@/constants/typography";
+import { useAuth } from "@/context/AuthContext";
 import { useComparison } from "@/context/ComparisonContext";
+import { recoverComparison } from "@/services/comparisonRecoveryService";
 
 export default function ComparisonResultScreen() {
-  const { name, initialImageUri, finalImageUri } = useComparison();
+  const { user } = useAuth();
+  const {
+    comparisonId,
+    name,
+    initialImageUri,
+    finalImageUri,
+    restoreComparison,
+  } = useComparison();
+  const userId = user?.id;
+  const refreshSequenceRef = useRef(0);
+  const refreshInFlightRef = useRef(false);
+  const isFocusedRef = useRef(false);
+  const restoreComparisonRef = useRef(restoreComparison);
+
+  useEffect(() => {
+    restoreComparisonRef.current = restoreComparison;
+  }, [restoreComparison]);
+
+  const refreshPrivateImages = useCallback(async () => {
+    if (!comparisonId || !userId || refreshInFlightRef.current) {
+      return;
+    }
+
+    const refreshSequence = ++refreshSequenceRef.current;
+    const requestComparisonId = comparisonId;
+    const requestUserId = userId;
+    refreshInFlightRef.current = true;
+
+    try {
+      const recovery = await recoverComparison(requestComparisonId);
+
+      if (
+        refreshSequence !== refreshSequenceRef.current ||
+        requestComparisonId !== comparisonId ||
+        requestUserId !== userId ||
+        !isFocusedRef.current
+      ) {
+        return;
+      }
+
+      restoreComparisonRef.current({
+        comparisonId: recovery.comparison.id,
+        name: recovery.comparison.name,
+        initialImageUri: recovery.initialImageUri,
+        finalImageUri: recovery.finalImageUri,
+        initialImageIsTransient: recovery.initialImageUri !== null,
+        finalImageIsTransient: recovery.finalImageUri !== null,
+      });
+    } catch (error) {
+      console.error("Failed to refresh private comparison images:", error);
+    } finally {
+      if (refreshSequence === refreshSequenceRef.current) {
+        refreshInFlightRef.current = false;
+      }
+    }
+  }, [comparisonId, userId]);
+
+  useEffect(() => {
+    refreshSequenceRef.current += 1;
+    refreshInFlightRef.current = false;
+  }, [comparisonId, userId]);
+
+  useFocusEffect(
+    useCallback(() => {
+      isFocusedRef.current = true;
+      void refreshPrivateImages();
+
+      return () => {
+        isFocusedRef.current = false;
+        refreshSequenceRef.current += 1;
+        refreshInFlightRef.current = false;
+      };
+    }, [refreshPrivateImages]),
+  );
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", (nextState) => {
+      if (nextState === "active" && isFocusedRef.current) {
+        void refreshPrivateImages();
+      }
+    });
+
+    return () => subscription.remove();
+  }, [refreshPrivateImages]);
 
   const hasComparisonData =
     name.trim().length > 0 && initialImageUri && finalImageUri;
