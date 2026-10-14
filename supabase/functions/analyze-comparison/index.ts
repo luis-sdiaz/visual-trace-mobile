@@ -3,13 +3,18 @@ import { createClient } from "npm:@supabase/supabase-js@2.117.2";
 
 import { createAnalyzeComparisonHandler } from "./handler.ts";
 import { loadAuthorizedComparisonImages } from "./imageLoader.ts";
+import { createGeminiClient } from "./geminiClient.ts";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL");
 const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
+const geminiApiKey = Deno.env.get("GEMINI_API_KEY");
+const geminiModel = Deno.env.get("GEMINI_MODEL") ?? undefined;
 
-if (!supabaseUrl || !supabaseAnonKey) {
+if (!supabaseUrl || !supabaseAnonKey || !geminiApiKey) {
   throw new Error("Supabase Edge Function environment is not configured.");
 }
+
+const gemini = createGeminiClient({ apiKey: geminiApiKey, model: geminiModel });
 
 const handler = createAnalyzeComparisonHandler({
   async authenticate(authorization) {
@@ -55,6 +60,13 @@ const handler = createAnalyzeComparisonHandler({
       if (error) throw error;
       return data;
     });
+  },
+
+  async analyzeImages(images) {
+    return gemini.analyze(
+      images.initial as Awaited<ReturnType<typeof loadAuthorizedComparisonImages>>["initial"],
+      images.final as Awaited<ReturnType<typeof loadAuthorizedComparisonImages>>["final"],
+    );
   },
 });
 

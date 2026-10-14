@@ -17,7 +17,8 @@ export type AnalyzeDependencies = {
   loadImages: (
     comparison: AuthorizedComparison,
     authorization: string,
-  ) => Promise<unknown>;
+  ) => Promise<{ initial: unknown; final: unknown }>;
+  analyzeImages: (images: { initial: unknown; final: unknown }) => Promise<unknown>;
 };
 
 const UUID_PATTERN =
@@ -119,8 +120,9 @@ export function createAnalyzeComparisonHandler(dependencies: AnalyzeDependencies
       );
     }
 
+    let images: { initial: unknown; final: unknown };
     try {
-      await dependencies.loadImages(comparison, authorization);
+      images = await dependencies.loadImages(comparison, authorization);
     } catch (error) {
       const code =
         typeof error === "object" && error !== null && "code" in error
@@ -130,8 +132,16 @@ export function createAnalyzeComparisonHandler(dependencies: AnalyzeDependencies
       return jsonResponse(status, code, "No fue posible preparar las fotografías para el análisis.");
     }
 
-    return jsonResponse(501, "analysis_not_configured", "El análisis aún no está configurado.", {
-      comparisonId: comparison.id,
-    });
+    try {
+      const analysis = await dependencies.analyzeImages(images);
+      return new Response(JSON.stringify(analysis), { status: 200, headers: JSON_HEADERS });
+    } catch (error) {
+      const code =
+        typeof error === "object" && error !== null && "code" in error
+          ? String(error.code)
+          : "gemini_network_error";
+      const status = code === "provider_quota_exceeded" ? 429 : code === "gemini_timeout" ? 504 : 502;
+      return jsonResponse(status, code, "No fue posible completar el análisis visual.");
+    }
   };
 }

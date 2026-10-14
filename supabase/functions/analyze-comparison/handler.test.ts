@@ -12,6 +12,7 @@ const completeComparison = {
 };
 
 const loadImages = vi.fn().mockResolvedValue({});
+const analyzeImages = vi.fn().mockResolvedValue({ report: {} });
 
 function request(body: unknown, authorization = "Bearer valid") {
   return new Request("http://localhost/analyze-comparison", {
@@ -27,6 +28,7 @@ describe("analyze-comparison authorization", () => {
       authenticate: vi.fn(),
       findComparison: vi.fn(),
       loadImages,
+      analyzeImages,
     });
     expect((await handler(new Request("http://localhost"))).status).toBe(405);
   });
@@ -36,6 +38,7 @@ describe("analyze-comparison authorization", () => {
       authenticate: vi.fn().mockResolvedValue(null),
       findComparison: vi.fn(),
       loadImages,
+      analyzeImages,
     });
     expect((await handler(request({ comparisonId }, ""))).status).toBe(401);
     expect((await handler(request({ comparisonId }))).status).toBe(401);
@@ -47,6 +50,7 @@ describe("analyze-comparison authorization", () => {
       authenticate: vi.fn().mockResolvedValue(user),
       findComparison,
       loadImages,
+      analyzeImages,
     });
     expect((await handler(request({ comparisonId: "not-a-uuid" }))).status).toBe(400);
     expect(findComparison).not.toHaveBeenCalled();
@@ -57,6 +61,7 @@ describe("analyze-comparison authorization", () => {
       authenticate: vi.fn().mockResolvedValue(user),
       findComparison: vi.fn().mockResolvedValue(null),
       loadImages,
+      analyzeImages,
     });
     expect((await handler(request({ comparisonId }))).status).toBe(404);
   });
@@ -69,6 +74,7 @@ describe("analyze-comparison authorization", () => {
         final_image_path: null,
       }),
       loadImages,
+      analyzeImages,
     });
     expect((await handler(request({ comparisonId }))).status).toBe(409);
   });
@@ -79,9 +85,10 @@ describe("analyze-comparison authorization", () => {
       authenticate: vi.fn().mockResolvedValue(user),
       findComparison,
       loadImages,
+      analyzeImages,
     });
     const response = await handler(request({ comparisonId, userId: "attacker" }));
-    expect(response.status).toBe(501);
+    expect(response.status).toBe(200);
     expect(findComparison).toHaveBeenCalledWith(
       comparisonId,
       user.id,
