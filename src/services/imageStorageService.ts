@@ -5,6 +5,9 @@ import { supabase } from "@/lib/supabase";
 
 const STORAGE_BUCKET = "comparison-images";
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
+const DEFAULT_SIGNED_URL_LIFETIME_SECONDS = 5 * 60;
+const MIN_SIGNED_URL_LIFETIME_SECONDS = 60;
+const MAX_SIGNED_URL_LIFETIME_SECONDS = 60 * 60;
 
 export type ImageStage = "initial" | "final";
 
@@ -12,6 +15,13 @@ type UploadComparisonImageParams = {
   comparisonId: string;
   imageUri: string;
   imageStage: ImageStage;
+};
+
+type ResolveComparisonImageUrlParams = {
+  comparisonId: string;
+  imagePath: string;
+  imageStage: ImageStage;
+  expiresIn?: number;
 };
 
 const IMAGE_EXTENSIONS: Record<string, string> = {
@@ -137,4 +147,60 @@ export async function uploadComparisonImage({
   }
 
   return data.path;
+}
+
+export async function resolveComparisonImageUrl({
+  comparisonId,
+  imagePath,
+  imageStage,
+  expiresIn = DEFAULT_SIGNED_URL_LIFETIME_SECONDS,
+}: ResolveComparisonImageUrlParams): Promise<string> {
+  if (!comparisonId || !imagePath) {
+    throw new Error("Comparison ID and image path are required.");
+  }
+
+  if (imageStage !== "initial" && imageStage !== "final") {
+    throw new Error("Invalid image stage.");
+  }
+
+  if (
+    !Number.isInteger(expiresIn) ||
+    expiresIn < MIN_SIGNED_URL_LIFETIME_SECONDS ||
+    expiresIn > MAX_SIGNED_URL_LIFETIME_SECONDS
+  ) {
+    throw new Error("Signed URL lifetime must be between 60 and 3600 seconds.");
+  }
+
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    throw new Error("User must be authenticated.");
+  }
+
+  const expectedPrefix = `${user.id}/${comparisonId}/${imageStage}.`;
+  const extension = imagePath.slice(expectedPrefix.length).toLowerCase();
+
+  if (
+    !imagePath.startsWith(expectedPrefix) ||
+    !Object.values(IMAGE_EXTENSIONS).includes(extension)
+  ) {
+    throw new Error("Image path does not match this comparison.");
+  }
+
+  const { data, error } = await supabase.storage
+    .from(STORAGE_BUCKET)
+    .createSignedUrl(imagePath, expiresIn);
+
+  if (error) {
+    throw error;
+  }
+
+  if (!data?.signedUrl) {
+    throw new Error("Private comparison image could not be accessed.");
+  }
+
+  return data.signedUrl;
 }
