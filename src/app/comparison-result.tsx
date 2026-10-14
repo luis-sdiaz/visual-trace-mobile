@@ -19,10 +19,26 @@ import { Spacing } from "@/constants/spacing";
 import { Typography } from "@/constants/typography";
 import { useAuth } from "@/context/AuthContext";
 import { useComparison } from "@/context/ComparisonContext";
+import {
+  AnalysisServiceError,
+  fetchCurrentAnalysisReport,
+  requestComparisonAnalysis,
+  type AnalysisReportRecord,
+} from "@/services/analysisService";
 import { recoverComparison } from "@/services/comparisonRecoveryService";
 import { createSingleFlight } from "@/utils/singleFlight";
 
 type PrivateImageStatus = "loading" | "available" | "error" | "retrying";
+type AnalysisStatus = "loading" | "ready" | "analyzing" | "available" | "error" | "limited";
+
+const CATEGORY_LABELS = {
+  added: "Elemento añadido",
+  removed: "Elemento retirado",
+  modified: "Modificación",
+  moved: "Cambio de posición",
+  appearance: "Cambio de apariencia",
+  other: "Otro cambio visible",
+} as const;
 
 type PrivateComparisonImageProps = {
   accessibilityLabel: string;
@@ -102,12 +118,17 @@ export default function ComparisonResultScreen() {
     comparisonId,
     name,
     initialImageUri,
+    initialImagePath,
     finalImageUri,
+    finalImagePath,
     restoreComparison,
   } = useComparison();
   const userId = user?.id;
   const refreshSequenceRef = useRef(0);
   const [refreshSingleFlight] = useState(() => createSingleFlight<boolean>());
+  const [analysisStatus, setAnalysisStatus] = useState<AnalysisStatus>("loading");
+  const [analysisReport, setAnalysisReport] = useState<AnalysisReportRecord | null>(null);
+  const [analysisMessage, setAnalysisMessage] = useState("");
   const isFocusedRef = useRef(false);
   const restoreComparisonRef = useRef(restoreComparison);
 
@@ -185,6 +206,66 @@ export default function ComparisonResultScreen() {
 
     return () => subscription.remove();
   }, [refreshPrivateImages]);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadReport() {
+      await Promise.resolve();
+      if (!active) return;
+      setAnalysisReport(null);
+      setAnalysisMessage("");
+
+      if (!comparisonId || !initialImagePath || !finalImagePath) {
+        setAnalysisStatus("ready");
+        return;
+      }
+
+      setAnalysisStatus("loading");
+      try {
+        const report = await fetchCurrentAnalysisReport({
+          comparisonId,
+          initialImagePath,
+          finalImagePath,
+        });
+        if (!active) return;
+        setAnalysisReport(report);
+        setAnalysisStatus(report ? "available" : "ready");
+      } catch {
+        if (!active) return;
+        setAnalysisStatus("error");
+        setAnalysisMessage("No pudimos recuperar el informe guardado.");
+      }
+    }
+
+    void loadReport();
+
+    return () => {
+      active = false;
+    };
+  }, [comparisonId, finalImagePath, initialImagePath]);
+
+  async function handleAnalyze() {
+    if (!comparisonId || analysisStatus === "analyzing") return;
+    setAnalysisStatus("analyzing");
+    setAnalysisMessage("");
+    try {
+      const report = await requestComparisonAnalysis(comparisonId);
+      setAnalysisReport(report);
+      setAnalysisStatus("available");
+    } catch (error) {
+      const limited =
+        error instanceof AnalysisServiceError && error.code === "usage_limit_reached";
+      setAnalysisStatus(limited ? "limited" : "error");
+      setAnalysisMessage(
+        limited
+          ? "Se alcanzó el límite gratuito de análisis. Inténtalo más tarde."
+          : error instanceof Error
+            ? error.message
+            : "No fue posible completar el análisis.",
+      );
+    }
+  }
 
   const hasComparisonData =
     name.trim().length > 0 && initialImageUri && finalImageUri;
@@ -288,20 +369,90 @@ export default function ComparisonResultScreen() {
           </View>
 
           <View style={styles.statusTextContainer}>
-            <Text style={styles.statusTitle}>Fotografías listas</Text>
+            <Text style={styles.statusTitle}>
+              {analysisStatus === "analyzing"
+                ? "Analizando imágenes"
+                : analysisStatus === "available"
+                  ? "Informe disponible"
+                  : "Fotografías listas"}
+            </Text>
 
             <Text style={styles.statusDescription}>
-              Los dos estados están preparados para ser enviados al análisis
-              visual.
+              {analysisStatus === "analyzing"
+                ? "Gemini está comparando únicamente los cambios visibles."
+                : analysisStatus === "available"
+                  ? "El informe corresponde a estas versiones de las fotografías."
+                  : "Los dos estados están preparados para el análisis visual."}
             </Text>
           </View>
         </View>
 
+        {analysisStatus === "loading" || analysisStatus === "analyzing" ? (
+          <View style={styles.analysisLoading}>
+            <ActivityIndicator color={Colors.primary} />
+            <Text style={styles.loadingText}>
+              {analysisStatus === "loading" ? "Buscando informe guardado..." : "Analizando imágenes..."}
+            </Text>
+          </View>
+        ) : null}
+
+        {analysisReport ? (
+          <View style={styles.reportCard}>
+            <Text style={styles.reportEyebrow}>RESUMEN DE IA</Text>
+            <Text style={styles.reportSummary}>{analysisReport.result.summary}</Text>
+
+            <Text style={styles.reportSectionTitle}>Diferencias detectadas</Text>
+            {analysisReport.result.differences.length > 0 ? (
+              analysisReport.result.differences.map((difference, index) => (
+                <View key={`${difference.category}-${index}`} style={styles.reportItem}>
+                  <Text style={styles.reportItemLabel}>{CATEGORY_LABELS[difference.category]}</Text>
+                  <Text style={styles.reportItemText}>{difference.description}</Text>
+                </View>
+              ))
+            ) : (
+              <Text style={styles.reportEmpty}>No se identificaron cambios visibles.</Text>
+            )}
+
+            {analysisReport.result.observations.length > 0 ? (
+              <>
+                <Text style={styles.reportSectionTitle}>Observaciones</Text>
+                {analysisReport.result.observations.map((item, index) => (
+                  <Text key={`observation-${index}`} style={styles.reportBullet}>• {item}</Text>
+                ))}
+              </>
+            ) : null}
+
+            {analysisReport.result.uncertainties.length > 0 ? (
+              <>
+                <Text style={styles.reportSectionTitle}>Limitaciones</Text>
+                {analysisReport.result.uncertainties.map((item, index) => (
+                  <Text key={`uncertainty-${index}`} style={styles.reportBullet}>• {item}</Text>
+                ))}
+              </>
+            ) : null}
+
+            <View style={styles.reviewNotice}>
+              <Text style={styles.reviewNoticeText}>
+                Este informe es una ayuda automática. Verifica los hallazgos mediante revisión humana.
+              </Text>
+            </View>
+          </View>
+        ) : null}
+
+        {analysisMessage ? (
+          <View style={analysisStatus === "limited" ? styles.limitCard : styles.errorCard}>
+            <Text style={styles.feedbackText}>{analysisMessage}</Text>
+          </View>
+        ) : null}
+
         <View style={styles.footer}>
-          <Button
-            label="Analizar cambios"
-            onPress={() => console.log("Analyze comparison pressed")}
-          />
+          {analysisStatus !== "available" ? (
+            <Button
+              disabled={analysisStatus === "analyzing" || analysisStatus === "loading"}
+              label={analysisStatus === "analyzing" ? "Analizando..." : analysisStatus === "error" ? "Reintentar análisis" : "Analizar cambios"}
+              onPress={() => void handleAnalyze()}
+            />
+          ) : null}
 
           <Text style={styles.disclaimer}>
             VisualTrace identificará posibles diferencias visibles. La revisión
@@ -540,6 +691,100 @@ const styles = StyleSheet.create({
 
   footer: {
     marginTop: Spacing.sm,
+  },
+
+  analysisLoading: {
+    alignItems: "center",
+    padding: Spacing.lg,
+    marginBottom: Spacing.lg,
+  },
+
+  reportCard: {
+    padding: Spacing.xl,
+    marginBottom: Spacing.xl,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.borderPrimary,
+    borderRadius: Radius.xl,
+  },
+
+  reportEyebrow: {
+    ...Typography.label,
+    color: Colors.primary,
+    marginBottom: Spacing.sm,
+  },
+
+  reportSummary: {
+    ...Typography.bodyLarge,
+    color: Colors.textPrimary,
+  },
+
+  reportSectionTitle: {
+    ...Typography.title,
+    color: Colors.textPrimary,
+    marginTop: Spacing.xl,
+    marginBottom: Spacing.sm,
+  },
+
+  reportItem: {
+    padding: Spacing.md,
+    marginTop: Spacing.sm,
+    backgroundColor: Colors.surfaceBlue,
+    borderRadius: Radius.lg,
+  },
+
+  reportItemLabel: {
+    ...Typography.label,
+    color: Colors.primaryDark,
+    marginBottom: Spacing.xs,
+  },
+
+  reportItemText: {
+    ...Typography.body,
+    color: Colors.textPrimary,
+  },
+
+  reportEmpty: {
+    ...Typography.body,
+    color: Colors.textSecondary,
+  },
+
+  reportBullet: {
+    ...Typography.body,
+    color: Colors.textSecondary,
+    marginBottom: Spacing.xs,
+  },
+
+  reviewNotice: {
+    padding: Spacing.md,
+    marginTop: Spacing.xl,
+    backgroundColor: Colors.warningSoft,
+    borderRadius: Radius.lg,
+  },
+
+  reviewNoticeText: {
+    ...Typography.label,
+    color: Colors.warning,
+  },
+
+  errorCard: {
+    padding: Spacing.lg,
+    marginBottom: Spacing.lg,
+    backgroundColor: Colors.dangerSoft,
+    borderRadius: Radius.lg,
+  },
+
+  limitCard: {
+    padding: Spacing.lg,
+    marginBottom: Spacing.lg,
+    backgroundColor: Colors.warningSoft,
+    borderRadius: Radius.lg,
+  },
+
+  feedbackText: {
+    ...Typography.body,
+    color: Colors.textPrimary,
+    textAlign: "center",
   },
 
   disclaimer: {
