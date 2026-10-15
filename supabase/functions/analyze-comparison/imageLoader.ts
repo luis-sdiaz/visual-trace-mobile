@@ -1,4 +1,4 @@
-import type { AuthorizedComparison } from "./handler";
+import type { AuthorizedComparison } from "./handler.ts";
 
 export const MAX_AI_IMAGE_BYTES = 8 * 1024 * 1024;
 export const MAX_AI_IMAGE_PAIR_BYTES = 16 * 1024 * 1024;

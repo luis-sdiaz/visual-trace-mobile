@@ -2,9 +2,9 @@ import {
   GEMINI_ANALYSIS_RESPONSE_SCHEMA,
   parseGeminiAnalysisReport,
   type GeminiAnalysisReport,
-} from "../../../src/contracts/geminiAnalysis";
+} from "../_shared/geminiAnalysis.ts";
 
-import type { PreparedComparisonImage } from "./imageLoader";
+import type { PreparedComparisonImage } from "./imageLoader.ts";
 
 export const GEMINI_ANALYSIS_PROMPT =
   "Compara estas dos fotografías. La primera corresponde al estado inicial y la segunda al estado final. Describe únicamente las diferencias que puedes observar. No inventes medidas, materiales, causas ni información que no pueda verificarse visualmente. Si no hay cambios apreciables, indícalo. Considera limitaciones por iluminación, perspectiva o encuadre. Responde en español utilizando exclusivamente la estructura solicitada.";
