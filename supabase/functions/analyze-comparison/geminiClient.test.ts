@@ -41,14 +41,38 @@ describe("Gemini client", () => {
   });
 
   it.each([
-    [429, "provider_quota_exceeded"],
-    [404, "model_unavailable"],
-  ])("maps provider status %i", async (status, code) => {
+    [429, {}, "provider_quota_exceeded"],
+    [404, {}, "model_unavailable"],
+    [401, {}, "gemini_not_configured"],
+    [403, {}, "gemini_not_configured"],
+    [408, {}, "gemini_timeout"],
+    [500, {}, "gemini_network_error"],
+    [400, { error: { status: "INVALID_ARGUMENT" } }, "invalid_gemini_request"],
+    [400, { error: { status: "NOT_FOUND" } }, "model_unavailable"],
+    [400, { error: { status: "RESOURCE_EXHAUSTED" } }, "provider_quota_exceeded"],
+  ])("maps provider status %i", async (status, body, code) => {
     const client = createGeminiClient({
       apiKey: "test-key",
-      fetcher: vi.fn().mockResolvedValue(response(status, {})),
+      fetcher: vi.fn().mockResolvedValue(response(status, body)),
     });
     await expect(client.analyze(initial, final)).rejects.toMatchObject({ code });
+  });
+
+  it("does not expose provider error details", async () => {
+    const client = createGeminiClient({
+      apiKey: "test-key",
+      fetcher: vi.fn().mockResolvedValue(response(400, {
+        error: {
+          status: "INVALID_ARGUMENT",
+          message: "Internal provider detail containing sensitive request context",
+        },
+      })),
+    });
+
+    await expect(client.analyze(initial, final)).rejects.toMatchObject({
+      code: "invalid_gemini_request",
+      message: "Gemini rechazó la solicitud de análisis.",
+    });
   });
 
   it("rejects invalid or incomplete JSON", async () => {

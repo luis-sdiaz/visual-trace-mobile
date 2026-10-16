@@ -26,6 +26,7 @@ export class GeminiRequestError extends Error {
       | "provider_quota_exceeded"
       | "gemini_timeout"
       | "gemini_network_error"
+      | "invalid_gemini_request"
       | "invalid_gemini_response",
     message: string,
   ) {
@@ -61,6 +62,54 @@ function getResponseText(value: unknown): string | null {
     typeof part === "object" && part !== null && typeof (part as { text?: unknown }).text === "string"
   )?.text;
   return typeof text === "string" ? text : null;
+}
+
+async function getProviderErrorStatus(response: Response): Promise<string | null> {
+  try {
+    const payload = await response.clone().json();
+    if (typeof payload !== "object" || payload === null || !("error" in payload)) {
+      return null;
+    }
+    const error = (payload as { error?: unknown }).error;
+    if (typeof error !== "object" || error === null || !("status" in error)) {
+      return null;
+    }
+    const status = (error as { status?: unknown }).status;
+    return typeof status === "string" ? status : null;
+  } catch {
+    return null;
+  }
+}
+
+async function throwProviderError(response: Response): Promise<never> {
+  const providerStatus = await getProviderErrorStatus(response);
+
+  if (response.status === 429 || providerStatus === "RESOURCE_EXHAUSTED") {
+    throw new GeminiRequestError("provider_quota_exceeded", "Gemini no tiene cuota disponible.");
+  }
+  if (response.status === 404 || providerStatus === "NOT_FOUND") {
+    throw new GeminiRequestError("model_unavailable", "El modelo de Gemini no está disponible.");
+  }
+  if (
+    response.status === 401 ||
+    response.status === 403 ||
+    providerStatus === "UNAUTHENTICATED" ||
+    providerStatus === "PERMISSION_DENIED"
+  ) {
+    throw new GeminiRequestError("gemini_not_configured", "Gemini no está configurado.");
+  }
+  if (
+    response.status === 408 ||
+    response.status === 504 ||
+    providerStatus === "DEADLINE_EXCEEDED"
+  ) {
+    throw new GeminiRequestError("gemini_timeout", "Gemini excedió el tiempo de espera.");
+  }
+  if (response.status === 400 || providerStatus === "INVALID_ARGUMENT") {
+    throw new GeminiRequestError("invalid_gemini_request", "Gemini rechazó la solicitud de análisis.");
+  }
+
+  throw new GeminiRequestError("gemini_network_error", "Gemini devolvió un error.");
 }
 
 export function createGeminiClient({
@@ -119,14 +168,8 @@ export function createGeminiClient({
         clearTimeout(timeout);
       }
 
-      if (response.status === 429) {
-        throw new GeminiRequestError("provider_quota_exceeded", "Gemini no tiene cuota disponible.");
-      }
-      if (response.status === 404 || response.status === 400) {
-        throw new GeminiRequestError("model_unavailable", "El modelo de Gemini no está disponible.");
-      }
       if (!response.ok) {
-        throw new GeminiRequestError("gemini_network_error", "Gemini devolvió un error.");
+        await throwProviderError(response);
       }
 
       let payload: unknown;
