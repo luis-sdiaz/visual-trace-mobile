@@ -1,0 +1,4 @@
+project_id = "visualtrace"
+
+[functions.analyze-comparison]
+verify_jwt = true
