@@ -1,512 +1,229 @@
 # VisualTrace
 
-VisualTrace es una aplicación móvil desarrollada para facilitar el registro y la comparación visual del estado de espacios, objetos o elementos antes y después de un periodo de uso.
+VisualTrace es una aplicación móvil para registrar el estado de un espacio u objeto con una fotografía **ANTES** y otra **DESPUÉS**. Conserva la evidencia en un backend privado y prepara un análisis visual asistido por Gemini. El resultado de IA es orientativo: la revisión y la decisión final siempre corresponden al usuario.
 
-La aplicación permite registrar una fotografía inicial y una fotografía final para posteriormente comparar ambos estados. El proyecto está pensado para incorporar inteligencia artificial como apoyo en la identificación de posibles cambios visibles, como manchas, golpes, rayones u otras diferencias entre las imágenes.
+## Estado real
 
-> La inteligencia artificial funciona como una herramienta de apoyo visual. La revisión y decisión final siempre corresponde al usuario.
+El repositorio contiene la aplicación móvil, la persistencia en Supabase, las políticas versionadas del Storage privado, el contrato de análisis, la Edge Function `analyze-comparison` y sus pruebas.
 
----
+La integración de IA **no está en producción todavía**:
 
-## Objetivo del proyecto
+- Las migraciones de IA y Storage incluidas en este repositorio no se han aplicado a Supabase remoto.
+- La Edge Function no se ha desplegado en Supabase remoto.
+- No se ha configurado ni consumido una clave real de Gemini.
+- Las validaciones de PostgreSQL, RLS y Storage se han realizado únicamente en Supabase local.
 
-El objetivo principal de VisualTrace es permitir que una persona pueda documentar de manera sencilla el estado inicial y final de un espacio u objeto mediante fotografías.
+## Flujo funcional
 
-Algunos posibles casos de uso son:
+1. El usuario se registra o inicia sesión mediante Supabase Auth.
+2. Crea una comparación y asigna un nombre.
+3. Captura o selecciona la fotografía **ANTES** (`initial`).
+4. Captura o selecciona la fotografía **DESPUÉS** (`final`).
+5. La aplicación valida y sube cada archivo al bucket privado `comparison-images`.
+6. La comparación pasa de `draft` a `ready` cuando dispone de ambas rutas.
+7. La pantalla de resultado recupera las fotografías mediante enlaces firmados de corta duración.
+8. Cuando el backend de IA esté desplegado, la aplicación podrá solicitar el análisis y mostrar el informe persistido.
 
-- Entrega y devolución de habitaciones.
-- Alquiler de apartamentos.
-- Préstamo de equipos.
-- Registro de objetos antes y después de ser utilizados.
-- Control visual del estado de diferentes elementos.
-- Evidencia fotográfica organizada.
+Las sustituciones de fotografías usan nombres versionados y control optimista para evitar sobrescribir cambios concurrentes. Una comparación ya analizada no admite edición de imágenes.
 
-VisualTrace busca centralizar este proceso dentro de una aplicación móvil sencilla, clara y fácil de utilizar.
-
----
-
-## Funcionamiento general
-
-El flujo principal de la aplicación está dividido en tres pasos.
-
-### 1. Información básica
-
-El usuario asigna un nombre a la comparación para identificarla posteriormente.
-
-Ejemplo:
+## Arquitectura
 
 ```text
-Habitación 101
+Expo / React Native
+  ├─ Supabase Auth
+  ├─ PostgreSQL + RLS
+  ├─ Storage privado: comparison-images
+  └─ Edge Function: analyze-comparison
+       ├─ autentica y comprueba propiedad
+       ├─ descarga y valida ambas imágenes
+       ├─ reserva cuota de forma transaccional
+       ├─ invoca Gemini desde el backend
+       └─ valida y persiste el informe
 ```
 
-### 2. Estado inicial
-
-El usuario registra la primera fotografía utilizando:
-
-- La cámara del dispositivo.
-- Una imagen existente en la galería.
-
-Esta fotografía representa el estado inicial del espacio u objeto.
-
-### 3. Estado final
-
-Posteriormente se registra una segunda fotografía que representa el estado final.
-
-Al terminar, la aplicación presenta ambas imágenes para que puedan ser revisadas y comparadas.
-
----
-
-## Flujo de navegación
+Responsabilidades principales:
 
 ```text
-Bienvenida
-    │
-    ├── Iniciar sesión
-    │
-    └── Crear cuenta
-            │
-            ▼
-           Home
-            │
-            ▼
-    Nueva comparación
-            │
-            ▼
-     Estado inicial
-            │
-            ▼
-       Estado final
-            │
-            ▼
-  Resultado de comparación
+src/app/                         pantallas y navegación
+src/context/                     sesión y borrador de comparación
+src/services/                    comparaciones, imágenes y análisis
+src/contracts/                   límites y contrato compartido
+supabase/functions/              Edge Function y módulos compartidos
+supabase/migrations/             esquema, funciones y políticas versionadas
+supabase/tests/                  integración PostgreSQL, RLS y Storage
+.github/workflows/quality.yml    validación continua
 ```
 
-La navegación fue diseñada para mantener un flujo sencillo y evitar pasos innecesarios durante el registro de una comparación.
+## Stack tecnológico
 
----
-
-## Funcionalidades implementadas
-
-Actualmente VisualTrace cuenta con las siguientes funcionalidades:
-
-- Pantalla de bienvenida.
-- Registro de usuarios.
-- Inicio de sesión.
-- Cierre de sesión.
-- Autenticación utilizando Supabase.
-- Creación de una nueva comparación.
-- Registro del nombre de la comparación.
-- Captura de fotografías utilizando la cámara.
-- Selección de fotografías desde la galería.
-- Registro del estado inicial.
-- Registro del estado final.
-- Vista previa de las fotografías seleccionadas.
-- Pantalla de resultado de comparación.
-- Persistencia local de una comparación en progreso.
-- Limpieza automática del borrador al iniciar una nueva comparación.
-- Navegación entre las diferentes etapas.
-- Diseño adaptable para dispositivos móviles.
-- Sistema de colores, espaciado, tipografía y bordes reutilizable.
-- Componentes visuales reutilizables.
-
----
-
-## Persistencia del borrador
-
-VisualTrace conserva temporalmente la comparación que se encuentra en progreso.
-
-Esto permite evitar la pérdida de información si la aplicación se recarga accidentalmente mientras el usuario está realizando el proceso.
-
-Se almacenan temporalmente:
-
-```text
-Nombre de la comparación
-Fotografía inicial
-Fotografía final
-```
-
-Cuando el usuario selecciona **Crear comparación**, el borrador anterior se limpia para comenzar un nuevo registro.
-
----
-
-## Tecnologías utilizadas
-
-El proyecto está desarrollado principalmente con:
-
-| Tecnología | Uso |
+| Componente | Tecnología |
 | --- | --- |
-| React Native | Desarrollo de la interfaz móvil |
-| Expo | Entorno y herramientas de desarrollo |
-| TypeScript | Tipado y desarrollo de la aplicación |
-| Expo Router | Navegación entre pantallas |
-| Expo Image Picker | Acceso a cámara y galería |
-| AsyncStorage | Persistencia local |
-| Supabase | Autenticación y backend |
-| Supabase Auth | Gestión de usuarios |
-| Supabase Database | Base de datos del proyecto |
-| Supabase Storage | Almacenamiento de imágenes |
-| Ionicons | Iconografía de la interfaz |
-| Git | Control de versiones |
-| GitHub | Repositorio remoto |
+| Aplicación | Expo SDK 57, React Native 0.86, React 19 |
+| Lenguaje | TypeScript estricto |
+| Navegación | Expo Router |
+| Cámara y galería | Expo Image Picker |
+| Persistencia local | AsyncStorage |
+| Backend | Supabase Auth, PostgreSQL, Storage y Edge Functions |
+| IA preparada | Gemini REST API desde una Edge Function |
+| Calidad | TypeScript, Vitest, ESLint y GitHub Actions |
 
----
+## Fotografías privadas
 
-## Arquitectura actual
+El límite único es **6 MiB por fotografía**: se aplica en el cliente, en el bucket y nuevamente en la Edge Function. Como defensa adicional, la función limita el par a **12 MiB** antes de invocar al proveedor. Los formatos admitidos son JPEG, PNG, WebP, HEIC y HEIF; el backend comprueba extensión, MIME declarado y firma binaria.
 
-La aplicación organiza el código separando responsabilidades entre pantallas, componentes, configuración, contexto, servicios y almacenamiento.
+La ruta canónica contiene exactamente tres segmentos:
 
 ```text
-VisualTrace/
-│
-├── assets/
-│
-├── src/
-│   │
-│   ├── app/
-│   │   ├── index.tsx
-│   │   ├── login.tsx
-│   │   ├── register.tsx
-│   │   ├── home.tsx
-│   │   ├── new-comparison.tsx
-│   │   ├── initial-state.tsx
-│   │   ├── final-state.tsx
-│   │   ├── comparison-result.tsx
-│   │   └── _layout.tsx
-│   │
-│   ├── components/
-│   │   └── ui/
-│   │
-│   ├── constants/
-│   │   ├── colors.ts
-│   │   ├── radius.ts
-│   │   ├── spacing.ts
-│   │   └── typography.ts
-│   │
-│   ├── context/
-│   │   ├── AuthContext.tsx
-│   │   └── ComparisonContext.tsx
-│   │
-│   ├── lib/
-│   │   └── supabase.ts
-│   │
-│   └── storage/
-│       └── comparisonStorage.ts
-│
-├── app.json
-├── package.json
-├── package-lock.json
-├── tsconfig.json
-└── README.md
+USER_ID/COMPARISON_ID/initial.ext
+USER_ID/COMPARISON_ID/final.ext
+USER_ID/COMPARISON_ID/initial-VERSION.ext
+USER_ID/COMPARISON_ID/final-VERSION.ext
 ```
 
----
+El bucket `comparison-images` es privado. Sus políticas RLS versionadas permiten `SELECT`, `INSERT`, `UPDATE` y `DELETE` sólo al usuario autenticado cuyo identificador inicia la ruta y que es propietario de la comparación. La misma política de lectura protege la descarga y la creación de enlaces firmados; la aplicación usa 5 minutos por defecto y acepta entre 60 y 3600 segundos.
 
-## Sistema de diseño
+## Contrato Gemini
 
-VisualTrace utiliza un sistema visual propio para mantener consistencia entre las diferentes pantallas.
+`analyze-comparison` acepta únicamente `POST` autenticado con:
 
-### Color principal
-
-```text
-#2563EB
+```json
+{ "comparisonId": "UUID" }
 ```
 
-Este azul representa las acciones principales y la identidad visual de la aplicación.
+La función no acepta imágenes suministradas directamente por el cliente. Obtiene las rutas guardadas en la comparación, valida propiedad y estructura, descarga los dos objetos privados y los envía en línea al proveedor.
 
-### Colores semánticos
+El contrato de respuesta `1.0` exige:
 
-| Uso | Color |
-| --- | --- |
-| Principal | `#2563EB` |
-| Estado inicial | `#2563EB` |
-| Estado final | `#16A34A` |
-| Advertencia | `#D97706` |
-| Error | `#DC2626` |
-| Texto principal | `#0F172A` |
-| Texto secundario | `#64748B` |
-| Fondo | `#F8FAFC` |
-| Superficie | `#FFFFFF` |
+- `hasVisibleChanges` booleano.
+- `summary` con un máximo de 500 caracteres.
+- Hasta 12 diferencias categorizadas.
+- Hasta 8 observaciones y 8 incertidumbres.
+- Ninguna propiedad adicional.
 
-El proyecto también utiliza constantes reutilizables para:
+La respuesta del proveedor se valida antes de persistirse. Los informes quedan ligados a las rutas exactas de las fotografías; si éstas cambian durante el análisis, el resultado obsoleto se rechaza. Las reservas concurrentes se deduplican y los intentos inciertos se conservan para contabilizar cuota de forma conservadora.
 
-- Colores.
-- Espaciados.
-- Tipografía.
-- Bordes redondeados.
+El modelo predeterminado en código es `gemini-2.5-flash`; debe confirmarse su disponibilidad para el proyecto de Google antes de la primera prueba real.
 
-Esto facilita mantener una apariencia uniforme durante todo el desarrollo.
+## Límites de consumo
 
----
+La Edge Function falla de forma cerrada si las cuatro cuotas no están configuradas con enteros seguros. Los máximos admitidos por el código son:
 
-## Backend con Supabase
+| Variable | Máximo |
+| --- | ---: |
+| `AI_GLOBAL_PER_MINUTE` | 3 |
+| `AI_GLOBAL_PER_DAY` | 10 |
+| `AI_USER_PER_DAY` | 6 |
+| `AI_COMPARISON_PER_DAY` | 3 |
 
-VisualTrace utiliza Supabase para gestionar diferentes servicios del backend.
+Se puede elegir un valor menor, pero nunca cero, un valor no entero o uno superior al máximo.
 
-Actualmente se encuentra configurado para trabajar con:
+## Configuración
 
-### Autenticación
-
-Supabase Auth permite administrar:
-
-- Registro de usuarios.
-- Inicio de sesión.
-- Sesiones.
-- Cierre de sesión.
-
-### Base de datos
-
-La estructura del backend contempla información relacionada con:
-
-```text
-profiles
-comparisons
-comparison_findings
-```
-
-### Storage
-
-También se encuentra preparado un almacenamiento privado para las imágenes asociadas a las comparaciones.
-
-La estructura prevista para las fotografías es:
-
-```text
-USER_ID/
-└── COMPARISON_ID/
-    ├── initial.jpg
-    └── final.jpg
-```
-
-El acceso a la información se protege utilizando políticas de seguridad mediante Row Level Security (RLS).
-
----
-
-## Inteligencia artificial
-
-Una de las siguientes etapas del proyecto consiste en integrar un modelo de inteligencia artificial para apoyar la comparación de las fotografías.
-
-El flujo previsto es:
-
-```text
-Fotografía inicial
-        +
-Fotografía final
-        │
-        ▼
-Backend seguro
-        │
-        ▼
-Modelo de IA
-        │
-        ▼
-Posibles diferencias visuales
-        │
-        ▼
-Revisión del usuario
-```
-
-La inteligencia artificial podrá indicar posibles diferencias como:
-
-- Rayones.
-- Manchas.
-- Golpes.
-- Cambios visibles.
-- Elementos que aparecen o desaparecen.
-
-La IA no determinará responsabilidades ni tomará una decisión definitiva. Su función será señalar posibles cambios para facilitar la revisión humana.
-
----
-
-## Variables de entorno
-
-Para conectar la aplicación con Supabase se utiliza un archivo local:
-
-```text
-.env.local
-```
-
-Debe contener:
+La aplicación móvil requiere un archivo local no versionado `.env.local`:
 
 ```env
-EXPO_PUBLIC_SUPABASE_URL=TU_SUPABASE_URL
-EXPO_PUBLIC_SUPABASE_KEY=TU_SUPABASE_PUBLISHABLE_KEY
+EXPO_PUBLIC_SUPABASE_URL=...
+EXPO_PUBLIC_SUPABASE_KEY=...
 ```
 
-Este archivo no debe subirse al repositorio.
+Sólo la URL y la clave pública/publicable pertenecen al cliente. No deben incluirse allí claves administrativas ni la clave de Gemini.
 
-Las claves privadas, contraseñas de base de datos y claves administrativas nunca deben almacenarse directamente en la aplicación móvil.
+La Edge Function requiere secretos del entorno de Supabase:
 
----
+```text
+GEMINI_API_KEY
+GEMINI_MODEL                 opcional; usa el modelo predeterminado si se omite
+AI_GLOBAL_PER_MINUTE
+AI_GLOBAL_PER_DAY
+AI_USER_PER_DAY
+AI_COMPARISON_PER_DAY
+```
 
-## Instalación
+Supabase proporciona a la función `SUPABASE_URL`, `SUPABASE_ANON_KEY` y `SUPABASE_SERVICE_ROLE_KEY`. Ningún valor secreto debe guardarse en Git, imprimirse en logs ni exponerse al bundle móvil.
 
-### 1. Clonar el repositorio
+## Instalación y desarrollo
+
+El entorno de referencia de CI usa Node.js 22 y npm; el desarrollo móvil requiere además un entorno Expo compatible.
 
 ```bash
 git clone https://github.com/luis-sdiaz/visual-trace-mobile.git
-```
-
-### 2. Entrar al proyecto
-
-```bash
 cd visual-trace-mobile
-```
-
-### 3. Instalar dependencias
-
-```bash
-npm install
-```
-
-### 4. Crear las variables de entorno
-
-Crear el archivo:
-
-```text
-.env.local
-```
-
-y configurar las credenciales correspondientes de Supabase.
-
-### 5. Iniciar Expo
-
-```bash
+npm ci
 npx expo start
 ```
 
-Para utilizar un túnel:
+## Pruebas reproducibles
 
-```bash
-npx expo start --tunnel
-```
-
-Después se puede abrir la aplicación utilizando Expo Go desde un dispositivo móvil.
-
----
-
-## Comandos útiles
-
-Ejecutar el proyecto:
-
-```bash
-npx expo start
-```
-
-Ejecutar mediante túnel:
-
-```bash
-npx expo start --tunnel
-```
-
-Validar TypeScript:
+La validación estándar, ejecutada también por GitHub Actions, no necesita Gemini ni Supabase remoto:
 
 ```bash
 npx tsc --noEmit
+npm test
+npm run lint
 ```
 
-Revisar la configuración del proyecto Expo:
+Las pruebas de `supabase/tests` son integraciones explícitas y requieren un Supabase **local** con el esquema y las migraciones aplicados:
 
 ```bash
-npx expo-doctor
+psql "$LOCAL_DATABASE_URL" -v ON_ERROR_STOP=1 \
+  -f supabase/tests/ai_analysis_reports_rls.test.sql
+psql "$LOCAL_DATABASE_URL" -v ON_ERROR_STOP=1 \
+  -f supabase/tests/ai_analysis_usage_retries.test.sql
+psql "$LOCAL_DATABASE_URL" -v ON_ERROR_STOP=1 \
+  -f supabase/tests/comparison_storage_rls.test.sql
+node supabase/tests/comparison_storage_api.integration.mjs
 ```
 
-Revisar compatibilidad de dependencias:
+La prueba de API de Storage lee `SUPABASE_URL`, `SUPABASE_ANON_KEY` y `SUPABASE_SERVICE_ROLE_KEY` exclusivamente del entorno local. No debe apuntarse a un proyecto remoto. Las pruebas SQL usan transacciones con `ROLLBACK`.
 
-```bash
-npx expo install --check
-```
+## Preparación del despliegue remoto
 
----
+Antes de modificar Supabase remoto:
 
-## Estado actual del proyecto
+1. Confirmar el proyecto y obtener un respaldo recuperable.
+2. Auditar la tabla remota de historial de migraciones y comparar esquema, funciones, grants, RLS, políticas y bucket con el repositorio.
+3. Verificar que ya existen `public.comparisons`, sus columnas esperadas, su RLS y la relación correcta con `auth.users`; estas migraciones dependen de ese esquema base.
+4. Revisar objetos creados manualmente y resolver conflictos sin marcar migraciones como aplicadas a ciegas.
+5. Probar en un entorno remoto no productivo y revisar el plan/diff antes de aplicar cambios.
 
-VisualTrace se encuentra actualmente en etapa de desarrollo.
-
-La primera fase incluye:
-
-- Diseño de la interfaz.
-- Sistema de diseño.
-- Navegación.
-- Autenticación.
-- Captura y selección de imágenes.
-- Manejo del estado de una comparación.
-- Persistencia local.
-- Configuración inicial del backend.
-
-Las siguientes etapas estarán orientadas a completar la persistencia de las comparaciones en Supabase y posteriormente integrar el procesamiento mediante inteligencia artificial.
-
----
-
-## Próximas mejoras
-
-Entre las funcionalidades planeadas se encuentran:
-
-- Guardar comparaciones completas en Supabase.
-- Subir las fotografías al almacenamiento privado.
-- Mostrar comparaciones recientes en la pantalla principal.
-- Integrar el análisis visual mediante inteligencia artificial.
-- Mostrar los posibles cambios detectados.
-- Permitir confirmar o descartar cada hallazgo.
-- Mejorar el historial de comparaciones.
-- Incorporar soporte completo para español e inglés.
-- Mejorar manejo de errores y estados de carga.
-- Continuar realizando pruebas en dispositivos reales.
-
----
-
-## Validación del proyecto
-
-Durante el desarrollo se utilizan diferentes herramientas para comprobar la estabilidad del proyecto.
-
-Validación de TypeScript:
-
-```bash
-npx tsc --noEmit
-```
-
-Validación de Expo:
-
-```bash
-npx expo-doctor
-```
-
-Estado actual:
+Orden de las migraciones incluidas:
 
 ```text
-21/21 checks passed. No issues detected!
+202610140001_create_ai_analysis_reports.sql
+202610140002_create_ai_usage_limits.sql
+202610140003_allow_safe_ai_analysis_retries.sql
+202610140004_fix_ai_analysis_reports_rls.sql
+202610150001_version_private_comparison_storage.sql
 ```
 
----
+Después de validar las migraciones:
+
+1. Configurar las variables de cuota y `GEMINI_API_KEY` como secretos de la función.
+2. Confirmar `verify_jwt = true` para `analyze-comparison`.
+3. Desplegar la función sin incluir secretos en el comando ni en el repositorio.
+4. Verificar Auth, CRUD privado, aislamiento entre usuarios y enlaces firmados.
+5. Ejecutar una única prueba controlada con dos imágenes pequeñas, observar cuota, latencia y persistencia, y confirmar que no se registran imágenes, tokens ni respuestas sensibles.
+6. Mantener desactivada cualquier ampliación de cuota o facturación hasta revisar el resultado y los costes.
+
+## Pendientes para Gemini real
+
+- Reconciliar y aplicar las migraciones en un entorno remoto seguro.
+- Configurar secretos y cuotas conservadoras.
+- Desplegar `analyze-comparison` y confirmar la disponibilidad del modelo elegido.
+- Ejecutar pruebas remotas de autenticación, RLS, Storage y errores del proveedor.
+- Realizar el primer smoke test real y revisar observabilidad, coste y política de retención.
+- Validar el flujo completo en dispositivos físicos y con fotografías HEIC/HEIF reales.
 
 ## Seguridad
 
-Para el desarrollo de VisualTrace se tienen en cuenta diferentes medidas de seguridad:
-
-- Las contraseñas son administradas por Supabase Auth.
-- No se almacenan contraseñas en texto plano.
-- Las tablas utilizan Row Level Security.
-- Las imágenes se almacenarán en un bucket privado.
-- Cada usuario tendrá acceso únicamente a su propia información.
-- Las claves privadas no se incluyen dentro del código del cliente.
-- La futura clave utilizada para inteligencia artificial se mantendrá en el backend.
-
----
+- Auth y RLS son la frontera de acceso; la clave de servicio sólo existe en la Edge Function.
+- El cliente nunca recibe `GEMINI_API_KEY` ni credenciales administrativas.
+- El bucket no es público y las URLs firmadas caducan.
+- El backend valida tamaño, ruta, tipo real y contrato de salida, aunque el cliente ya los haya validado.
+- La IA describe cambios visibles; no determina causas, responsabilidades ni decisiones definitivas.
 
 ## Autor
 
-**Luis Sebastian Diaz**
+Luis Sebastian Diaz
 
-Proyecto desarrollado como parte del proceso académico de desarrollo y diseño de interfaces de software.
-
----
-
-## Repositorio
-
-```text
-https://github.com/luis-sdiaz/visual-trace-mobile
-```
-
----
-
-## VisualTrace
-
-**Registra. Compara. Revisa lo que cambió.**
+**VisualTrace — Registra. Compara. Revisa lo que cambió.**
