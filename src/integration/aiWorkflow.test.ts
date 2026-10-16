@@ -68,6 +68,7 @@ describe("end-to-end AI analysis orchestration", () => {
   it.each([
     ["invalid_image_type", 422],
     ["image_not_found", 404],
+    ["image_too_large", 413],
   ])("rejects image preparation failure %s", async (code, status) => {
     const deps = dependencies({
       loadImages: vi.fn().mockRejectedValue(Object.assign(new Error("image"), { code })),
@@ -81,6 +82,8 @@ describe("end-to-end AI analysis orchestration", () => {
     ["provider_quota_exceeded", 429],
     ["gemini_timeout", 504],
     ["gemini_network_error", 502],
+    ["invalid_gemini_request", 502],
+    ["invalid_gemini_response", 502],
   ])("maps Gemini failure %s and conservatively consumes the attempt", async (code, status) => {
     const completeUsage = vi.fn().mockResolvedValue(undefined);
     const deps = dependencies({
@@ -92,7 +95,7 @@ describe("end-to-end AI analysis orchestration", () => {
     expect(deps.persistReport).not.toHaveBeenCalled();
   });
 
-  it.each(["global_minute", "global_day", "user_day"])(
+  it.each(["global_minute", "global_day", "user_day", "comparison_day"])(
     "enforces the persistent %s quota",
     async (scope) => {
       const deps = dependencies({
@@ -129,12 +132,40 @@ describe("end-to-end AI analysis orchestration", () => {
   });
 
   it("rejects a report when image versions change during analysis", async () => {
+    const completeUsage = vi.fn().mockResolvedValue(undefined);
     const deps = dependencies({
       persistReport: vi.fn().mockRejectedValue(new Error("comparison_images_changed")),
+      completeUsage,
     });
     const response = await createAnalyzeComparisonHandler(deps)(post());
     expect(response.status).toBe(409);
     await expect(response.json()).resolves.toMatchObject({ code: "analysis_stale" });
+    expect(completeUsage).toHaveBeenCalledWith("attempt-1", "failed_uncertain");
+  });
+
+  it("fails closed when usage reservation is unavailable", async () => {
+    const deps = dependencies({
+      reserveUsage: vi.fn().mockRejectedValue(new Error("database unavailable")),
+    });
+    const response = await createAnalyzeComparisonHandler(deps)(post());
+    expect(response.status).toBe(503);
+    await expect(response.json()).resolves.toMatchObject({
+      code: "usage_limits_unavailable",
+    });
+    expect(deps.analyzeImages).not.toHaveBeenCalled();
+    expect(deps.persistReport).not.toHaveBeenCalled();
+  });
+
+  it("preserves the provider failure when attempt bookkeeping also fails", async () => {
+    const deps = dependencies({
+      analyzeImages: vi.fn().mockRejectedValue(
+        Object.assign(new Error("provider"), { code: "gemini_timeout" }),
+      ),
+      completeUsage: vi.fn().mockRejectedValue(new Error("bookkeeping unavailable")),
+    });
+    const response = await createAnalyzeComparisonHandler(deps)(post());
+    expect(response.status).toBe(504);
+    await expect(response.json()).resolves.toMatchObject({ code: "gemini_timeout" });
   });
 
   it("reuses a saved report without another Gemini request", async () => {
@@ -146,6 +177,7 @@ describe("end-to-end AI analysis orchestration", () => {
     await expect(response.json()).resolves.toEqual(saved);
     expect(deps.analyzeImages).not.toHaveBeenCalled();
     expect(deps.persistReport).not.toHaveBeenCalled();
+    expect(deps.completeUsage).not.toHaveBeenCalled();
   });
 });
 
