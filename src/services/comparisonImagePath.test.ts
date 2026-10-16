@@ -28,6 +28,10 @@ describe("isOwnedComparisonImagePath", () => {
       "user-1/comparison-2/initial.jpg",
       "user-1/comparison-1/final.jpg",
       "user-1/comparison-1/archive/initial.jpg",
+      "user-1/comparison-1/initial-old/archive.jpg",
+      "user-1/comparison-1/initial--old.jpg",
+      "user-1/comparison-1/../initial.jpg",
+      "user-1\\comparison-1\\initial.jpg",
       "user-1/comparison-1/initial.gif",
     ];
 

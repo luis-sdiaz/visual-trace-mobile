@@ -1,4 +1,5 @@
 import { COMPARISON_IMAGE_LIMITS } from "../_shared/comparisonImages.ts";
+import { isOwnedComparisonImagePath } from "../_shared/comparisonImagePath.ts";
 
 import type { AuthorizedComparison } from "./handler.ts";
 
@@ -73,15 +74,19 @@ function validateStoredPath(
   comparisonId: string,
   stage: "initial" | "final",
 ): PreparedComparisonImage["mimeType"] {
-  const escapedPrefix = `${userId}/${comparisonId}/${stage}`;
   const match = path.match(/\.([a-z0-9]+)$/i);
   const extension = match?.[1].toLowerCase();
   const mimeType = extension ? MIME_BY_EXTENSION[extension] : undefined;
-  const hasExpectedName =
-    path === `${escapedPrefix}.${extension}` ||
-    path.startsWith(`${escapedPrefix}-`);
 
-  if (!mimeType || !hasExpectedName || path.includes("..") || path.includes("\\")) {
+  if (
+    !mimeType ||
+    !isOwnedComparisonImagePath({
+      comparisonId,
+      imagePath: path,
+      imageStage: stage,
+      userId,
+    })
+  ) {
     throw new ComparisonImageError(
       "invalid_image_path",
       `La ruta de la fotografía ${stage} no es válida.`,

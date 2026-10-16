@@ -45,13 +45,48 @@ describe("authorized comparison image loading", () => {
     expect(result.final.mimeType).toBe("image/png");
   });
 
-  it("rejects paths outside the owner and comparison hierarchy", async () => {
+  it("accepts legitimate versioned paths without allowing extra segments", async () => {
+    const versioned = {
+      ...comparison,
+      initial_image_path:
+        "user-1/123e4567-e89b-42d3-a456-426614174000/initial-version-2.jpeg",
+      final_image_path:
+        "user-1/123e4567-e89b-42d3-a456-426614174000/final-mnb12-abc34.webp",
+    };
+    const webp = new Uint8Array([
+      0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0, 0x57, 0x45, 0x42, 0x50,
+    ]);
+    const download = vi.fn(async (path: string) =>
+      path.endsWith(".jpeg")
+        ? file(jpeg, "image/jpeg")
+        : file(webp, "image/webp"),
+    );
+
     await expect(
-      loadAuthorizedComparisonImages(
-        { ...comparison, initial_image_path: "attacker/initial.jpg" },
-        vi.fn(),
-      ),
-    ).rejects.toMatchObject({ code: "invalid_image_path" });
+      loadAuthorizedComparisonImages(versioned, download),
+    ).resolves.toBeDefined();
+  });
+
+  it("rejects paths outside the owner and comparison hierarchy", async () => {
+    const invalidPaths = [
+      "attacker/123e4567-e89b-42d3-a456-426614174000/initial.jpg",
+      "user-1/another-comparison/initial.jpg",
+      "user-1/123e4567-e89b-42d3-a456-426614174000/final.jpg",
+      "user-1/123e4567-e89b-42d3-a456-426614174000/archive/initial.jpg",
+      "user-1/123e4567-e89b-42d3-a456-426614174000/initial-old/archive.jpg",
+      "user-1/123e4567-e89b-42d3-a456-426614174000/../initial.jpg",
+      "user-1\\123e4567-e89b-42d3-a456-426614174000\\initial.jpg",
+      "user-1/123e4567-e89b-42d3-a456-426614174000/initial--old.jpg",
+    ];
+
+    for (const initial_image_path of invalidPaths) {
+      await expect(
+        loadAuthorizedComparisonImages(
+          { ...comparison, initial_image_path },
+          vi.fn(),
+        ),
+      ).rejects.toMatchObject({ code: "invalid_image_path" });
+    }
   });
 
   it("rejects missing, oversized, and disguised files", async () => {
