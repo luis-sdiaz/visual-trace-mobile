@@ -43,6 +43,9 @@ const MIME_BY_EXTENSION: Record<string, PreparedComparisonImage["mimeType"]> = {
   heif: "image/heif",
 };
 
+const HEIC_BRANDS = new Set(["heic", "heix", "hevc", "hevx"]);
+const HEIF_BRANDS = new Set(["mif1", "msf1"]);
+
 function hasPrefix(bytes: Uint8Array, expected: number[]): boolean {
   return expected.every((value, index) => bytes[index] === value);
 }
@@ -61,9 +64,8 @@ function detectMimeType(bytes: Uint8Array): PreparedComparisonImage["mimeType"] 
   }
   if (bytes.length >= 12 && String.fromCharCode(...bytes.slice(4, 8)) === "ftyp") {
     const brand = String.fromCharCode(...bytes.slice(8, 12)).toLowerCase();
-    if (brand.startsWith("hei") || brand === "mif1" || brand === "msf1") {
-      return brand === "heic" || brand === "heix" ? "image/heic" : "image/heif";
-    }
+    if (HEIC_BRANDS.has(brand)) return "image/heic";
+    if (HEIF_BRANDS.has(brand)) return "image/heif";
   }
   return null;
 }

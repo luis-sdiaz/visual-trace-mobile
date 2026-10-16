@@ -16,6 +16,17 @@ const comparison = {
 
 const jpeg = new Uint8Array([0xff, 0xd8, 0xff, 0x00]);
 const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+const webp = new Uint8Array([
+  0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0, 0x57, 0x45, 0x42, 0x50,
+]);
+
+function isoBmff(brand: string): Uint8Array {
+  return new Uint8Array([
+    0, 0, 0, 24,
+    ...Array.from("ftyp", (character) => character.charCodeAt(0)),
+    ...Array.from(brand, (character) => character.charCodeAt(0)),
+  ]);
+}
 
 function file(bytes: Uint8Array, type: string) {
   return {
@@ -53,9 +64,6 @@ describe("authorized comparison image loading", () => {
       final_image_path:
         "user-1/123e4567-e89b-42d3-a456-426614174000/final-mnb12-abc34.webp",
     };
-    const webp = new Uint8Array([
-      0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0, 0x57, 0x45, 0x42, 0x50,
-    ]);
     const download = vi.fn(async (path: string) =>
       path.endsWith(".jpeg")
         ? file(jpeg, "image/jpeg")
@@ -103,6 +111,51 @@ describe("authorized comparison image loading", () => {
     await expect(
       loadAuthorizedComparisonImages(comparison, async (path) =>
         path.endsWith(".jpg") ? file(png, "image/jpeg") : file(png, "image/png"),
+      ),
+    ).rejects.toMatchObject({ code: "invalid_image_type" });
+  });
+
+  it.each([
+    ["jpg", "image/jpeg", jpeg],
+    ["png", "image/png", png],
+    ["webp", "image/webp", webp],
+    ["heic", "image/heic", isoBmff("heic")],
+    ["heic", "image/heic", isoBmff("heix")],
+    ["heic", "image/heic", isoBmff("hevc")],
+    ["heic", "image/heic", isoBmff("hevx")],
+    ["heif", "image/heif", isoBmff("mif1")],
+    ["heif", "image/heif", isoBmff("msf1")],
+  ])("accepts a valid .%s file with MIME %s", async (extension, mimeType, bytes) => {
+    const input = {
+      ...comparison,
+      initial_image_path:
+        `user-1/123e4567-e89b-42d3-a456-426614174000/initial.${extension}`,
+      final_image_path:
+        "user-1/123e4567-e89b-42d3-a456-426614174000/final.jpg",
+    };
+
+    const result = await loadAuthorizedComparisonImages(input, async (path) =>
+      path.includes("/initial.") ? file(bytes, mimeType) : file(jpeg, "image/jpeg"),
+    );
+
+    expect(result.initial.mimeType).toBe(mimeType);
+  });
+
+  it.each([
+    ["an empty file", new Uint8Array(), "image/jpeg", "initial.jpg"],
+    ["a mismatched header", jpeg, "image/png", "initial.jpg"],
+    ["a forged extension", jpeg, "image/png", "initial.png"],
+    ["an unsupported signature", new Uint8Array([0x47, 0x49, 0x46]), "image/jpeg", "initial.jpg"],
+  ])("rejects %s", async (_case, bytes, mimeType, fileName) => {
+    const input = {
+      ...comparison,
+      initial_image_path:
+        `user-1/123e4567-e89b-42d3-a456-426614174000/${fileName}`,
+    };
+
+    await expect(
+      loadAuthorizedComparisonImages(input, async (path) =>
+        path.includes("/initial") ? file(bytes, mimeType) : file(png, "image/png"),
       ),
     ).rejects.toMatchObject({ code: "invalid_image_type" });
   });
