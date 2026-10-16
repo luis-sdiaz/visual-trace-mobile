@@ -32,6 +32,7 @@ import {
   resolveComparisonImageUrl,
   uploadComparisonImage,
 } from "@/services/imageStorageService";
+import { COMPARISON_IMAGE_LIMITS } from "@/contracts/comparisonImages";
 
 describe("resolveComparisonImageUrl", () => {
   beforeEach(() => {
@@ -127,6 +128,39 @@ describe("resolveComparisonImageUrl", () => {
       expect.any(ArrayBuffer),
       { contentType: "image/png", upsert: false },
     );
+  });
+
+  it("accepts the exact image limit and rejects one additional byte", async () => {
+    storageMock.upload.mockImplementation(
+      async (path: string) => ({ data: { path }, error: null }),
+    );
+    vi.mocked(fetch).mockResolvedValueOnce(
+      new Response(new ArrayBuffer(COMPARISON_IMAGE_LIMITS.maxBytesPerImage), {
+        headers: { "Content-Type": "image/jpeg" },
+      }),
+    );
+
+    await expect(
+      uploadComparisonImage({
+        comparisonId: "comparison-1",
+        imageStage: "initial",
+        imageUri: "file:///maximum.jpg",
+      }),
+    ).resolves.toBe("user-1/comparison-1/initial.jpg");
+
+    vi.mocked(fetch).mockResolvedValueOnce(
+      new Response(new ArrayBuffer(COMPARISON_IMAGE_LIMITS.maxBytesPerImage + 1), {
+        headers: { "Content-Type": "image/jpeg" },
+      }),
+    );
+
+    await expect(
+      uploadComparisonImage({
+        comparisonId: "comparison-1",
+        imageStage: "initial",
+        imageUri: "file:///too-large.jpg",
+      }),
+    ).rejects.toThrow("Image exceeds the maximum size.");
   });
 
   it("removes only an owned image within the requested comparison", async () => {

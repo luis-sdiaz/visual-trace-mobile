@@ -1,11 +1,11 @@
 import { File } from "expo-file-system";
 import { Platform } from "react-native";
 
+import { COMPARISON_IMAGE_LIMITS } from "@/contracts/comparisonImages";
 import { supabase } from "@/lib/supabase";
 import { isOwnedComparisonImagePath } from "@/services/comparisonImagePath";
 
 const STORAGE_BUCKET = "comparison-images";
-const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
 const DEFAULT_SIGNED_URL_LIFETIME_SECONDS = 5 * 60;
 const MIN_SIGNED_URL_LIFETIME_SECONDS = 60;
 const MAX_SIGNED_URL_LIFETIME_SECONDS = 60 * 60;
@@ -136,7 +136,7 @@ export async function uploadComparisonImage({
     throw new Error("Image file is empty.");
   }
 
-  if (buffer.byteLength > MAX_IMAGE_SIZE) {
+  if (buffer.byteLength > COMPARISON_IMAGE_LIMITS.maxBytesPerImage) {
     throw new Error("Image exceeds the maximum size.");
   }
 

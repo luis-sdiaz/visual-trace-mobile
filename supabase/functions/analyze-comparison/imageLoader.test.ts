@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   ComparisonImageError,
   MAX_AI_IMAGE_BYTES,
+  MAX_AI_IMAGE_PAIR_BYTES,
   loadAuthorizedComparisonImages,
 } from "./imageLoader";
 
@@ -22,6 +23,12 @@ function file(bytes: Uint8Array, type: string) {
     size: bytes.length,
     arrayBuffer: async () => bytes.slice().buffer as ArrayBuffer,
   };
+}
+
+function imageBytes(prefix: Uint8Array, size: number): Uint8Array {
+  const bytes = new Uint8Array(size);
+  bytes.set(prefix);
+  return bytes;
 }
 
 describe("authorized comparison image loading", () => {
@@ -63,5 +70,26 @@ describe("authorized comparison image loading", () => {
         path.endsWith(".jpg") ? file(png, "image/jpeg") : file(png, "image/png"),
       ),
     ).rejects.toMatchObject({ code: "invalid_image_type" });
+  });
+
+  it("enforces the exact per-image and pair limits", async () => {
+    expect(MAX_AI_IMAGE_BYTES).toBe(6 * 1024 * 1024);
+    expect(MAX_AI_IMAGE_PAIR_BYTES).toBe(12 * 1024 * 1024);
+
+    const maximumJpeg = imageBytes(jpeg, MAX_AI_IMAGE_BYTES);
+    const maximumPng = imageBytes(png, MAX_AI_IMAGE_BYTES);
+
+    await expect(
+      loadAuthorizedComparisonImages(comparison, async (path) =>
+        path.endsWith(".jpg")
+          ? file(maximumJpeg, "image/jpeg")
+          : file(maximumPng, "image/png"),
+      ),
+    ).resolves.toMatchObject({
+      initial: { mimeType: "image/jpeg" },
+      final: { mimeType: "image/png" },
+    });
+
+    expect(maximumJpeg.length + maximumPng.length).toBe(MAX_AI_IMAGE_PAIR_BYTES);
   });
 });

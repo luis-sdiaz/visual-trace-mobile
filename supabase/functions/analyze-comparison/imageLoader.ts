@@ -1,7 +1,9 @@
+import { COMPARISON_IMAGE_LIMITS } from "../_shared/comparisonImages.ts";
+
 import type { AuthorizedComparison } from "./handler.ts";
 
-export const MAX_AI_IMAGE_BYTES = 8 * 1024 * 1024;
-export const MAX_AI_IMAGE_PAIR_BYTES = 16 * 1024 * 1024;
+export const MAX_AI_IMAGE_BYTES = COMPARISON_IMAGE_LIMITS.maxBytesPerImage;
+export const MAX_AI_IMAGE_PAIR_BYTES = COMPARISON_IMAGE_LIMITS.maxBytesPerPair;
 
 export type PreparedComparisonImage = {
   bytes: Uint8Array;
