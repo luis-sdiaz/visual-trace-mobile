@@ -26,7 +26,10 @@ import {
   saveComparisonImage,
   shouldUploadComparisonImage,
 } from "@/services/comparisonImageLifecycleService";
-import { getSelectedImageUri } from "@/utils/imageSelection";
+import {
+  selectComparisonPhoto,
+  type PhotoSelectionSource,
+} from "@/utils/imageSelection";
 
 export default function FinalStateScreen() {
   const {
@@ -66,59 +69,27 @@ export default function FinalStateScreen() {
     );
   }
 
-  async function handleTakePhoto() {
+  async function handleSelectPhoto(source: PhotoSelectionSource) {
     if (uploadingRef.current) {
       return;
     }
 
-    const permission = await ImagePicker.requestCameraPermissionsAsync();
-
-    if (!permission.granted) {
-      Alert.alert(
-        "Permiso necesario",
-        "VisualTrace necesita acceso a la cámara para registrar el estado final.",
+    try {
+      const outcome = await selectComparisonPhoto(source, ImagePicker);
+      if (outcome.status === "permission_denied") {
+        Alert.alert(
+          "Permiso necesario",
+          source === "camera"
+            ? "VisualTrace necesita acceso a la cámara para registrar el estado final."
+            : "VisualTrace necesita acceso a tus fotos para seleccionar una imagen.",
+        );
+      } else if (outcome.status === "selected") {
+        acceptSelectedImage(outcome.uri);
+      }
+    } catch {
+      setErrorMessage(
+        "No pudimos abrir el selector de fotografías. Inténtalo nuevamente.",
       );
-
-      return;
-    }
-
-    const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ["images"],
-      quality: 0.8,
-    });
-
-    const selectedImageUri = getSelectedImageUri(result);
-
-    if (selectedImageUri) {
-      acceptSelectedImage(selectedImageUri);
-    }
-  }
-
-  async function handlePickImage() {
-    if (uploadingRef.current) {
-      return;
-    }
-
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-
-    if (!permission.granted) {
-      Alert.alert(
-        "Permiso necesario",
-        "VisualTrace necesita acceso a tus fotos para seleccionar una imagen.",
-      );
-
-      return;
-    }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
-      quality: 0.8,
-    });
-
-    const selectedImageUri = getSelectedImageUri(result);
-
-    if (selectedImageUri) {
-      acceptSelectedImage(selectedImageUri);
     }
   }
 
@@ -231,7 +202,7 @@ export default function FinalStateScreen() {
             <Pressable
               accessibilityRole="button"
               disabled={isUploading}
-              onPress={handleTakePhoto}
+              onPress={() => void handleSelectPhoto("camera")}
               style={styles.primaryAction}
             >
               <Text style={styles.primaryActionText}>
@@ -242,7 +213,7 @@ export default function FinalStateScreen() {
             <Pressable
               accessibilityRole="button"
               disabled={isUploading}
-              onPress={handlePickImage}
+              onPress={() => void handleSelectPhoto("library")}
               style={styles.secondaryAction}
             >
               <Text style={styles.secondaryActionText}>
