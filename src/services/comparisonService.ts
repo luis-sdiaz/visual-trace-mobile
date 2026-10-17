@@ -139,6 +139,7 @@ export async function fetchComparisonPage(params: {
   cursor?: ComparisonPageCursor | null;
   limit?: number;
   search?: string;
+  status?: ComparisonStatus | null;
 } = {}): Promise<ComparisonPage> {
   const limit = params.limit ?? DEFAULT_RECENT_COMPARISONS_LIMIT;
   if (!Number.isInteger(limit) || limit < 1 || limit > MAX_RECENT_COMPARISONS_LIMIT) {
@@ -160,6 +161,7 @@ export async function fetchComparisonPage(params: {
 
   const searchPattern = buildComparisonNameSearchPattern(params.search ?? "");
   if (searchPattern) query = query.ilike("name", searchPattern);
+  if (params.status) query = query.eq("status", params.status);
 
   if (params.cursor) {
     const { createdAt, id } = params.cursor;

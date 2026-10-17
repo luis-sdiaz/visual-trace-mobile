@@ -219,6 +219,16 @@ describe("comparisonService", () => {
     expect(query.eq).toHaveBeenCalledWith("user_id", "user-1");
   });
 
+  it("filters the complete paginated query by an existing status", async () => {
+    const query = createQuery({ data: [], error: null });
+    supabaseMock.from.mockReturnValueOnce(query);
+
+    await fetchComparisonPage({ status: "ready" });
+
+    expect(query.eq).toHaveBeenCalledWith("user_id", "user-1");
+    expect(query.eq).toHaveBeenCalledWith("status", "ready");
+  });
+
   it.each([
     ["100%", "%100\\%%"],
     ["piso_2", "%piso\\_2%"],

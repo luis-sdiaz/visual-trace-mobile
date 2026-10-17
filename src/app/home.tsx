@@ -42,6 +42,13 @@ const STATUS_LABELS: Record<ComparisonStatus, string> = {
   analyzed: "Analizada",
 };
 
+const STATUS_FILTERS: { label: string; value: ComparisonStatus | null }[] = [
+  { label: "Todas", value: null },
+  { label: "En curso", value: "draft" },
+  { label: "Listas", value: "ready" },
+  { label: "Analizadas", value: "analyzed" },
+];
+
 function formatComparisonDate(value: string): string {
   const date = new Date(value);
 
@@ -81,6 +88,7 @@ export default function HomeScreen() {
   const [recentError, setRecentError] = useState<string | null>(null);
   const [searchText, setSearchText] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<ComparisonStatus | null>(null);
   const [openingComparison, setOpeningComparison] = useState<{
     id: string;
     userId: string;
@@ -170,6 +178,7 @@ export default function HomeScreen() {
         const page = await fetchComparisonPage({
           cursor: options.cursor,
           search: searchTerm,
+          status: statusFilter,
         });
 
         if (
@@ -208,7 +217,7 @@ export default function HomeScreen() {
         }
       }
     },
-    [searchTerm, user],
+    [searchTerm, statusFilter, user],
   );
 
   useFocusEffect(
@@ -477,6 +486,30 @@ export default function HomeScreen() {
             ) : null}
           </View>
 
+          <View accessibilityRole="radiogroup" style={styles.filterRow}>
+            {STATUS_FILTERS.map((filter) => {
+              const selected = statusFilter === filter.value;
+              return (
+                <Pressable
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected }}
+                  key={filter.label}
+                  onPress={() => setStatusFilter(filter.value)}
+                  style={[styles.filterChip, selected && styles.filterChipSelected]}
+                >
+                  <Text
+                    style={[
+                      styles.filterChipText,
+                      selected && styles.filterChipTextSelected,
+                    ]}
+                  >
+                    {filter.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
           {openError ? (
             <View style={styles.openErrorCard}>
               <Ionicons
@@ -616,14 +649,14 @@ export default function HomeScreen() {
               </View>
 
               <Text style={styles.emptyTitle}>
-                {searchTerm
+                {searchTerm || statusFilter
                   ? "No encontramos coincidencias"
                   : "Aún no tienes comparaciones"}
               </Text>
 
               <Text style={styles.emptyDescription}>
-                {searchTerm
-                  ? "Prueba con otro nombre o limpia la búsqueda."
+                {searchTerm || statusFilter
+                  ? "Prueba con otros criterios o selecciona Todas."
                   : "Tus registros aparecerán aquí después de crear tu primera comparación."}
               </Text>
             </View>
@@ -862,6 +895,37 @@ const styles = StyleSheet.create({
     minHeight: 36,
     alignItems: "center",
     justifyContent: "center",
+  },
+
+  filterRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: Spacing.sm,
+    marginBottom: Spacing.md,
+  },
+
+  filterChip: {
+    minHeight: 40,
+    justifyContent: "center",
+    paddingHorizontal: Spacing.md,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: Radius.full,
+  },
+
+  filterChipSelected: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+
+  filterChipText: {
+    ...Typography.label,
+    color: Colors.textSecondary,
+  },
+
+  filterChipTextSelected: {
+    color: Colors.textInverse,
   },
 
   openErrorCard: {
