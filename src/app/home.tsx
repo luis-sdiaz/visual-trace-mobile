@@ -31,6 +31,7 @@ import {
   mergeComparisonPages,
   type ComparisonPageCursor,
   type ComparisonRecord,
+  type ComparisonSortOrder,
   type ComparisonStatus,
 } from "@/services/comparisonService";
 import { recoverComparison } from "@/services/comparisonRecoveryService";
@@ -47,6 +48,11 @@ const STATUS_FILTERS: { label: string; value: ComparisonStatus | null }[] = [
   { label: "En curso", value: "draft" },
   { label: "Listas", value: "ready" },
   { label: "Analizadas", value: "analyzed" },
+];
+
+const SORT_OPTIONS: { label: string; value: ComparisonSortOrder }[] = [
+  { label: "Más recientes", value: "newest" },
+  { label: "Más antiguas", value: "oldest" },
 ];
 
 function formatComparisonDate(value: string): string {
@@ -89,6 +95,7 @@ export default function HomeScreen() {
   const [searchText, setSearchText] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<ComparisonStatus | null>(null);
+  const [sortOrder, setSortOrder] = useState<ComparisonSortOrder>("newest");
   const [openingComparison, setOpeningComparison] = useState<{
     id: string;
     userId: string;
@@ -178,6 +185,7 @@ export default function HomeScreen() {
         const page = await fetchComparisonPage({
           cursor: options.cursor,
           search: searchTerm,
+          sort: sortOrder,
           status: statusFilter,
         });
 
@@ -217,7 +225,7 @@ export default function HomeScreen() {
         }
       }
     },
-    [searchTerm, statusFilter, user],
+    [searchTerm, sortOrder, statusFilter, user],
   );
 
   useFocusEffect(
@@ -508,6 +516,33 @@ export default function HomeScreen() {
                 </Pressable>
               );
             })}
+          </View>
+
+          <View style={styles.sortSection}>
+            <Text style={styles.controlLabel}>Ordenar por</Text>
+            <View accessibilityRole="radiogroup" style={styles.sortRow}>
+              {SORT_OPTIONS.map((option) => {
+                const selected = sortOrder === option.value;
+                return (
+                  <Pressable
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected }}
+                    key={option.value}
+                    onPress={() => setSortOrder(option.value)}
+                    style={[styles.sortOption, selected && styles.sortOptionSelected]}
+                  >
+                    <Text
+                      style={[
+                        styles.sortOptionText,
+                        selected && styles.sortOptionTextSelected,
+                      ]}
+                    >
+                      {option.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
           </View>
 
           {openError ? (
@@ -926,6 +961,44 @@ const styles = StyleSheet.create({
 
   filterChipTextSelected: {
     color: Colors.textInverse,
+  },
+
+  sortSection: {
+    marginBottom: Spacing.md,
+  },
+
+  controlLabel: {
+    ...Typography.label,
+    color: Colors.textSecondary,
+    marginBottom: Spacing.sm,
+  },
+
+  sortRow: {
+    flexDirection: "row",
+    padding: Spacing.xs,
+    backgroundColor: Colors.backgroundStrong,
+    borderRadius: Radius.lg,
+  },
+
+  sortOption: {
+    flex: 1,
+    minHeight: 40,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: Radius.md,
+  },
+
+  sortOptionSelected: {
+    backgroundColor: Colors.surface,
+  },
+
+  sortOptionText: {
+    ...Typography.label,
+    color: Colors.textSecondary,
+  },
+
+  sortOptionTextSelected: {
+    color: Colors.primary,
   },
 
   openErrorCard: {

@@ -30,7 +30,10 @@ const MAX_RECENT_COMPARISONS_LIMIT = 50;
 export type ComparisonPageCursor = {
   createdAt: string;
   id: string;
+  sort: ComparisonSortOrder;
 };
+
+export type ComparisonSortOrder = "newest" | "oldest";
 
 export type ComparisonPage = {
   comparisons: ComparisonRecord[];
@@ -139,9 +142,11 @@ export async function fetchComparisonPage(params: {
   cursor?: ComparisonPageCursor | null;
   limit?: number;
   search?: string;
+  sort?: ComparisonSortOrder;
   status?: ComparisonStatus | null;
 } = {}): Promise<ComparisonPage> {
   const limit = params.limit ?? DEFAULT_RECENT_COMPARISONS_LIMIT;
+  const sort = params.sort ?? "newest";
   if (!Number.isInteger(limit) || limit < 1 || limit > MAX_RECENT_COMPARISONS_LIMIT) {
     throw new Error("Comparison page limit must be between 1 and 50.");
   }
@@ -152,12 +157,18 @@ export async function fetchComparisonPage(params: {
   } = await supabase.auth.getUser();
   if (authError || !user) throw new AuthenticationRequiredError();
 
+  if (params.cursor && params.cursor.sort !== sort) {
+    throw new Error("Comparison cursor does not match the requested sort order.");
+  }
+
+  const ascending = sort === "oldest";
+
   let query = supabase
     .from("comparisons")
     .select("*")
     .eq("user_id", user.id)
-    .order("created_at", { ascending: false })
-    .order("id", { ascending: false });
+    .order("created_at", { ascending })
+    .order("id", { ascending });
 
   const searchPattern = buildComparisonNameSearchPattern(params.search ?? "");
   if (searchPattern) query = query.ilike("name", searchPattern);
@@ -165,8 +176,9 @@ export async function fetchComparisonPage(params: {
 
   if (params.cursor) {
     const { createdAt, id } = params.cursor;
+    const operator = ascending ? "gt" : "lt";
     query = query.or(
-      `created_at.lt.${createdAt},and(created_at.eq.${createdAt},id.lt.${id})`,
+      `created_at.${operator}.${createdAt},and(created_at.eq.${createdAt},id.${operator}.${id})`,
     );
   }
 
@@ -182,7 +194,7 @@ export async function fetchComparisonPage(params: {
     comparisons,
     hasMore,
     nextCursor: lastComparison
-      ? { createdAt: lastComparison.created_at, id: lastComparison.id }
+      ? { createdAt: lastComparison.created_at, id: lastComparison.id, sort }
       : null,
   };
 }

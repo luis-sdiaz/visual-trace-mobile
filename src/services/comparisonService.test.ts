@@ -174,7 +174,7 @@ describe("comparisonService", () => {
     await expect(fetchComparisonPage({ limit: 2 })).resolves.toEqual({
       comparisons: [first, second],
       hasMore: true,
-      nextCursor: { createdAt: second.created_at, id: second.id },
+      nextCursor: { createdAt: second.created_at, id: second.id, sort: "newest" },
     });
     expect(query.eq).toHaveBeenCalledWith("user_id", "user-1");
     expect(query.order).toHaveBeenNthCalledWith(1, "created_at", {
@@ -191,16 +191,52 @@ describe("comparisonService", () => {
     const cursor = {
       createdAt: "2026-10-14T12:00:00.000Z",
       id: "comparison-2",
+      sort: "newest" as const,
     };
 
     await expect(fetchComparisonPage({ cursor, limit: 2 })).resolves.toEqual({
       comparisons: [record],
       hasMore: false,
-      nextCursor: { createdAt: record.created_at, id: record.id },
+      nextCursor: { createdAt: record.created_at, id: record.id, sort: "newest" },
     });
     expect(query.or).toHaveBeenCalledWith(
       `created_at.lt.${cursor.createdAt},and(created_at.eq.${cursor.createdAt},id.lt.${cursor.id})`,
     );
+  });
+
+  it("orders oldest first with a matching forward cursor", async () => {
+    const record = createComparison({ id: "comparison-2" });
+    const query = createQuery({ data: [record], error: null });
+    supabaseMock.from.mockReturnValueOnce(query);
+    const cursor = {
+      createdAt: "2026-10-12T12:00:00.000Z",
+      id: "comparison-1",
+      sort: "oldest" as const,
+    };
+
+    await fetchComparisonPage({ cursor, sort: "oldest" });
+
+    expect(query.order).toHaveBeenNthCalledWith(1, "created_at", {
+      ascending: true,
+    });
+    expect(query.order).toHaveBeenNthCalledWith(2, "id", { ascending: true });
+    expect(query.or).toHaveBeenCalledWith(
+      `created_at.gt.${cursor.createdAt},and(created_at.eq.${cursor.createdAt},id.gt.${cursor.id})`,
+    );
+  });
+
+  it("rejects a cursor created for another sort order", async () => {
+    await expect(
+      fetchComparisonPage({
+        cursor: {
+          createdAt: "2026-10-14T12:00:00.000Z",
+          id: "comparison-2",
+          sort: "newest",
+        },
+        sort: "oldest",
+      }),
+    ).rejects.toThrow("cursor does not match");
+    expect(supabaseMock.from).not.toHaveBeenCalled();
   });
 
   it("deduplicates records when pages overlap", () => {
