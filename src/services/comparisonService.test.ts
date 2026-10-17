@@ -17,8 +17,10 @@ vi.mock("@/lib/supabase", () => ({
 import {
   ComparisonNotFoundError,
   fetchComparisonById,
+  fetchComparisonPage,
   fetchRecentComparisons,
   markComparisonReady,
+  mergeComparisonPages,
   type ComparisonRecord,
   updateComparisonImagePath,
 } from "@/services/comparisonService";
@@ -36,6 +38,7 @@ function createQuery(result: QueryResult) {
     maybeSingle: vi.fn().mockResolvedValue(result),
     not: vi.fn(),
     order: vi.fn(),
+    or: vi.fn(),
     select: vi.fn(),
     then: (
       resolve: (value: QueryResult) => unknown,
@@ -49,6 +52,7 @@ function createQuery(result: QueryResult) {
   query.limit.mockReturnValue(query);
   query.not.mockReturnValue(query);
   query.order.mockReturnValue(query);
+  query.or.mockReturnValue(query);
   query.select.mockReturnValue(query);
   query.update.mockReturnValue(query);
 
@@ -155,6 +159,51 @@ describe("comparisonService", () => {
 
     await expect(fetchRecentComparisons()).resolves.toEqual([]);
     await expect(fetchRecentComparisons()).rejects.toBe(queryError);
+  });
+
+  it("paginates with a deterministic owned cursor and one-row lookahead", async () => {
+    const first = createComparison({ id: "comparison-3" });
+    const second = createComparison({ id: "comparison-2" });
+    const lookahead = createComparison({ id: "comparison-1" });
+    const query = createQuery({ data: [first, second, lookahead], error: null });
+    supabaseMock.from.mockReturnValueOnce(query);
+
+    await expect(fetchComparisonPage({ limit: 2 })).resolves.toEqual({
+      comparisons: [first, second],
+      hasMore: true,
+      nextCursor: { createdAt: second.created_at, id: second.id },
+    });
+    expect(query.eq).toHaveBeenCalledWith("user_id", "user-1");
+    expect(query.order).toHaveBeenNthCalledWith(1, "created_at", {
+      ascending: false,
+    });
+    expect(query.order).toHaveBeenNthCalledWith(2, "id", { ascending: false });
+    expect(query.limit).toHaveBeenCalledWith(3);
+  });
+
+  it("applies both cursor fields and reports the final page", async () => {
+    const record = createComparison({ id: "comparison-1" });
+    const query = createQuery({ data: [record], error: null });
+    supabaseMock.from.mockReturnValueOnce(query);
+    const cursor = {
+      createdAt: "2026-10-14T12:00:00.000Z",
+      id: "comparison-2",
+    };
+
+    await expect(fetchComparisonPage({ cursor, limit: 2 })).resolves.toEqual({
+      comparisons: [record],
+      hasMore: false,
+      nextCursor: { createdAt: record.created_at, id: record.id },
+    });
+    expect(query.or).toHaveBeenCalledWith(
+      `created_at.lt.${cursor.createdAt},and(created_at.eq.${cursor.createdAt},id.lt.${cursor.id})`,
+    );
+  });
+
+  it("deduplicates records when pages overlap", () => {
+    const first = createComparison({ id: "comparison-1" });
+    const second = createComparison({ id: "comparison-2" });
+    expect(mergeComparisonPages([first], [first, second])).toEqual([first, second]);
   });
 
   it("loads an owned incomplete comparison by ID", async () => {

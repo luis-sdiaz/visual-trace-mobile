@@ -25,8 +25,10 @@ import { Typography } from "@/constants/typography";
 import { useAuth } from "@/context/AuthContext";
 import { useComparison } from "@/context/ComparisonContext";
 import {
-  fetchRecentComparisons,
+  fetchComparisonPage,
   isComparisonComplete,
+  mergeComparisonPages,
+  type ComparisonPageCursor,
   type ComparisonRecord,
   type ComparisonStatus,
 } from "@/services/comparisonService";
@@ -71,6 +73,10 @@ export default function HomeScreen() {
     ComparisonRecord[]
   >([]);
   const [isLoadingRecent, setIsLoadingRecent] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMoreComparisons, setHasMoreComparisons] = useState(false);
+  const [nextComparisonCursor, setNextComparisonCursor] =
+    useState<ComparisonPageCursor | null>(null);
   const [recentError, setRecentError] = useState<string | null>(null);
   const [openingComparison, setOpeningComparison] = useState<{
     id: string;
@@ -81,6 +87,8 @@ export default function HomeScreen() {
     userId: string;
   } | null>(null);
   const openSequenceRef = useRef(0);
+  const historySequenceRef = useRef(0);
+  const historyRequestInFlightRef = useRef(false);
   const currentUserIdRef = useRef(user?.id);
 
   const openingComparisonId =
@@ -122,36 +130,70 @@ export default function HomeScreen() {
     openSequenceRef.current += 1;
   }, [user?.id]);
 
-  const loadRecentComparisons = useCallback(
-    async (isActive: () => boolean = () => true) => {
+  const loadComparisonHistory = useCallback(
+    async (options: {
+      append?: boolean;
+      cursor?: ComparisonPageCursor | null;
+      isActive?: () => boolean;
+    } = {}) => {
+      if (historyRequestInFlightRef.current) return;
+      const isActive = options.isActive ?? (() => true);
       if (!user) {
         if (isActive()) {
           setRecentComparisons([]);
           setIsLoadingRecent(false);
+          setIsLoadingMore(false);
+          setHasMoreComparisons(false);
+          setNextComparisonCursor(null);
           setRecentError(null);
         }
         return;
       }
 
-      setIsLoadingRecent(true);
+      historyRequestInFlightRef.current = true;
+      const sequence = ++historySequenceRef.current;
+      const requestUserId = user.id;
+      const append = options.append ?? false;
+      if (append) setIsLoadingMore(true);
+      else setIsLoadingRecent(true);
       setRecentError(null);
 
       try {
-        const comparisons = await fetchRecentComparisons();
+        const page = await fetchComparisonPage({ cursor: options.cursor });
 
-        if (isActive()) {
-          setRecentComparisons(comparisons);
+        if (
+          isActive() &&
+          sequence === historySequenceRef.current &&
+          requestUserId === currentUserIdRef.current
+        ) {
+          setRecentComparisons((current) =>
+            append
+              ? mergeComparisonPages(current, page.comparisons)
+              : page.comparisons,
+          );
+          setHasMoreComparisons(page.hasMore);
+          setNextComparisonCursor(page.nextCursor);
         }
       } catch {
-        if (isActive()) {
-          setRecentComparisons([]);
+        if (
+          isActive() &&
+          sequence === historySequenceRef.current &&
+          requestUserId === currentUserIdRef.current
+        ) {
+          if (!append) setRecentComparisons([]);
           setRecentError(
-            "No pudimos cargar tus comparaciones. Inténtalo nuevamente.",
+            append
+              ? "No pudimos cargar más comparaciones. Inténtalo nuevamente."
+              : "No pudimos cargar tus comparaciones. Inténtalo nuevamente.",
           );
         }
       } finally {
-        if (isActive()) {
-          setIsLoadingRecent(false);
+        if (sequence === historySequenceRef.current) {
+          historyRequestInFlightRef.current = false;
+          if (isActive() && requestUserId === currentUserIdRef.current) {
+            if (append) setIsLoadingMore(false);
+            else setIsLoadingRecent(false);
+          }
         }
       }
     },
@@ -162,12 +204,14 @@ export default function HomeScreen() {
     useCallback(() => {
       let isActive = true;
 
-      void loadRecentComparisons(() => isActive);
+      void loadComparisonHistory({ isActive: () => isActive });
 
       return () => {
         isActive = false;
+        historySequenceRef.current += 1;
+        historyRequestInFlightRef.current = false;
       };
-    }, [loadRecentComparisons]),
+    }, [loadComparisonHistory]),
   );
 
   async function handleSignOut() {
@@ -412,7 +456,7 @@ export default function HomeScreen() {
                 Cargando comparaciones...
               </Text>
             </View>
-          ) : recentError ? (
+          ) : recentError && recentComparisons.length === 0 ? (
             <View style={styles.recentFeedbackCard}>
               <Ionicons
                 name="cloud-offline-outline"
@@ -422,7 +466,7 @@ export default function HomeScreen() {
               <Text style={styles.recentErrorText}>{recentError}</Text>
               <Pressable
                 accessibilityRole="button"
-                onPress={() => void loadRecentComparisons()}
+                onPress={() => void loadComparisonHistory()}
                 style={styles.retryButton}
               >
                 <Text style={styles.retryButtonText}>Reintentar</Text>
@@ -495,6 +539,32 @@ export default function HomeScreen() {
                   )}
                 </Pressable>
               ))}
+              {recentError ? (
+                <Text style={styles.loadMoreError}>{recentError}</Text>
+              ) : null}
+              {hasMoreComparisons && nextComparisonCursor ? (
+                <Pressable
+                  accessibilityRole="button"
+                  disabled={isLoadingMore}
+                  onPress={() =>
+                    void loadComparisonHistory({
+                      append: true,
+                      cursor: nextComparisonCursor,
+                    })
+                  }
+                  style={styles.loadMoreButton}
+                >
+                  {isLoadingMore ? (
+                    <ActivityIndicator color={Colors.primary} />
+                  ) : (
+                    <Text style={styles.loadMoreText}>Cargar más</Text>
+                  )}
+                </Pressable>
+              ) : (
+                <Text style={styles.historyEndText}>
+                  No hay más comparaciones para mostrar.
+                </Text>
+              )}
             </View>
           ) : (
             <View style={styles.emptyCard}>
@@ -776,6 +846,34 @@ const styles = StyleSheet.create({
 
   recentList: {
     gap: Spacing.md,
+  },
+
+  loadMoreButton: {
+    minHeight: 48,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: Colors.borderPrimary,
+    borderRadius: Radius.lg,
+    backgroundColor: Colors.primarySoft,
+  },
+
+  loadMoreText: {
+    ...Typography.label,
+    color: Colors.primary,
+  },
+
+  loadMoreError: {
+    ...Typography.body,
+    color: Colors.danger,
+    textAlign: "center",
+  },
+
+  historyEndText: {
+    ...Typography.label,
+    color: Colors.textMuted,
+    textAlign: "center",
+    paddingVertical: Spacing.sm,
   },
 
   recentCard: {

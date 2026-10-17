@@ -27,6 +27,17 @@ const IMAGE_PATH_COLUMNS: Record<
 const DEFAULT_RECENT_COMPARISONS_LIMIT = 10;
 const MAX_RECENT_COMPARISONS_LIMIT = 50;
 
+export type ComparisonPageCursor = {
+  createdAt: string;
+  id: string;
+};
+
+export type ComparisonPage = {
+  comparisons: ComparisonRecord[];
+  hasMore: boolean;
+  nextCursor: ComparisonPageCursor | null;
+};
+
 export class ComparisonNotFoundError extends Error {
   constructor() {
     super("Comparison could not be found.");
@@ -115,6 +126,63 @@ export async function fetchRecentComparisons(
   }
 
   return (data ?? []) as ComparisonRecord[];
+}
+
+export async function fetchComparisonPage(params: {
+  cursor?: ComparisonPageCursor | null;
+  limit?: number;
+} = {}): Promise<ComparisonPage> {
+  const limit = params.limit ?? DEFAULT_RECENT_COMPARISONS_LIMIT;
+  if (!Number.isInteger(limit) || limit < 1 || limit > MAX_RECENT_COMPARISONS_LIMIT) {
+    throw new Error("Comparison page limit must be between 1 and 50.");
+  }
+
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+  if (authError || !user) throw new AuthenticationRequiredError();
+
+  let query = supabase
+    .from("comparisons")
+    .select("*")
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: false });
+
+  if (params.cursor) {
+    const { createdAt, id } = params.cursor;
+    query = query.or(
+      `created_at.lt.${createdAt},and(created_at.eq.${createdAt},id.lt.${id})`,
+    );
+  }
+
+  const { data, error } = await query.limit(limit + 1);
+  if (error) throw error;
+
+  const records = (data ?? []) as ComparisonRecord[];
+  const hasMore = records.length > limit;
+  const comparisons = hasMore ? records.slice(0, limit) : records;
+  const lastComparison = comparisons.at(-1);
+
+  return {
+    comparisons,
+    hasMore,
+    nextCursor: lastComparison
+      ? { createdAt: lastComparison.created_at, id: lastComparison.id }
+      : null,
+  };
+}
+
+export function mergeComparisonPages(
+  current: ComparisonRecord[],
+  incoming: ComparisonRecord[],
+): ComparisonRecord[] {
+  const knownIds = new Set(current.map(({ id }) => id));
+  return [
+    ...current,
+    ...incoming.filter(({ id }) => !knownIds.has(id)),
+  ];
 }
 
 export async function createComparisonDraft(
