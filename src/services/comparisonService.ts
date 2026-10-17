@@ -26,6 +26,7 @@ const IMAGE_PATH_COLUMNS: Record<
 
 const DEFAULT_RECENT_COMPARISONS_LIMIT = 10;
 const MAX_RECENT_COMPARISONS_LIMIT = 50;
+export const MAX_COMPARISON_NAME_LENGTH = 50;
 
 export type ComparisonPageCursor = {
   createdAt: string;
@@ -46,6 +47,15 @@ export function buildComparisonNameSearchPattern(search: string): string | null 
   if (!normalized) return null;
   const escaped = normalized.replace(/[\\%_]/g, "\\$&");
   return `%${escaped}%`;
+}
+
+export function normalizeComparisonName(name: string): string {
+  const normalized = name.trim();
+  if (!normalized) throw new Error("Comparison name is required.");
+  if (normalized.length > MAX_COMPARISON_NAME_LENGTH) {
+    throw new Error("Comparison name exceeds the maximum length.");
+  }
+  return normalized;
 }
 
 export class ComparisonNotFoundError extends Error {
@@ -213,11 +223,7 @@ export function mergeComparisonPages(
 export async function createComparisonDraft(
   name: string,
 ): Promise<ComparisonRecord> {
-  const trimmedName = name.trim();
-
-  if (!trimmedName) {
-    throw new Error("Comparison name is required.");
-  }
+  const trimmedName = normalizeComparisonName(name);
 
   const {
     data: { user },
@@ -248,11 +254,8 @@ export async function updateComparisonName(
   comparisonId: string,
   name: string,
 ): Promise<void> {
-  const trimmedName = name.trim();
-
-  if (!comparisonId || !trimmedName) {
-    throw new Error("Comparison ID and name are required.");
-  }
+  if (!comparisonId) throw new Error("Comparison ID is required.");
+  const trimmedName = normalizeComparisonName(name);
 
   const {
     data: { user },

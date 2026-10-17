@@ -22,8 +22,10 @@ import {
   fetchRecentComparisons,
   markComparisonReady,
   mergeComparisonPages,
+  normalizeComparisonName,
   type ComparisonRecord,
   updateComparisonImagePath,
+  updateComparisonName,
 } from "@/services/comparisonService";
 
 type QueryResult = {
@@ -42,6 +44,7 @@ function createQuery(result: QueryResult) {
     order: vi.fn(),
     or: vi.fn(),
     select: vi.fn(),
+    single: vi.fn().mockResolvedValue(result),
     then: (
       resolve: (value: QueryResult) => unknown,
       reject: (reason: unknown) => unknown,
@@ -295,6 +298,27 @@ describe("comparisonService", () => {
     await expect(fetchComparisonById("missing")).rejects.toBeInstanceOf(
       ComparisonNotFoundError,
     );
+  });
+
+  it("renames only an owned comparison with a trimmed name", async () => {
+    const query = createQuery({ data: { id: "comparison-1" }, error: null });
+    supabaseMock.from.mockReturnValueOnce(query);
+
+    await expect(
+      updateComparisonName("comparison-1", "  Sala renovada  "),
+    ).resolves.toBeUndefined();
+
+    expect(query.update).toHaveBeenCalledWith({ name: "Sala renovada" });
+    expect(query.eq).toHaveBeenCalledWith("id", "comparison-1");
+    expect(query.eq).toHaveBeenCalledWith("user_id", "user-1");
+  });
+
+  it("rejects empty and oversized comparison names before querying", () => {
+    expect(() => normalizeComparisonName("   ")).toThrow("name is required");
+    expect(() => normalizeComparisonName("x".repeat(51))).toThrow(
+      "maximum length",
+    );
+    expect(supabaseMock.from).not.toHaveBeenCalled();
   });
 
   it("updates the image and derived status in one owned row", async () => {

@@ -8,6 +8,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -30,6 +31,10 @@ import {
   type AnalysisStatus,
 } from "@/services/analysisWorkflow";
 import { recoverComparison } from "@/services/comparisonRecoveryService";
+import {
+  MAX_COMPARISON_NAME_LENGTH,
+  updateComparisonName,
+} from "@/services/comparisonService";
 import type { ImageStage } from "@/services/imageStorageService";
 import { createSingleFlight } from "@/utils/singleFlight";
 
@@ -136,6 +141,7 @@ export default function ComparisonResultScreen() {
     finalImageUri,
     finalImagePath,
     restoreComparison,
+    setName,
   } = useComparison();
   const userId = user?.id;
   const refreshSequenceRef = useRef(0);
@@ -144,9 +150,14 @@ export default function ComparisonResultScreen() {
   const [analysisReport, setAnalysisReport] = useState<AnalysisReportRecord | null>(null);
   const [analysisMessage, setAnalysisMessage] = useState("");
   const [previewStage, setPreviewStage] = useState<ImageStage | null>(null);
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [nameDraft, setNameDraft] = useState(name);
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [renameError, setRenameError] = useState<string | null>(null);
   const analysisSequenceRef = useRef(0);
   const analysisMountedRef = useRef(true);
   const analysisInFlightRef = useRef<string | null>(null);
+  const renamingRef = useRef(false);
   const isFocusedRef = useRef(false);
   const restoreComparisonRef = useRef(restoreComparison);
   const analysisContext = `${comparisonId ?? ""}\u0000${initialImagePath ?? ""}\u0000${finalImagePath ?? ""}`;
@@ -350,6 +361,41 @@ export default function ComparisonResultScreen() {
     }
   }
 
+  function beginRenaming() {
+    setNameDraft(name);
+    setRenameError(null);
+    setIsEditingName(true);
+  }
+
+  async function handleRename() {
+    const normalizedName = nameDraft.trim();
+    if (
+      !comparisonId ||
+      !normalizedName ||
+      normalizedName.length > MAX_COMPARISON_NAME_LENGTH ||
+      renamingRef.current
+    ) return;
+
+    if (normalizedName === name.trim()) {
+      setIsEditingName(false);
+      return;
+    }
+
+    renamingRef.current = true;
+    setIsRenaming(true);
+    setRenameError(null);
+    try {
+      await updateComparisonName(comparisonId, normalizedName);
+      setName(normalizedName);
+      setIsEditingName(false);
+    } catch {
+      setRenameError("No pudimos cambiar el nombre. Inténtalo nuevamente.");
+    } finally {
+      renamingRef.current = false;
+      setIsRenaming(false);
+    }
+  }
+
   const hasComparisonData =
     name.trim().length > 0 && initialImageUri && finalImageUri;
   const analysisPresentation = getAnalysisPresentation(
@@ -399,7 +445,62 @@ export default function ComparisonResultScreen() {
         <View style={styles.header}>
           <Text style={styles.eyebrow}>COMPARACIÓN</Text>
 
-          <Text style={styles.title}>{name}</Text>
+          {isEditingName ? (
+            <View style={styles.renameCard}>
+              <TextInput
+                accessibilityLabel="Nuevo nombre de la comparación"
+                autoCapitalize="sentences"
+                autoCorrect
+                editable={!isRenaming}
+                maxLength={MAX_COMPARISON_NAME_LENGTH}
+                onChangeText={(value) => {
+                  setNameDraft(value);
+                  setRenameError(null);
+                }}
+                returnKeyType="done"
+                style={styles.renameInput}
+                value={nameDraft}
+              />
+              {renameError ? (
+                <Text style={styles.renameError}>{renameError}</Text>
+              ) : null}
+              <View style={styles.renameActions}>
+                <Pressable
+                  accessibilityRole="button"
+                  disabled={isRenaming}
+                  onPress={() => {
+                    setIsEditingName(false);
+                    setRenameError(null);
+                  }}
+                  style={styles.renameCancel}
+                >
+                  <Text style={styles.renameCancelText}>Cancelar</Text>
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  disabled={!nameDraft.trim() || isRenaming}
+                  onPress={() => void handleRename()}
+                  style={styles.renameSave}
+                >
+                  <Text style={styles.renameSaveText}>
+                    {isRenaming ? "Guardando..." : "Guardar nombre"}
+                  </Text>
+                </Pressable>
+              </View>
+            </View>
+          ) : (
+            <View style={styles.titleRow}>
+              <Text style={[styles.title, styles.titleInRow]}>{name}</Text>
+              <Pressable
+                accessibilityLabel="Editar nombre de la comparación"
+                accessibilityRole="button"
+                onPress={beginRenaming}
+                style={styles.editNameButton}
+              >
+                <Text style={styles.editNameText}>Editar</Text>
+              </Pressable>
+            </View>
+          )}
 
           <Text style={styles.description}>
             Revisa ambas fotografías antes de iniciar el análisis visual.
@@ -595,6 +696,88 @@ const styles = StyleSheet.create({
     ...Typography.heading,
     color: Colors.textPrimary,
     marginBottom: Spacing.sm,
+  },
+
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    marginBottom: Spacing.sm,
+  },
+
+  titleInRow: {
+    flex: 1,
+    marginBottom: 0,
+  },
+
+  editNameButton: {
+    minHeight: 40,
+    justifyContent: "center",
+    paddingHorizontal: Spacing.md,
+    marginLeft: Spacing.sm,
+    backgroundColor: Colors.primarySoft,
+    borderRadius: Radius.full,
+  },
+
+  editNameText: {
+    ...Typography.label,
+    color: Colors.primary,
+  },
+
+  renameCard: {
+    padding: Spacing.md,
+    marginBottom: Spacing.sm,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: Radius.lg,
+  },
+
+  renameInput: {
+    minHeight: 48,
+    paddingHorizontal: Spacing.md,
+    ...Typography.bodyLarge,
+    color: Colors.textPrimary,
+    backgroundColor: Colors.background,
+    borderWidth: 1,
+    borderColor: Colors.borderStrong,
+    borderRadius: Radius.md,
+  },
+
+  renameError: {
+    ...Typography.body,
+    color: Colors.danger,
+    marginTop: Spacing.sm,
+  },
+
+  renameActions: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    marginTop: Spacing.md,
+  },
+
+  renameCancel: {
+    minHeight: 42,
+    justifyContent: "center",
+    paddingHorizontal: Spacing.md,
+    marginRight: Spacing.sm,
+  },
+
+  renameCancelText: {
+    ...Typography.label,
+    color: Colors.textSecondary,
+  },
+
+  renameSave: {
+    minHeight: 42,
+    justifyContent: "center",
+    paddingHorizontal: Spacing.md,
+    backgroundColor: Colors.primary,
+    borderRadius: Radius.md,
+  },
+
+  renameSaveText: {
+    ...Typography.label,
+    color: Colors.textInverse,
   },
 
   description: {
