@@ -20,6 +20,7 @@ export type AnalysisErrorCode =
   | "unauthorized"
   | "usage_limit_reached"
   | "analysis_in_progress"
+  | "reports_unavailable"
   | "retryable"
   | "invalid_response";
 
@@ -28,6 +29,28 @@ export class AnalysisServiceError extends Error {
     super(message);
     this.name = "AnalysisServiceError";
   }
+}
+
+type PostgrestError = {
+  code?: unknown;
+  message?: unknown;
+  details?: unknown;
+};
+
+const REPORTS_RELATION_PATTERN =
+  /(?:^|["'\s])(?:public\.)?ai_analysis_reports(?:["'\s]|$)/;
+
+export function isAnalysisReportsUnavailableError(error: unknown): boolean {
+  if (typeof error !== "object" || error === null) return false;
+
+  const postgrestError = error as PostgrestError;
+  if (postgrestError.code === "PGRST205") return true;
+  if (postgrestError.code !== "42P01") return false;
+
+  const context = [postgrestError.message, postgrestError.details]
+    .filter((value): value is string => typeof value === "string")
+    .join(" ");
+  return REPORTS_RELATION_PATTERN.test(context);
 }
 
 function parseRecord(value: unknown): AnalysisReportRecord {
@@ -71,7 +94,15 @@ export async function fetchCurrentAnalysisReport(params: {
     .eq("initial_image_path", params.initialImagePath)
     .eq("final_image_path", params.finalImagePath)
     .maybeSingle();
-  if (error) throw error;
+  if (error) {
+    if (isAnalysisReportsUnavailableError(error)) {
+      throw new AnalysisServiceError(
+        "reports_unavailable",
+        "El servicio de informes todavía no está disponible.",
+      );
+    }
+    throw error;
+  }
   return data ? parseRecord(data) : null;
 }
 

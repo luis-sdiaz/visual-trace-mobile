@@ -13,6 +13,7 @@ import { GEMINI_ANALYSIS_CONTRACT_VERSION } from "@/contracts/geminiAnalysis";
 import {
   AnalysisServiceError,
   fetchCurrentAnalysisReport,
+  isAnalysisReportsUnavailableError,
   requestComparisonAnalysis,
 } from "@/services/analysisService";
 
@@ -85,6 +86,71 @@ describe("analysisService", () => {
       initialImagePath: "initial-replacement.jpg",
       finalImagePath: "final.jpg",
     })).resolves.toBeNull();
+  });
+
+  it("returns null when the report table is available without a saved report", async () => {
+    const maybeSingle = vi.fn().mockResolvedValue({ data: null, error: null });
+    const query = { select: vi.fn(), eq: vi.fn(), maybeSingle };
+    query.select.mockReturnValue(query);
+    query.eq.mockReturnValue(query);
+    mocks.from.mockReturnValue(query);
+
+    await expect(fetchCurrentAnalysisReport({
+      comparisonId: "comparison-1",
+      initialImagePath: "initial.jpg",
+      finalImagePath: "final.jpg",
+    })).resolves.toBeNull();
+  });
+
+  it("classifies PGRST205 as the reports service being unavailable", async () => {
+    const maybeSingle = vi.fn().mockResolvedValue({
+      data: null,
+      error: { code: "PGRST205", message: "table not found", status: 404 },
+    });
+    const query = { select: vi.fn(), eq: vi.fn(), maybeSingle };
+    query.select.mockReturnValue(query);
+    query.eq.mockReturnValue(query);
+    mocks.from.mockReturnValue(query);
+
+    await expect(fetchCurrentAnalysisReport({
+      comparisonId: "comparison-1",
+      initialImagePath: "initial.jpg",
+      finalImagePath: "final.jpg",
+    })).rejects.toMatchObject({ code: "reports_unavailable" });
+  });
+
+  it("classifies 42P01 only when it identifies the reports relation", () => {
+    expect(isAnalysisReportsUnavailableError({
+      code: "42P01",
+      message: 'relation "public.ai_analysis_reports" does not exist',
+    })).toBe(true);
+    expect(isAnalysisReportsUnavailableError({
+      code: "42P01",
+      message: 'relation "public.some_other_table" does not exist',
+    })).toBe(false);
+  });
+
+  it("does not classify an unrelated 404 as a missing reports table", () => {
+    expect(isAnalysisReportsUnavailableError({
+      code: "PGRST125",
+      message: "Invalid path",
+      status: 404,
+    })).toBe(false);
+  });
+
+  it("preserves network failures instead of hiding them", async () => {
+    const networkError = new TypeError("Network request failed");
+    const maybeSingle = vi.fn().mockResolvedValue({ data: null, error: networkError });
+    const query = { select: vi.fn(), eq: vi.fn(), maybeSingle };
+    query.select.mockReturnValue(query);
+    query.eq.mockReturnValue(query);
+    mocks.from.mockReturnValue(query);
+
+    await expect(fetchCurrentAnalysisReport({
+      comparisonId: "comparison-1",
+      initialImagePath: "initial.jpg",
+      finalImagePath: "final.jpg",
+    })).rejects.toBe(networkError);
   });
 
   it("maps the Edge Function quota response for the mobile state", async () => {

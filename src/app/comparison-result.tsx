@@ -21,15 +21,17 @@ import { useAuth } from "@/context/AuthContext";
 import { useComparison } from "@/context/ComparisonContext";
 import {
   AnalysisServiceError,
-  fetchCurrentAnalysisReport,
-  requestComparisonAnalysis,
   type AnalysisReportRecord,
 } from "@/services/analysisService";
+import {
+  getAnalysisPresentation,
+  performAnalysisAction,
+  type AnalysisStatus,
+} from "@/services/analysisWorkflow";
 import { recoverComparison } from "@/services/comparisonRecoveryService";
 import { createSingleFlight } from "@/utils/singleFlight";
 
 type PrivateImageStatus = "loading" | "available" | "error" | "retrying";
-type AnalysisStatus = "loading" | "ready" | "analyzing" | "available" | "error" | "limited";
 
 const CATEGORY_LABELS = {
   added: "Elemento añadido",
@@ -126,11 +128,23 @@ export default function ComparisonResultScreen() {
   const userId = user?.id;
   const refreshSequenceRef = useRef(0);
   const [refreshSingleFlight] = useState(() => createSingleFlight<boolean>());
-  const [analysisStatus, setAnalysisStatus] = useState<AnalysisStatus>("loading");
+  const [analysisStatus, setAnalysisStatus] = useState<AnalysisStatus>("loading_report");
   const [analysisReport, setAnalysisReport] = useState<AnalysisReportRecord | null>(null);
   const [analysisMessage, setAnalysisMessage] = useState("");
+  const analysisSequenceRef = useRef(0);
+  const analysisMountedRef = useRef(true);
+  const analysisInFlightRef = useRef<string | null>(null);
   const isFocusedRef = useRef(false);
   const restoreComparisonRef = useRef(restoreComparison);
+  const analysisContext = `${comparisonId ?? ""}\u0000${initialImagePath ?? ""}\u0000${finalImagePath ?? ""}`;
+
+  useEffect(() => {
+    analysisMountedRef.current = true;
+    return () => {
+      analysisMountedRef.current = false;
+      analysisSequenceRef.current += 1;
+    };
+  }, []);
 
   useEffect(() => {
     restoreComparisonRef.current = restoreComparison;
@@ -207,56 +221,108 @@ export default function ComparisonResultScreen() {
     return () => subscription.remove();
   }, [refreshPrivateImages]);
 
-  useEffect(() => {
-    let active = true;
-
-    async function loadReport() {
-      await Promise.resolve();
-      if (!active) return;
-      setAnalysisReport(null);
-      setAnalysisMessage("");
-
-      if (!comparisonId || !initialImagePath || !finalImagePath) {
-        setAnalysisStatus("ready");
-        return;
+  const loadReport = useCallback(async () => {
+    const operationKey = `report\u0000${analysisContext}`;
+    if (analysisInFlightRef.current === operationKey) return;
+    analysisInFlightRef.current = operationKey;
+    const sequence = ++analysisSequenceRef.current;
+    await Promise.resolve();
+    if (
+      !analysisMountedRef.current ||
+      sequence !== analysisSequenceRef.current
+    ) {
+      if (analysisInFlightRef.current === operationKey) {
+        analysisInFlightRef.current = null;
       }
+      return;
+    }
+    setAnalysisReport(null);
+    setAnalysisMessage("");
 
-      setAnalysisStatus("loading");
-      try {
-        const report = await fetchCurrentAnalysisReport({
-          comparisonId,
-          initialImagePath,
-          finalImagePath,
-        });
-        if (!active) return;
-        setAnalysisReport(report);
-        setAnalysisStatus(report ? "available" : "ready");
-      } catch {
-        if (!active) return;
-        setAnalysisStatus("error");
-        setAnalysisMessage("No pudimos recuperar el informe guardado.");
-      }
+    if (!comparisonId || !initialImagePath || !finalImagePath) {
+      setAnalysisStatus("ready");
+      analysisInFlightRef.current = null;
+      return;
     }
 
-    void loadReport();
+    setAnalysisStatus("loading_report");
+    try {
+      const report = await performAnalysisAction("retry_report", {
+        comparisonId,
+        initialImagePath,
+        finalImagePath,
+      });
+      if (
+        !analysisMountedRef.current ||
+        sequence !== analysisSequenceRef.current
+      ) return;
+      setAnalysisReport(report);
+      setAnalysisStatus(report ? "available" : "ready");
+    } catch (error) {
+      if (
+        !analysisMountedRef.current ||
+        sequence !== analysisSequenceRef.current
+      ) return;
+      const unavailable =
+        error instanceof AnalysisServiceError && error.code === "reports_unavailable";
+      setAnalysisStatus(unavailable ? "reports_unavailable" : "report_error");
+      setAnalysisMessage(
+        unavailable
+          ? "El análisis con IA todavía no está disponible. Tus fotografías están guardadas y podrás analizarlas cuando el servicio esté habilitado."
+          : "No pudimos consultar el informe guardado. Tus fotografías siguen disponibles.",
+      );
+    } finally {
+      if (analysisInFlightRef.current === operationKey) {
+        analysisInFlightRef.current = null;
+      }
+    }
+  }, [analysisContext, comparisonId, finalImagePath, initialImagePath]);
 
+  useEffect(() => {
+    void Promise.resolve().then(loadReport);
     return () => {
-      active = false;
+      analysisSequenceRef.current += 1;
     };
-  }, [comparisonId, finalImagePath, initialImagePath]);
+  }, [loadReport]);
 
-  async function handleAnalyze() {
-    if (!comparisonId || analysisStatus === "analyzing") return;
+  async function handleAnalysisAction() {
+    const action = getAnalysisPresentation(
+      analysisStatus,
+      Boolean(comparisonId && initialImagePath && finalImagePath),
+    ).action;
+    if (!action) return;
+    if (action === "retry_report") {
+      await loadReport();
+      return;
+    }
+    if (!comparisonId || !initialImagePath || !finalImagePath) return;
+
+    const operationKey = `analysis\u0000${analysisContext}`;
+    if (analysisInFlightRef.current === operationKey) return;
+    analysisInFlightRef.current = operationKey;
+    const sequence = ++analysisSequenceRef.current;
     setAnalysisStatus("analyzing");
     setAnalysisMessage("");
     try {
-      const report = await requestComparisonAnalysis(comparisonId);
+      const report = await performAnalysisAction("analyze", {
+        comparisonId,
+        initialImagePath,
+        finalImagePath,
+      });
+      if (
+        !analysisMountedRef.current ||
+        sequence !== analysisSequenceRef.current
+      ) return;
       setAnalysisReport(report);
       setAnalysisStatus("available");
     } catch (error) {
+      if (
+        !analysisMountedRef.current ||
+        sequence !== analysisSequenceRef.current
+      ) return;
       const limited =
         error instanceof AnalysisServiceError && error.code === "usage_limit_reached";
-      setAnalysisStatus(limited ? "limited" : "error");
+      setAnalysisStatus(limited ? "limited" : "analysis_error");
       setAnalysisMessage(
         limited
           ? "Se alcanzó el límite gratuito de análisis. Inténtalo más tarde."
@@ -264,11 +330,19 @@ export default function ComparisonResultScreen() {
             ? error.message
             : "No fue posible completar el análisis.",
       );
+    } finally {
+      if (analysisInFlightRef.current === operationKey) {
+        analysisInFlightRef.current = null;
+      }
     }
   }
 
   const hasComparisonData =
     name.trim().length > 0 && initialImageUri && finalImageUri;
+  const analysisPresentation = getAnalysisPresentation(
+    analysisStatus,
+    Boolean(comparisonId && initialImagePath && finalImagePath),
+  );
 
   if (!hasComparisonData) {
     return (
@@ -370,28 +444,20 @@ export default function ComparisonResultScreen() {
 
           <View style={styles.statusTextContainer}>
             <Text style={styles.statusTitle}>
-              {analysisStatus === "analyzing"
-                ? "Analizando imágenes"
-                : analysisStatus === "available"
-                  ? "Informe disponible"
-                  : "Fotografías listas"}
+              {analysisPresentation.statusTitle}
             </Text>
 
             <Text style={styles.statusDescription}>
-              {analysisStatus === "analyzing"
-                ? "Gemini está comparando únicamente los cambios visibles."
-                : analysisStatus === "available"
-                  ? "El informe corresponde a estas versiones de las fotografías."
-                  : "Los dos estados están preparados para el análisis visual."}
+              {analysisPresentation.statusDescription}
             </Text>
           </View>
         </View>
 
-        {analysisStatus === "loading" || analysisStatus === "analyzing" ? (
+        {analysisStatus === "loading_report" || analysisStatus === "analyzing" ? (
           <View style={styles.analysisLoading}>
             <ActivityIndicator color={Colors.primary} />
             <Text style={styles.loadingText}>
-              {analysisStatus === "loading" ? "Buscando informe guardado..." : "Analizando imágenes..."}
+              {analysisStatus === "loading_report" ? "Buscando informe guardado..." : "Analizando imágenes..."}
             </Text>
           </View>
         ) : null}
@@ -446,11 +512,10 @@ export default function ComparisonResultScreen() {
         ) : null}
 
         <View style={styles.footer}>
-          {analysisStatus !== "available" ? (
+          {analysisPresentation.action && analysisPresentation.actionLabel ? (
             <Button
-              disabled={analysisStatus === "analyzing" || analysisStatus === "loading"}
-              label={analysisStatus === "analyzing" ? "Analizando..." : analysisStatus === "error" ? "Reintentar análisis" : "Analizar cambios"}
-              onPress={() => void handleAnalyze()}
+              label={analysisPresentation.actionLabel}
+              onPress={() => void handleAnalysisAction()}
             />
           ) : null}
 
