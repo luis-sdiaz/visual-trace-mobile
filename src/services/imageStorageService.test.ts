@@ -28,6 +28,7 @@ vi.mock("@/lib/supabase", () => ({
 }));
 
 import {
+  ImageStorageError,
   removeComparisonImage,
   resolveComparisonImageUrl,
   uploadComparisonImage,
@@ -161,6 +162,77 @@ describe("resolveComparisonImageUrl", () => {
         imageUri: "file:///too-large.jpg",
       }),
     ).rejects.toThrow("Image exceeds the maximum size.");
+  });
+
+  it("returns stable codes for unsupported, empty, and inaccessible files", async () => {
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(
+        new Response(new Uint8Array([1]), {
+          headers: { "Content-Type": "application/pdf" },
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(new ArrayBuffer(0), {
+          headers: { "Content-Type": "image/png" },
+        }),
+      )
+      .mockResolvedValueOnce(new Response(null, { status: 404 }));
+
+    const upload = (imageUri: string) =>
+      uploadComparisonImage({
+        comparisonId: "comparison-1",
+        imageStage: "initial",
+        imageUri,
+      });
+
+    await expect(upload("file:///document.bin")).rejects.toMatchObject({
+      code: "unsupported_format",
+    } satisfies Partial<ImageStorageError>);
+    await expect(upload("file:///empty.png")).rejects.toMatchObject({
+      code: "invalid_file",
+    } satisfies Partial<ImageStorageError>);
+    await expect(upload("file:///missing.png")).rejects.toMatchObject({
+      code: "file_inaccessible",
+    } satisfies Partial<ImageStorageError>);
+  });
+
+  it("distinguishes network and temporary storage failures", async () => {
+    vi.mocked(fetch).mockRejectedValueOnce(new TypeError("Network request failed"));
+    await expect(
+      uploadComparisonImage({
+        comparisonId: "comparison-1",
+        imageStage: "initial",
+        imageUri: "file:///network.png",
+      }),
+    ).rejects.toMatchObject({ code: "network_error" });
+
+    storageMock.upload.mockResolvedValueOnce({
+      data: null,
+      error: { statusCode: "503" },
+    });
+    await expect(
+      uploadComparisonImage({
+        comparisonId: "comparison-1",
+        imageStage: "initial",
+        imageUri: "file:///temporary.png",
+      }),
+    ).rejects.toMatchObject({ code: "storage_unavailable" });
+  });
+
+  it("identifies an unavailable session before reading the image", async () => {
+    storageMock.getUser.mockResolvedValueOnce({
+      data: { user: null },
+      error: new Error("expired"),
+    });
+
+    await expect(
+      uploadComparisonImage({
+        comparisonId: "comparison-1",
+        imageStage: "initial",
+        imageUri: "file:///photo.png",
+      }),
+    ).rejects.toMatchObject({ code: "session_unavailable" });
+    expect(fetch).not.toHaveBeenCalled();
   });
 
   it("removes only an owned image within the requested comparison", async () => {

@@ -1,8 +1,10 @@
 import {
+  AuthenticationRequiredError,
   fetchComparisonById,
   updateComparisonImagePath,
 } from "@/services/comparisonService";
 import {
+  ImageStorageError,
   removeComparisonImage,
   uploadComparisonImage,
   type ImageStage,
@@ -27,6 +29,43 @@ export class AnalyzedComparisonEditError extends Error {
   }
 }
 
+export class ConcurrentComparisonImageEditError extends Error {
+  constructor() {
+    super("Comparison image changed before it could be saved.");
+    this.name = "ConcurrentComparisonImageEditError";
+  }
+}
+
+export function getComparisonImageSaveErrorMessage(
+  error: unknown,
+  imageStage: ImageStage,
+): string {
+  if (error instanceof AnalyzedComparisonEditError) {
+    return "Esta comparación ya fue analizada y sus fotografías no se pueden reemplazar.";
+  }
+  if (error instanceof ConcurrentComparisonImageEditError) {
+    return "La fotografía guardada cambió en otro proceso. Vuelve a abrir la comparación antes de reemplazarla.";
+  }
+  if (error instanceof AuthenticationRequiredError) {
+    return "Tu sesión ya no está disponible. Inicia sesión nuevamente para guardar la fotografía.";
+  }
+  if (error instanceof ImageStorageError) {
+    const messages: Record<ImageStorageError["code"], string> = {
+      file_too_large: "La fotografía supera el límite de 6 MiB. Elige una imagen más pequeña.",
+      unsupported_format: "El formato de la fotografía no es compatible. Usa JPEG, PNG, WebP, HEIC o HEIF.",
+      invalid_file: "El archivo seleccionado no contiene una fotografía válida.",
+      file_inaccessible: "No pudimos acceder al archivo seleccionado. Elige la fotografía nuevamente.",
+      network_error: "No hay conexión suficiente para guardar la fotografía. Comprueba tu red e inténtalo nuevamente.",
+      session_unavailable: "Tu sesión ya no está disponible. Inicia sesión nuevamente para guardar la fotografía.",
+      storage_unavailable: "El almacenamiento no está disponible temporalmente. Inténtalo nuevamente en unos minutos.",
+      storage_failure: "El almacenamiento no pudo guardar la fotografía. Inténtalo nuevamente.",
+    };
+    return messages[error.code];
+  }
+
+  return `No pudimos guardar la fotografía ${imageStage === "final" ? "final" : "inicial"}. Inténtalo nuevamente.`;
+}
+
 export function shouldUploadComparisonImage(
   imagePath: string | null,
   imageIsDirty: boolean,
@@ -48,7 +87,7 @@ export async function saveComparisonImage({
   }
 
   if (currentImagePath !== previousImagePath) {
-    throw new Error("Comparison image changed before it could be saved.");
+    throw new ConcurrentComparisonImageEditError();
   }
 
   const imagePath = await uploadComparisonImage({

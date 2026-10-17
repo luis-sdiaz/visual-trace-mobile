@@ -19,7 +19,7 @@ import { Spacing } from "@/constants/spacing";
 import { Typography } from "@/constants/typography";
 import { useComparison } from "@/context/ComparisonContext";
 import {
-  AnalyzedComparisonEditError,
+  getComparisonImageSaveErrorMessage,
   saveComparisonImage,
   shouldUploadComparisonImage,
 } from "@/services/comparisonImageLifecycleService";
@@ -125,11 +125,7 @@ export default function InitialStateScreen() {
     } catch (error) {
       console.error("Failed to save initial comparison image:", error);
 
-      setErrorMessage(
-        error instanceof AnalyzedComparisonEditError
-          ? "Esta comparación ya fue analizada y sus fotografías no se pueden reemplazar."
-          : "No pudimos guardar la fotografía. Revisa tu conexión e inténtalo nuevamente.",
-      );
+      setErrorMessage(getComparisonImageSaveErrorMessage(error, "initial"));
     } finally {
       uploadingRef.current = false;
       setIsUploading(false);

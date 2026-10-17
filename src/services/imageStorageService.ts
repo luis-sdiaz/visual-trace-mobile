@@ -12,6 +12,23 @@ const MAX_SIGNED_URL_LIFETIME_SECONDS = 60 * 60;
 
 export type ImageStage = "initial" | "final";
 
+export type ImageStorageErrorCode =
+  | "file_too_large"
+  | "unsupported_format"
+  | "invalid_file"
+  | "file_inaccessible"
+  | "network_error"
+  | "session_unavailable"
+  | "storage_unavailable"
+  | "storage_failure";
+
+export class ImageStorageError extends Error {
+  constructor(public readonly code: ImageStorageErrorCode, message: string) {
+    super(message);
+    this.name = "ImageStorageError";
+  }
+}
+
 type UploadComparisonImageParams = {
   comparisonId: string;
   imageUri: string;
@@ -72,7 +89,7 @@ function getImageContentType(
     return "image/heif";
   }
 
-  throw new Error("Unsupported image format.");
+  throw new ImageStorageError("unsupported_format", "Unsupported image format.");
 }
 
 async function readImage(imageUri: string): Promise<{
@@ -80,10 +97,18 @@ async function readImage(imageUri: string): Promise<{
   contentType: string;
 }> {
   if (Platform.OS === "web") {
-    const response = await fetch(imageUri);
+    let response: Response;
+    try {
+      response = await fetch(imageUri);
+    } catch (error) {
+      throw new ImageStorageError(
+        error instanceof TypeError ? "network_error" : "file_inaccessible",
+        "Could not read image.",
+      );
+    }
 
     if (!response.ok) {
-      throw new Error("Could not read image.");
+      throw new ImageStorageError("file_inaccessible", "Could not read image.");
     }
 
     const contentType = getImageContentType(
@@ -100,15 +125,39 @@ async function readImage(imageUri: string): Promise<{
   const imageFile = new File(imageUri);
 
   if (!imageFile.exists) {
-    throw new Error("Image file does not exist.");
+    throw new ImageStorageError("file_inaccessible", "Image file does not exist.");
   }
 
   const contentType = getImageContentType(imageUri, imageFile.type);
 
-  return {
-    buffer: await imageFile.arrayBuffer(),
-    contentType,
-  };
+  try {
+    return {
+      buffer: await imageFile.arrayBuffer(),
+      contentType,
+    };
+  } catch {
+    throw new ImageStorageError("file_inaccessible", "Could not read image.");
+  }
+}
+
+function classifyStorageUploadError(error: unknown): ImageStorageError {
+  if (error instanceof TypeError) {
+    return new ImageStorageError("network_error", "Storage request failed.");
+  }
+
+  const statusValue =
+    typeof error === "object" && error !== null
+      ? (error as { status?: unknown; statusCode?: unknown }).statusCode ??
+        (error as { status?: unknown }).status
+      : undefined;
+  const status = typeof statusValue === "string" ? Number(statusValue) : statusValue;
+
+  return new ImageStorageError(
+    typeof status === "number" && status >= 500
+      ? "storage_unavailable"
+      : "storage_failure",
+    "Storage upload failed.",
+  );
 }
 
 export async function uploadComparisonImage({
@@ -118,7 +167,7 @@ export async function uploadComparisonImage({
   isReplacement = false,
 }: UploadComparisonImageParams): Promise<string> {
   if (!comparisonId || !imageUri) {
-    throw new Error("Comparison ID and image are required.");
+    throw new ImageStorageError("invalid_file", "Comparison ID and image are required.");
   }
 
   const {
@@ -127,17 +176,17 @@ export async function uploadComparisonImage({
   } = await supabase.auth.getUser();
 
   if (authError || !user) {
-    throw new Error("User must be authenticated.");
+    throw new ImageStorageError("session_unavailable", "User must be authenticated.");
   }
 
   const { buffer, contentType } = await readImage(imageUri);
 
   if (buffer.byteLength === 0) {
-    throw new Error("Image file is empty.");
+    throw new ImageStorageError("invalid_file", "Image file is empty.");
   }
 
   if (buffer.byteLength > COMPARISON_IMAGE_LIMITS.maxBytesPerImage) {
-    throw new Error("Image exceeds the maximum size.");
+    throw new ImageStorageError("file_too_large", "Image exceeds the maximum size.");
   }
 
   const extension = IMAGE_EXTENSIONS[contentType];
@@ -155,7 +204,7 @@ export async function uploadComparisonImage({
     });
 
   if (error) {
-    throw error;
+    throw classifyStorageUploadError(error);
   }
 
   return data.path;

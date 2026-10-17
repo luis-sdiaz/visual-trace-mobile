@@ -34,6 +34,13 @@ export class ComparisonNotFoundError extends Error {
   }
 }
 
+export class AuthenticationRequiredError extends Error {
+  constructor() {
+    super("User must be authenticated.");
+    this.name = "AuthenticationRequiredError";
+  }
+}
+
 export function isComparisonComplete(
   comparison: ComparisonRecord,
 ): boolean {
@@ -55,7 +62,7 @@ export async function fetchComparisonById(
   } = await supabase.auth.getUser();
 
   if (authError || !user) {
-    throw new Error("User must be authenticated.");
+    throw new AuthenticationRequiredError();
   }
 
   const { data, error } = await supabase
@@ -93,7 +100,7 @@ export async function fetchRecentComparisons(
   } = await supabase.auth.getUser();
 
   if (authError || !user) {
-    throw new Error("User must be authenticated.");
+    throw new AuthenticationRequiredError();
   }
 
   const { data, error } = await supabase
@@ -125,7 +132,7 @@ export async function createComparisonDraft(
   } = await supabase.auth.getUser();
 
   if (authError || !user) {
-    throw new Error("User must be authenticated.");
+    throw new AuthenticationRequiredError();
   }
 
   const { data, error } = await supabase
@@ -160,7 +167,7 @@ export async function updateComparisonName(
   } = await supabase.auth.getUser();
 
   if (authError || !user) {
-    throw new Error("User must be authenticated.");
+    throw new AuthenticationRequiredError();
   }
 
   const { data, error } = await supabase
@@ -234,7 +241,7 @@ export async function updateComparisonImagePath(
   } = await supabase.auth.getUser();
 
   if (authError || !user) {
-    throw new Error("User must be authenticated.");
+    throw new AuthenticationRequiredError();
   }
 
   if (
@@ -291,7 +298,7 @@ export async function markComparisonReady(
   } = await supabase.auth.getUser();
 
   if (authError || !user) {
-    throw new Error("User must be authenticated.");
+    throw new AuthenticationRequiredError();
   }
 
   const { data: comparison, error: comparisonError } = await supabase
