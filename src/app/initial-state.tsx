@@ -21,6 +21,7 @@ import { Typography } from "@/constants/typography";
 import { useComparison } from "@/context/ComparisonContext";
 import {
   getComparisonImageSaveErrorMessage,
+  restoreSavedComparisonImage,
   saveComparisonImage,
   shouldUploadComparisonImage,
 } from "@/services/comparisonImageLifecycleService";
@@ -36,14 +37,17 @@ export default function InitialStateScreen() {
     initialImagePath,
     initialImageIsDirty,
     markInitialImageSaved,
+    restoreSavedImage,
     setInitialImageUri,
   } = useComparison();
 
   const [isUploading, setIsUploading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isDiscarding, setIsDiscarding] = useState(false);
   const [isPreviewVisible, setIsPreviewVisible] = useState(false);
 
   const uploadingRef = useRef(false);
+  const discardingRef = useRef(false);
 
   function acceptSelectedImage(uri: string) {
     if (!initialImagePath) {
@@ -69,7 +73,7 @@ export default function InitialStateScreen() {
   }
 
   async function handleSelectPhoto(source: PhotoSelectionSource) {
-    if (uploadingRef.current) {
+    if (uploadingRef.current || discardingRef.current) {
       return;
     }
 
@@ -93,7 +97,7 @@ export default function InitialStateScreen() {
   }
 
   async function handleContinue() {
-    if (!initialImageUri || uploadingRef.current) {
+    if (!initialImageUri || uploadingRef.current || discardingRef.current) {
       return;
     }
 
@@ -134,6 +138,31 @@ export default function InitialStateScreen() {
     }
   }
 
+  async function handleDiscardReplacement() {
+    if (
+      !comparisonId ||
+      !initialImagePath ||
+      uploadingRef.current ||
+      discardingRef.current
+    ) return;
+    discardingRef.current = true;
+    setIsDiscarding(true);
+    setErrorMessage(null);
+    try {
+      const savedImage = await restoreSavedComparisonImage({
+        comparisonId,
+        imageStage: "initial",
+        expectedImagePath: initialImagePath,
+      });
+      restoreSavedImage("initial", savedImage.uri, savedImage.path);
+    } catch (error) {
+      setErrorMessage(getComparisonImageSaveErrorMessage(error, "initial"));
+    } finally {
+      discardingRef.current = false;
+      setIsDiscarding(false);
+    }
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView
@@ -143,7 +172,7 @@ export default function InitialStateScreen() {
         <View>
           <Pressable
             accessibilityRole="button"
-            disabled={isUploading}
+            disabled={isUploading || isDiscarding}
             onPress={() => router.replace("/new-comparison")}
             style={styles.backButton}
           >
@@ -201,7 +230,7 @@ export default function InitialStateScreen() {
           <View style={styles.actions}>
             <Pressable
               accessibilityRole="button"
-              disabled={isUploading}
+              disabled={isUploading || isDiscarding}
               onPress={() => void handleSelectPhoto("camera")}
               style={styles.primaryAction}
             >
@@ -212,7 +241,7 @@ export default function InitialStateScreen() {
 
             <Pressable
               accessibilityRole="button"
-              disabled={isUploading}
+              disabled={isUploading || isDiscarding}
               onPress={() => void handleSelectPhoto("library")}
               style={styles.secondaryAction}
             >
@@ -224,6 +253,19 @@ export default function InitialStateScreen() {
             </Pressable>
           </View>
 
+          {initialImagePath && initialImageIsDirty ? (
+            <Pressable
+              accessibilityRole="button"
+              disabled={isUploading || isDiscarding}
+              onPress={() => void handleDiscardReplacement()}
+              style={styles.discardAction}
+            >
+              <Text style={styles.discardActionText}>
+                {isDiscarding ? "Recuperando fotografía..." : "Descartar reemplazo"}
+              </Text>
+            </Pressable>
+          ) : null}
+
           {errorMessage ? (
             <Text style={styles.errorText}>{errorMessage}</Text>
           ) : null}
@@ -232,7 +274,7 @@ export default function InitialStateScreen() {
         <View style={styles.footer}>
           <Button
             label={isUploading ? "Guardando fotografía..." : "Continuar"}
-            disabled={!initialImageUri || isUploading}
+            disabled={!initialImageUri || isUploading || isDiscarding}
             onPress={handleContinue}
           />
         </View>
@@ -399,6 +441,18 @@ const styles = StyleSheet.create({
   secondaryActionText: {
     ...Typography.button,
     color: Colors.textPrimary,
+  },
+
+  discardAction: {
+    minHeight: 44,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: Spacing.sm,
+  },
+
+  discardActionText: {
+    ...Typography.label,
+    color: Colors.danger,
   },
 
   errorText: {

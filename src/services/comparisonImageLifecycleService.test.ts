@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const lifecycleMock = vi.hoisted(() => ({
   fetchComparisonById: vi.fn(),
   removeComparisonImage: vi.fn(),
+  resolveComparisonImageUrl: vi.fn(),
   updateComparisonImagePath: vi.fn(),
   uploadComparisonImage: vi.fn(),
 }));
@@ -26,6 +27,7 @@ vi.mock("@/services/imageStorageService", () => ({
     }
   },
   removeComparisonImage: lifecycleMock.removeComparisonImage,
+  resolveComparisonImageUrl: lifecycleMock.resolveComparisonImageUrl,
   uploadComparisonImage: lifecycleMock.uploadComparisonImage,
 }));
 
@@ -33,6 +35,7 @@ import {
   AnalyzedComparisonEditError,
   ConcurrentComparisonImageEditError,
   getComparisonImageSaveErrorMessage,
+  restoreSavedComparisonImage,
   saveComparisonImage,
   shouldUploadComparisonImage,
 } from "@/services/comparisonImageLifecycleService";
@@ -64,6 +67,7 @@ describe("saveComparisonImage cleanup", () => {
   beforeEach(() => {
     lifecycleMock.fetchComparisonById.mockReset();
     lifecycleMock.removeComparisonImage.mockReset();
+    lifecycleMock.resolveComparisonImageUrl.mockReset();
     lifecycleMock.updateComparisonImagePath.mockReset();
     lifecycleMock.uploadComparisonImage.mockReset();
     lifecycleMock.uploadComparisonImage.mockResolvedValue(replacementPath);
@@ -263,6 +267,60 @@ describe("saveComparisonImage cleanup", () => {
       expect.any(Error),
     );
     consoleError.mockRestore();
+  });
+});
+
+describe("restoreSavedComparisonImage", () => {
+  beforeEach(() => {
+    lifecycleMock.fetchComparisonById.mockReset();
+    lifecycleMock.resolveComparisonImageUrl.mockReset();
+    lifecycleMock.removeComparisonImage.mockReset();
+    lifecycleMock.updateComparisonImagePath.mockReset();
+    lifecycleMock.uploadComparisonImage.mockReset();
+  });
+
+  it("recovers the persisted image without storage or database writes", async () => {
+    lifecycleMock.fetchComparisonById.mockResolvedValue(
+      createComparison(previousPath, { status: "analyzed" }),
+    );
+    lifecycleMock.resolveComparisonImageUrl.mockResolvedValue(
+      "https://signed.example/initial",
+    );
+
+    await expect(
+      restoreSavedComparisonImage({
+        comparisonId: "comparison-1",
+        imageStage: "initial",
+        expectedImagePath: previousPath,
+      }),
+    ).resolves.toEqual({
+      path: previousPath,
+      uri: "https://signed.example/initial",
+    });
+
+    expect(lifecycleMock.resolveComparisonImageUrl).toHaveBeenCalledWith({
+      comparisonId: "comparison-1",
+      imagePath: previousPath,
+      imageStage: "initial",
+    });
+    expect(lifecycleMock.uploadComparisonImage).not.toHaveBeenCalled();
+    expect(lifecycleMock.updateComparisonImagePath).not.toHaveBeenCalled();
+    expect(lifecycleMock.removeComparisonImage).not.toHaveBeenCalled();
+  });
+
+  it("rejects recovery when the persisted path changed concurrently", async () => {
+    lifecycleMock.fetchComparisonById.mockResolvedValue(
+      createComparison("user-1/comparison-1/initial-new.jpg"),
+    );
+
+    await expect(
+      restoreSavedComparisonImage({
+        comparisonId: "comparison-1",
+        imageStage: "initial",
+        expectedImagePath: previousPath,
+      }),
+    ).rejects.toBeInstanceOf(ConcurrentComparisonImageEditError);
+    expect(lifecycleMock.resolveComparisonImageUrl).not.toHaveBeenCalled();
   });
 });
 

@@ -6,6 +6,7 @@ import {
 import {
   ImageStorageError,
   removeComparisonImage,
+  resolveComparisonImageUrl,
   uploadComparisonImage,
   type ImageStage,
 } from "@/services/imageStorageService";
@@ -15,6 +16,12 @@ type SaveComparisonImageParams = {
   imageStage: ImageStage;
   imageUri: string;
   previousImagePath: string | null;
+};
+
+type RestoreSavedComparisonImageParams = {
+  comparisonId: string;
+  imageStage: ImageStage;
+  expectedImagePath: string;
 };
 
 const IMAGE_PATH_COLUMNS = {
@@ -71,6 +78,25 @@ export function shouldUploadComparisonImage(
   imageIsDirty: boolean,
 ): boolean {
   return imageIsDirty || imagePath === null;
+}
+
+export async function restoreSavedComparisonImage({
+  comparisonId,
+  imageStage,
+  expectedImagePath,
+}: RestoreSavedComparisonImageParams): Promise<{ path: string; uri: string }> {
+  const comparison = await fetchComparisonById(comparisonId);
+  const currentImagePath = comparison[IMAGE_PATH_COLUMNS[imageStage]];
+  if (!currentImagePath || currentImagePath !== expectedImagePath) {
+    throw new ConcurrentComparisonImageEditError();
+  }
+
+  const uri = await resolveComparisonImageUrl({
+    comparisonId,
+    imagePath: currentImagePath,
+    imageStage,
+  });
+  return { path: currentImagePath, uri };
 }
 
 export async function saveComparisonImage({

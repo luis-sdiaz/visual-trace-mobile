@@ -24,6 +24,7 @@ import {
 } from "@/services/comparisonService";
 import {
   getComparisonImageSaveErrorMessage,
+  restoreSavedComparisonImage,
   saveComparisonImage,
   shouldUploadComparisonImage,
 } from "@/services/comparisonImageLifecycleService";
@@ -39,14 +40,17 @@ export default function FinalStateScreen() {
     finalImagePath,
     finalImageIsDirty,
     markFinalImageSaved,
+    restoreSavedImage,
     setFinalImageUri,
   } = useComparison();
 
   const [isUploading, setIsUploading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isDiscarding, setIsDiscarding] = useState(false);
   const [isPreviewVisible, setIsPreviewVisible] = useState(false);
 
   const uploadingRef = useRef(false);
+  const discardingRef = useRef(false);
 
   function acceptSelectedImage(uri: string) {
     if (!finalImagePath) {
@@ -72,7 +76,7 @@ export default function FinalStateScreen() {
   }
 
   async function handleSelectPhoto(source: PhotoSelectionSource) {
-    if (uploadingRef.current) {
+    if (uploadingRef.current || discardingRef.current) {
       return;
     }
 
@@ -96,7 +100,7 @@ export default function FinalStateScreen() {
   }
 
   async function handleContinue() {
-    if (!finalImageUri || uploadingRef.current) {
+    if (!finalImageUri || uploadingRef.current || discardingRef.current) {
       return;
     }
 
@@ -139,6 +143,31 @@ export default function FinalStateScreen() {
     }
   }
 
+  async function handleDiscardReplacement() {
+    if (
+      !comparisonId ||
+      !finalImagePath ||
+      uploadingRef.current ||
+      discardingRef.current
+    ) return;
+    discardingRef.current = true;
+    setIsDiscarding(true);
+    setErrorMessage(null);
+    try {
+      const savedImage = await restoreSavedComparisonImage({
+        comparisonId,
+        imageStage: "final",
+        expectedImagePath: finalImagePath,
+      });
+      restoreSavedImage("final", savedImage.uri, savedImage.path);
+    } catch (error) {
+      setErrorMessage(getComparisonImageSaveErrorMessage(error, "final"));
+    } finally {
+      discardingRef.current = false;
+      setIsDiscarding(false);
+    }
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView
@@ -148,7 +177,7 @@ export default function FinalStateScreen() {
         <View>
           <Pressable
             accessibilityRole="button"
-            disabled={isUploading}
+            disabled={isUploading || isDiscarding}
             onPress={() => router.replace("/initial-state")}
             style={styles.backButton}
           >
@@ -206,7 +235,7 @@ export default function FinalStateScreen() {
           <View style={styles.actions}>
             <Pressable
               accessibilityRole="button"
-              disabled={isUploading}
+              disabled={isUploading || isDiscarding}
               onPress={() => void handleSelectPhoto("camera")}
               style={styles.primaryAction}
             >
@@ -217,7 +246,7 @@ export default function FinalStateScreen() {
 
             <Pressable
               accessibilityRole="button"
-              disabled={isUploading}
+              disabled={isUploading || isDiscarding}
               onPress={() => void handleSelectPhoto("library")}
               style={styles.secondaryAction}
             >
@@ -229,6 +258,19 @@ export default function FinalStateScreen() {
             </Pressable>
           </View>
 
+          {finalImagePath && finalImageIsDirty ? (
+            <Pressable
+              accessibilityRole="button"
+              disabled={isUploading || isDiscarding}
+              onPress={() => void handleDiscardReplacement()}
+              style={styles.discardAction}
+            >
+              <Text style={styles.discardActionText}>
+                {isDiscarding ? "Recuperando fotografía..." : "Descartar reemplazo"}
+              </Text>
+            </Pressable>
+          ) : null}
+
           {errorMessage ? (
             <Text style={styles.errorText}>{errorMessage}</Text>
           ) : null}
@@ -237,7 +279,7 @@ export default function FinalStateScreen() {
         <View style={styles.footer}>
           <Button
             label={isUploading ? "Guardando fotografía..." : "Comparar estados"}
-            disabled={!finalImageUri || isUploading}
+            disabled={!finalImageUri || isUploading || isDiscarding}
             onPress={handleContinue}
           />
         </View>
@@ -404,6 +446,18 @@ const styles = StyleSheet.create({
   secondaryActionText: {
     ...Typography.button,
     color: Colors.textPrimary,
+  },
+
+  discardAction: {
+    minHeight: 44,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: Spacing.sm,
+  },
+
+  discardActionText: {
+    ...Typography.label,
+    color: Colors.danger,
   },
 
   errorText: {

@@ -9,6 +9,7 @@ import {
 
 import { useAuth } from "@/context/AuthContext";
 import { isComparisonOwnedByUser } from "@/services/comparisonService";
+import type { ImageStage } from "@/services/imageStorageService";
 import {
   clearComparisonDraft,
   loadComparisonDraft,
@@ -37,6 +38,7 @@ type ComparisonContextValue = {
   markInitialImageSaved: (path: string) => void;
   setFinalImageUri: (uri: string | null) => void;
   markFinalImageSaved: (path: string) => void;
+  restoreSavedImage: (stage: ImageStage, uri: string, path: string) => void;
   restoreComparison: (draft: RestoredComparison) => void;
   resetComparison: () => void;
 };
@@ -202,6 +204,20 @@ export function ComparisonProvider({ children }: PropsWithChildren) {
     setFinalImageIsDirty(false);
   }
 
+  function restoreSavedImage(stage: ImageStage, uri: string, path: string) {
+    if (stage === "initial") {
+      setInitialImageUri(uri);
+      setInitialImagePath(path);
+      setInitialImageIsDirty(false);
+      setIsInitialImageTransient(true);
+    } else {
+      setFinalImageUri(uri);
+      setFinalImagePath(path);
+      setFinalImageIsDirty(false);
+      setIsFinalImageTransient(true);
+    }
+  }
+
   function restoreComparison(draft: RestoredComparison) {
     setComparisonId(draft.comparisonId);
     setName(draft.name);
@@ -245,6 +261,7 @@ export function ComparisonProvider({ children }: PropsWithChildren) {
         markInitialImageSaved,
         setFinalImageUri: handleSetFinalImageUri,
         markFinalImageSaved,
+        restoreSavedImage,
         restoreComparison,
         resetComparison,
       }}
