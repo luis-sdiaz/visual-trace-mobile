@@ -38,6 +38,13 @@ export type ComparisonPage = {
   nextCursor: ComparisonPageCursor | null;
 };
 
+export function buildComparisonNameSearchPattern(search: string): string | null {
+  const normalized = search.trim();
+  if (!normalized) return null;
+  const escaped = normalized.replace(/[\\%_]/g, "\\$&");
+  return `%${escaped}%`;
+}
+
 export class ComparisonNotFoundError extends Error {
   constructor() {
     super("Comparison could not be found.");
@@ -131,6 +138,7 @@ export async function fetchRecentComparisons(
 export async function fetchComparisonPage(params: {
   cursor?: ComparisonPageCursor | null;
   limit?: number;
+  search?: string;
 } = {}): Promise<ComparisonPage> {
   const limit = params.limit ?? DEFAULT_RECENT_COMPARISONS_LIMIT;
   if (!Number.isInteger(limit) || limit < 1 || limit > MAX_RECENT_COMPARISONS_LIMIT) {
@@ -149,6 +157,9 @@ export async function fetchComparisonPage(params: {
     .eq("user_id", user.id)
     .order("created_at", { ascending: false })
     .order("id", { ascending: false });
+
+  const searchPattern = buildComparisonNameSearchPattern(params.search ?? "");
+  if (searchPattern) query = query.ilike("name", searchPattern);
 
   if (params.cursor) {
     const { createdAt, id } = params.cursor;

@@ -13,6 +13,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -78,6 +79,8 @@ export default function HomeScreen() {
   const [nextComparisonCursor, setNextComparisonCursor] =
     useState<ComparisonPageCursor | null>(null);
   const [recentError, setRecentError] = useState<string | null>(null);
+  const [searchText, setSearchText] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
   const [openingComparison, setOpeningComparison] = useState<{
     id: string;
     userId: string;
@@ -130,6 +133,11 @@ export default function HomeScreen() {
     openSequenceRef.current += 1;
   }, [user?.id]);
 
+  useEffect(() => {
+    const timeout = setTimeout(() => setSearchTerm(searchText.trim()), 350);
+    return () => clearTimeout(timeout);
+  }, [searchText]);
+
   const loadComparisonHistory = useCallback(
     async (options: {
       append?: boolean;
@@ -159,7 +167,10 @@ export default function HomeScreen() {
       setRecentError(null);
 
       try {
-        const page = await fetchComparisonPage({ cursor: options.cursor });
+        const page = await fetchComparisonPage({
+          cursor: options.cursor,
+          search: searchTerm,
+        });
 
         if (
           isActive() &&
@@ -197,7 +208,7 @@ export default function HomeScreen() {
         }
       }
     },
-    [user],
+    [searchTerm, user],
   );
 
   useFocusEffect(
@@ -436,7 +447,35 @@ export default function HomeScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Comparaciones recientes</Text>
+          <Text style={styles.sectionTitle}>Historial de comparaciones</Text>
+
+          <View style={styles.searchContainer}>
+            <Ionicons name="search-outline" size={20} color={Colors.textMuted} />
+            <TextInput
+              accessibilityLabel="Buscar comparaciones por nombre"
+              autoCapitalize="none"
+              autoCorrect={false}
+              onChangeText={setSearchText}
+              placeholder="Buscar por nombre"
+              placeholderTextColor={Colors.textMuted}
+              returnKeyType="search"
+              style={styles.searchInput}
+              value={searchText}
+            />
+            {searchText ? (
+              <Pressable
+                accessibilityLabel="Limpiar búsqueda"
+                accessibilityRole="button"
+                onPress={() => {
+                  setSearchText("");
+                  setSearchTerm("");
+                }}
+                style={styles.clearSearchButton}
+              >
+                <Ionicons name="close-circle" size={21} color={Colors.textMuted} />
+              </Pressable>
+            ) : null}
+          </View>
 
           {openError ? (
             <View style={styles.openErrorCard}>
@@ -576,11 +615,16 @@ export default function HomeScreen() {
                 />
               </View>
 
-              <Text style={styles.emptyTitle}>Aún no tienes comparaciones</Text>
+              <Text style={styles.emptyTitle}>
+                {searchTerm
+                  ? "No encontramos coincidencias"
+                  : "Aún no tienes comparaciones"}
+              </Text>
 
               <Text style={styles.emptyDescription}>
-                Tus registros aparecerán aquí después de crear tu primera
-                comparación.
+                {searchTerm
+                  ? "Prueba con otro nombre o limpia la búsqueda."
+                  : "Tus registros aparecerán aquí después de crear tu primera comparación."}
               </Text>
             </View>
           )}
@@ -791,6 +835,33 @@ const styles = StyleSheet.create({
     ...Typography.title,
     color: Colors.textPrimary,
     marginBottom: Spacing.md,
+  },
+
+  searchContainer: {
+    minHeight: 50,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: Spacing.md,
+    marginBottom: Spacing.md,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: Radius.lg,
+  },
+
+  searchInput: {
+    flex: 1,
+    ...Typography.body,
+    color: Colors.textPrimary,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.sm,
+  },
+
+  clearSearchButton: {
+    minWidth: 36,
+    minHeight: 36,
+    alignItems: "center",
+    justifyContent: "center",
   },
 
   openErrorCard: {

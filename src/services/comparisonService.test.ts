@@ -15,6 +15,7 @@ vi.mock("@/lib/supabase", () => ({
 }));
 
 import {
+  buildComparisonNameSearchPattern,
   ComparisonNotFoundError,
   fetchComparisonById,
   fetchComparisonPage,
@@ -34,6 +35,7 @@ function createQuery(result: QueryResult) {
   const query = {
     eq: vi.fn(),
     is: vi.fn(),
+    ilike: vi.fn(),
     limit: vi.fn(),
     maybeSingle: vi.fn().mockResolvedValue(result),
     not: vi.fn(),
@@ -49,6 +51,7 @@ function createQuery(result: QueryResult) {
 
   query.eq.mockReturnValue(query);
   query.is.mockReturnValue(query);
+  query.ilike.mockReturnValue(query);
   query.limit.mockReturnValue(query);
   query.not.mockReturnValue(query);
   query.order.mockReturnValue(query);
@@ -204,6 +207,25 @@ describe("comparisonService", () => {
     const first = createComparison({ id: "comparison-1" });
     const second = createComparison({ id: "comparison-2" });
     expect(mergeComparisonPages([first], [first, second])).toEqual([first, second]);
+  });
+
+  it("searches the full paginated query case-insensitively", async () => {
+    const query = createQuery({ data: [], error: null });
+    supabaseMock.from.mockReturnValueOnce(query);
+
+    await fetchComparisonPage({ search: "  Sala Principal  " });
+
+    expect(query.ilike).toHaveBeenCalledWith("name", "%Sala Principal%");
+    expect(query.eq).toHaveBeenCalledWith("user_id", "user-1");
+  });
+
+  it.each([
+    ["100%", "%100\\%%"],
+    ["piso_2", "%piso\\_2%"],
+    [String.raw`C:\Fotos`, String.raw`%C:\\Fotos%`],
+    ["  ", null],
+  ])("escapes a literal name search for %s", (search, expected) => {
+    expect(buildComparisonNameSearchPattern(search)).toBe(expected);
   });
 
   it("loads an owned incomplete comparison by ID", async () => {
