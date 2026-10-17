@@ -10,6 +10,7 @@ import {
 import {
   ActivityIndicator,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -88,6 +89,7 @@ export default function HomeScreen() {
   >([]);
   const [isLoadingRecent, setIsLoadingRecent] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [hasMoreComparisons, setHasMoreComparisons] = useState(false);
   const [nextComparisonCursor, setNextComparisonCursor] =
     useState<ComparisonPageCursor | null>(null);
@@ -158,6 +160,7 @@ export default function HomeScreen() {
       append?: boolean;
       cursor?: ComparisonPageCursor | null;
       isActive?: () => boolean;
+      refresh?: boolean;
     } = {}) => {
       if (historyRequestInFlightRef.current) return;
       const isActive = options.isActive ?? (() => true);
@@ -166,6 +169,7 @@ export default function HomeScreen() {
           setRecentComparisons([]);
           setIsLoadingRecent(false);
           setIsLoadingMore(false);
+          setIsRefreshing(false);
           setHasMoreComparisons(false);
           setNextComparisonCursor(null);
           setRecentError(null);
@@ -177,7 +181,9 @@ export default function HomeScreen() {
       const sequence = ++historySequenceRef.current;
       const requestUserId = user.id;
       const append = options.append ?? false;
+      const refresh = options.refresh ?? false;
       if (append) setIsLoadingMore(true);
+      else if (refresh) setIsRefreshing(true);
       else setIsLoadingRecent(true);
       setRecentError(null);
 
@@ -208,10 +214,12 @@ export default function HomeScreen() {
           sequence === historySequenceRef.current &&
           requestUserId === currentUserIdRef.current
         ) {
-          if (!append) setRecentComparisons([]);
+          if (!append && !refresh) setRecentComparisons([]);
           setRecentError(
             append
               ? "No pudimos cargar más comparaciones. Inténtalo nuevamente."
+              : refresh
+                ? "No pudimos actualizar tus comparaciones. Inténtalo nuevamente."
               : "No pudimos cargar tus comparaciones. Inténtalo nuevamente.",
           );
         }
@@ -220,6 +228,7 @@ export default function HomeScreen() {
           historyRequestInFlightRef.current = false;
           if (isActive() && requestUserId === currentUserIdRef.current) {
             if (append) setIsLoadingMore(false);
+            else if (refresh) setIsRefreshing(false);
             else setIsLoadingRecent(false);
           }
         }
@@ -238,6 +247,7 @@ export default function HomeScreen() {
         isActive = false;
         historySequenceRef.current += 1;
         historyRequestInFlightRef.current = false;
+        setIsRefreshing(false);
       };
     }, [loadComparisonHistory]),
   );
@@ -366,6 +376,20 @@ export default function HomeScreen() {
     <SafeAreaView style={styles.container}>
       <ScrollView
         contentContainerStyle={styles.content}
+        refreshControl={
+          <RefreshControl
+            accessibilityLabel="Actualizar historial de comparaciones"
+            colors={[Colors.primary]}
+            onRefresh={() =>
+              void loadComparisonHistory({ refresh: true })
+            }
+            progressBackgroundColor={Colors.surface}
+            refreshing={isRefreshing}
+            tintColor={Colors.primary}
+            title="Actualizando..."
+            titleColor={Colors.textSecondary}
+          />
+        }
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.topBar}>
