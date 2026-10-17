@@ -13,6 +13,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Button } from "@/components/ui/Button";
+import { PhotoPreviewModal } from "@/components/ui/PhotoPreviewModal";
 import { Colors } from "@/constants/colors";
 import { Radius } from "@/constants/radius";
 import { Spacing } from "@/constants/spacing";
@@ -29,6 +30,7 @@ import {
   type AnalysisStatus,
 } from "@/services/analysisWorkflow";
 import { recoverComparison } from "@/services/comparisonRecoveryService";
+import type { ImageStage } from "@/services/imageStorageService";
 import { createSingleFlight } from "@/utils/singleFlight";
 
 type PrivateImageStatus = "loading" | "available" | "error" | "retrying";
@@ -46,12 +48,14 @@ type PrivateComparisonImageProps = {
   accessibilityLabel: string;
   uri: string;
   onRetry: () => Promise<boolean>;
+  onOpen: () => void;
 };
 
 function PrivateComparisonImage({
   accessibilityLabel,
   uri,
   onRetry,
+  onOpen,
 }: PrivateComparisonImageProps) {
   const [status, setStatus] = useState<PrivateImageStatus>("loading");
 
@@ -73,14 +77,22 @@ function PrivateComparisonImage({
 
   return (
     <View style={styles.imageFrame}>
-      <Image
-        accessibilityLabel={accessibilityLabel}
-        onError={() => setStatus("error")}
-        onLoad={() => setStatus("available")}
-        onLoadStart={() => setStatus("loading")}
-        source={{ uri }}
-        style={[styles.image, !isAvailable && styles.hiddenImage]}
-      />
+      <Pressable
+        accessibilityLabel={`Ampliar ${accessibilityLabel.toLowerCase()}`}
+        accessibilityRole="button"
+        disabled={!isAvailable}
+        onPress={onOpen}
+        style={styles.image}
+      >
+        <Image
+          accessibilityLabel={accessibilityLabel}
+          onError={() => setStatus("error")}
+          onLoad={() => setStatus("available")}
+          onLoadStart={() => setStatus("loading")}
+          source={{ uri }}
+          style={[styles.image, !isAvailable && styles.hiddenImage]}
+        />
+      </Pressable>
 
       {!isAvailable ? (
         <View style={styles.imageFeedback}>
@@ -131,6 +143,7 @@ export default function ComparisonResultScreen() {
   const [analysisStatus, setAnalysisStatus] = useState<AnalysisStatus>("loading_report");
   const [analysisReport, setAnalysisReport] = useState<AnalysisReportRecord | null>(null);
   const [analysisMessage, setAnalysisMessage] = useState("");
+  const [previewStage, setPreviewStage] = useState<ImageStage | null>(null);
   const analysisSequenceRef = useRef(0);
   const analysisMountedRef = useRef(true);
   const analysisInFlightRef = useRef<string | null>(null);
@@ -407,6 +420,7 @@ export default function ComparisonResultScreen() {
               accessibilityLabel="Fotografía del estado inicial"
               key={initialImageUri}
               onRetry={refreshPrivateImages}
+              onOpen={() => setPreviewStage("initial")}
               uri={initialImageUri}
             />
           </View>
@@ -432,6 +446,7 @@ export default function ComparisonResultScreen() {
               accessibilityLabel="Fotografía del estado final"
               key={finalImageUri}
               onRetry={refreshPrivateImages}
+              onOpen={() => setPreviewStage("final")}
               uri={finalImageUri}
             />
           </View>
@@ -525,6 +540,13 @@ export default function ComparisonResultScreen() {
           </Text>
         </View>
       </ScrollView>
+      <PhotoPreviewModal
+        label={previewStage === "final" ? "Estado final" : "Estado inicial"}
+        onClose={() => setPreviewStage(null)}
+        onRefresh={refreshPrivateImages}
+        uri={previewStage === "final" ? finalImageUri : initialImageUri}
+        visible={previewStage !== null}
+      />
     </SafeAreaView>
   );
 }

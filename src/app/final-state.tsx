@@ -13,6 +13,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Button } from "@/components/ui/Button";
+import { PhotoPreviewModal } from "@/components/ui/PhotoPreviewModal";
 import { Colors } from "@/constants/colors";
 import { Radius } from "@/constants/radius";
 import { Spacing } from "@/constants/spacing";
@@ -43,6 +44,7 @@ export default function FinalStateScreen() {
 
   const [isUploading, setIsUploading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isPreviewVisible, setIsPreviewVisible] = useState(false);
 
   const uploadingRef = useRef(false);
 
@@ -171,11 +173,18 @@ export default function FinalStateScreen() {
 
           <View style={styles.photoCard}>
             {finalImageUri ? (
-              <Image
-                accessibilityLabel="Fotografía del estado final"
-                source={{ uri: finalImageUri }}
+              <Pressable
+                accessibilityLabel="Ampliar fotografía del estado final"
+                accessibilityRole="button"
+                onPress={() => setIsPreviewVisible(true)}
                 style={styles.image}
-              />
+              >
+                <Image
+                  accessibilityLabel="Fotografía del estado final"
+                  source={{ uri: finalImageUri }}
+                  style={styles.image}
+                />
+              </Pressable>
             ) : (
               <View style={styles.placeholder}>
                 <View style={styles.placeholderIcon}>
@@ -233,6 +242,12 @@ export default function FinalStateScreen() {
           />
         </View>
       </ScrollView>
+      <PhotoPreviewModal
+        label="Estado final"
+        onClose={() => setIsPreviewVisible(false)}
+        uri={finalImageUri}
+        visible={isPreviewVisible}
+      />
     </SafeAreaView>
   );
 }
