@@ -7,7 +7,7 @@ begin
     from storage.buckets
     where id = 'comparison-images'
       and public = false
-      and file_size_limit = 6291456
+      and file_size_limit = 10485760
       and allowed_mime_types = array[
         'image/jpeg',
         'image/png',

@@ -161,8 +161,8 @@ describe("authorized comparison image loading", () => {
   });
 
   it("enforces the exact per-image and pair limits", async () => {
-    expect(MAX_AI_IMAGE_BYTES).toBe(6 * 1024 * 1024);
-    expect(MAX_AI_IMAGE_PAIR_BYTES).toBe(12 * 1024 * 1024);
+    expect(MAX_AI_IMAGE_BYTES).toBe(10 * 1024 * 1024);
+    expect(MAX_AI_IMAGE_PAIR_BYTES).toBe(20 * 1024 * 1024);
 
     const maximumJpeg = imageBytes(jpeg, MAX_AI_IMAGE_BYTES);
     const maximumPng = imageBytes(png, MAX_AI_IMAGE_BYTES);

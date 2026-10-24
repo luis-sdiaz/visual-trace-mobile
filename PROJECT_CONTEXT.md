@@ -29,7 +29,7 @@
 - **Plataforma BaaS:** [Supabase](https://supabase.com/) (`@supabase/supabase-js` `^2.117.2`).
   - **Supabase Auth:** Autenticación por correo y contraseña, control de sesión persistente y revocación.
   - **Base de Datos (PostgreSQL 15+):** Tablas relacionales con Row Level Security (RLS) mandatorio, políticas multi-tenant y procedimientos almacenados transaccionales (`security definer`).
-  - **Supabase Storage:** Bucket privado `comparison-images` protegido por políticas RLS jerárquicas y acceso mediante URLs prefirmadas de tiempo limitado (TTL corto por defecto de 300 s).
+  - **Supabase Storage:** Bucket privado `comparison-images` protegido por políticas RLS jerárquicas e idempotentes, límite de archivo sincronizado a 10 MiB (10,485,760 bytes), límite de par a 20 MiB (20,971,520 bytes) y acceso mediante URLs prefirmadas de tiempo limitado (TTL corto por defecto de 300 s).
   - **Edge Functions (Deno Runtime):** Función `analyze-comparison` encargada de la autenticación JWT, descarga y validación binaria de imágenes, deduplicación de ejecuciones y control estricto de cuotas.
 
 ### Inteligencia Artificial
@@ -162,29 +162,33 @@ VisualTrace/
 ## 5. Estado Actual
 
 ### Fase de Desarrollo
-**Fase de Maduración Funcional y Preparación para Despliegue Remoto (Late MVP / Pre-Production Readiness) — Total Commits: 90.**
+**Fase de Maduración Funcional y Preparación para Despliegue Remoto — Inicio Oficial Fase 1 (Bloque C) — Total Commits: 91.**
 
 ### Componentes Terminados y Validados
 - **Autenticación Completa:** Flujos de registro, inicio de sesión, cierre de sesión, persistencia de sesión con AsyncStorage y navegación protegida reactiva en base a credenciales válidas.
 - **Flujo Guiado de Comparación (Wizard):** Creación de entidad de comparación (`draft`), asignación de título, captura y validación fotográfica de estado inicial y final con subida atómica a Supabase Storage y transición a estado `ready`.
 - **Navegación Contextual y Resiliencia en Historial (Resuelto en Commit 90):** Solución definitiva al ciclo de retroceso forzado en comparaciones abiertas desde el historial (`home` -> `comparison-result`). Se implementó propagación de parámetro contextual (`source: 'history'`), intercepción del botón físico en Android con `BackHandler`, configuración de `headerLeft` en `<Stack.Screen>` y retorno directo a `home` mediante `router.dismissTo('/home')`, preservando el flujo secuencial original del wizard (`router.back()`) para comparaciones en proceso de creación.
-- **Almacenamiento Seguro Multi-inquilino:** Bucket privado `comparison-images` con políticas RLS que verifican propiedad estricta por `user_id`. Acceso exclusivo del cliente mediante URLs prefirmadas de tiempo corto (5 minutos) con recarga automática ante expiración.
+- **Almacenamiento Seguro Multi-inquilino e Idempotencia (Fase 1 - Bloque C, Commit 91):**
+  - Bucket privado `comparison-images` protegido por políticas RLS que verifican propiedad estricta por `user_id`.
+  - Migración SQL (`202610150001_version_private_comparison_storage.sql`) blindada e idempotente para evitar colisiones contra buckets preexistentes en producción mediante `INSERT INTO storage.buckets ... ON CONFLICT (id) DO UPDATE SET file_size_limit = EXCLUDED.file_size_limit`.
+  - Sentencias `CREATE POLICY` blindadas en bloques `DO $$ BEGIN ... EXCEPTION WHEN duplicate_object THEN null; END $$;`.
+  - Límites de tamaño sincronizados con la infraestructura remota de producción: **10 MiB (10,485,760 bytes)** por imagen individual y **20 MiB (20,971,520 bytes)** por par de fotografías (`supabase/functions/_shared/comparisonImages.ts` y contratos cliente).
 - **Panel Principal (Home):** Paginación por cursores (`keyset pagination`), búsqueda en tiempo real insensible a acentos/caracteres especiales, filtrado por estados (`draft`, `ready`, `analyzed`) y ordenamiento cronológico.
 - **Persistencia de Borradores en Cliente:** Soporte para recuperación de sesión y borrador tras interrupción, con aislamiento por usuario y validación de concurrencia.
-- **Backend de IA & Edge Function:** Edge Function `analyze-comparison` implementada y testeada con mock en Deno. Implementa validación estricta de binarios (tamaño máximo 6 MiB individual / 12 MiB combinado, comprobación de cabeceras mágicas), verificación del contrato JSON v1.0 y reserva transaccional de cuotas (`AI_GLOBAL_PER_MINUTE`, `AI_GLOBAL_PER_DAY`, `AI_USER_PER_DAY`, `AI_COMPARISON_PER_DAY`).
+- **Backend de IA & Edge Function:** Edge Function `analyze-comparison` implementada y testeada con mock en Deno. Implementa validación estricta de binarios (tamaño máximo 10 MiB individual / 20 MiB combinado, comprobación de cabeceras mágicas), verificación del contrato JSON v1.0 y reserva transaccional de cuotas (`AI_GLOBAL_PER_MINUTE`, `AI_GLOBAL_PER_DAY`, `AI_USER_PER_DAY`, `AI_COMPARISON_PER_DAY`).
 - **Control de Calidad:**
   - 196 pruebas automatizadas ejecutadas y superadas en Vitest (`21/21` archivos de test pasados).
   - Verificación de tipos TypeScript estricta (`npx tsc --noEmit`) sin advertencias ni errores.
   - Análisis estático con ESLint (`expo lint`) sin observaciones.
 
 ### Fase en Construcción / Próximos Pasos Técnicos
-- **Despliegue y Reconciliación Remota en Supabase:**
-  - Aplicación de las migraciones SQL (`202610140001` a `202610150001`) en el proyecto de producción de Supabase.
-  - Creación y verificación de índices y políticas RLS definitivas en la nube.
+- **Despliegue y Reconciliación Remota en Supabase (Fase 1):**
+  - Aplicación de las migraciones SQL (`202610140001` a `202610150001`) en el proyecto de producción de Supabase (ahora protegidas contra fallos de colisión en Storage).
+  - Verificación de índices y políticas RLS definitivas en la nube.
   - Despliegue de la Edge Function `analyze-comparison` con bandera `verify_jwt = true`.
 - **Aprovisionamiento de Claves y Secretos:**
   - Configuración en el entorno de Supabase de `GEMINI_API_KEY` y variables de límite de cuota.
   - Validación del modelo activo de Google Gemini (`gemini-2.5-flash`).
 - **Pruebas en Dispositivos Físicos:**
-  - Validación de hardware en iOS y Android con formatos de cámara de alta densidad (especialmente HEIC/HEIF) para confirmar compatibilidad de compresión y envío hacia Supabase Storage.
+  - Validación de hardware en iOS y Android con formatos de cámara de alta densidad (especialmente HEIC/HEIF) para confirmar compatibilidad de compresión y envío hacia Supabase Storage bajo el nuevo límite de 10 MiB.
   - Ejecución de un *smoke test* de inferencia en vivo con dos imágenes reales para auditar consumo de tokens, latencias y fidelidad de los informes generados.

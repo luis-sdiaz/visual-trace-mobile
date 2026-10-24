@@ -99,7 +99,7 @@ try {
     });
   assert(invalidUpload.error, "An invalid nested path was uploaded.");
 
-  const oversized = new Blob([new Uint8Array(6 * 1024 * 1024 + 1)], {
+  const oversized = new Blob([new Uint8Array(10 * 1024 * 1024 + 1)], {
     type: "image/jpeg",
   });
   const oversizedUpload = await owner.client.storage
