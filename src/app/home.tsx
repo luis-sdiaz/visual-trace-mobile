@@ -278,6 +278,7 @@ export default function HomeScreen() {
   async function handleOpenComparison(
     id: string,
     preserveLocalImages = false,
+    source?: "history",
   ) {
     if (openingComparisonId) {
       return;
@@ -331,6 +332,11 @@ export default function HomeScreen() {
         router.push("/initial-state");
       } else if (!comparison.final_image_path) {
         router.push("/final-state");
+      } else if (source === "history") {
+        router.push({
+          pathname: "/comparison-result",
+          params: { source: "history" },
+        });
       } else {
         router.push("/comparison-result");
       }
@@ -611,7 +617,7 @@ export default function HomeScreen() {
                   accessibilityRole="button"
                   accessibilityLabel={`Abrir ${comparison.name}`}
                   disabled={openingComparisonId !== null}
-                  onPress={() => void handleOpenComparison(comparison.id)}
+                  onPress={() => void handleOpenComparison(comparison.id, false, "history")}
                   style={({ pressed }) => [
                     styles.recentCard,
                     pressed && styles.recentCardPressed,

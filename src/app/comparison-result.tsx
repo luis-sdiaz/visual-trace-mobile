@@ -1,8 +1,14 @@
-import { router, useFocusEffect } from "expo-router";
+import {
+  router,
+  Stack,
+  useFocusEffect,
+  useLocalSearchParams,
+} from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   AppState,
+  BackHandler,
   Image,
   Pressable,
   ScrollView,
@@ -132,6 +138,7 @@ function PrivateComparisonImage({
 }
 
 export default function ComparisonResultScreen() {
+  const { source } = useLocalSearchParams<{ source?: string }>();
   const { user } = useAuth();
   const {
     comparisonId,
@@ -143,6 +150,34 @@ export default function ComparisonResultScreen() {
     restoreComparison,
     setName,
   } = useComparison();
+
+  const handleBack = useCallback(() => {
+    if (
+      source === "history" ||
+      (Array.isArray(source) && source[0] === "history")
+    ) {
+      router.dismissTo("/home");
+    } else {
+      router.back();
+    }
+    return true;
+  }, [source]);
+
+  useFocusEffect(
+    useCallback(() => {
+      const onBackPress = () => {
+        handleBack();
+        return true;
+      };
+
+      const subscription = BackHandler.addEventListener(
+        "hardwareBackPress",
+        onBackPress,
+      );
+
+      return () => subscription.remove();
+    }, [handleBack]),
+  );
   const userId = user?.id;
   const refreshSequenceRef = useRef(0);
   const [refreshSingleFlight] = useState(() => createSingleFlight<boolean>());
@@ -406,6 +441,21 @@ export default function ComparisonResultScreen() {
   if (!hasComparisonData) {
     return (
       <SafeAreaView style={styles.container}>
+        <Stack.Screen
+          options={{
+            headerLeft: () => (
+              <Pressable
+                accessibilityLabel="Volver"
+                accessibilityRole="button"
+                onPress={handleBack}
+                style={styles.backButton}
+              >
+                <Text style={styles.backIcon}>←</Text>
+                <Text style={styles.backText}>Volver</Text>
+              </Pressable>
+            ),
+          }}
+        />
         <View style={styles.missingContent}>
           <View style={styles.missingIcon}>
             <Text style={styles.missingIconText}>!</Text>
@@ -429,13 +479,28 @@ export default function ComparisonResultScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <Stack.Screen
+        options={{
+          headerLeft: () => (
+            <Pressable
+              accessibilityLabel="Volver"
+              accessibilityRole="button"
+              onPress={handleBack}
+              style={styles.backButton}
+            >
+              <Text style={styles.backIcon}>←</Text>
+              <Text style={styles.backText}>Volver</Text>
+            </Pressable>
+          ),
+        }}
+      />
       <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
         <Pressable
           accessibilityRole="button"
-          onPress={() => router.replace("/final-state")}
+          onPress={handleBack}
           style={styles.backButton}
         >
           <Text style={styles.backIcon}>←</Text>
