@@ -30,10 +30,10 @@
   - **Supabase Auth:** Autenticación por correo y contraseña, control de sesión persistente y revocación.
   - **Base de Datos (PostgreSQL 15+):** Tablas relacionales con Row Level Security (RLS) mandatorio, políticas multi-tenant y procedimientos almacenados transaccionales (`security definer`).
   - **Supabase Storage:** Bucket privado `comparison-images` protegido por políticas RLS jerárquicas e idempotentes, límite de archivo sincronizado a 10 MiB (10,485,760 bytes), límite de par a 20 MiB (20,971,520 bytes) y acceso mediante URLs prefirmadas de tiempo limitado (TTL corto por defecto de 300 s).
-  - **Edge Functions (Deno Runtime):** Función `analyze-comparison` encargada de la autenticación JWT, descarga y validación binaria de imágenes, deduplicación de ejecuciones y control estricto de cuotas.
+  - **Edge Functions (Deno Runtime):** Función `analyze-comparison` desplegada activamente en producción con verificación JWT (`verify_jwt = true`), descarga y validación binaria de imágenes, deduplicación de ejecuciones y control estricto de cuotas transaccionales.
 
 ### Inteligencia Artificial
-- **Motor de Inferencia:** Google Gemini REST API (modelo de referencia: `gemini-2.5-flash`).
+- **Motor de Inferencia:** Google Gemini REST API (modelo de referencia: `gemini-2.5-flash`), ejecutado de forma privada desde Supabase Edge Functions con secreto `GEMINI_API_KEY` aprovisionado en la nube.
 - **Contrato de Integración:** Especificación `1.0` con salida estructurada mandatoria mediante JSON Schema (`GEMINI_ANALYSIS_RESPONSE_SCHEMA`). La invocación se realiza exclusivamente desde el backend protegido; nunca se expone la API Key ni se procesa directamente en el cliente.
 
 ### Persistencia Local
@@ -162,7 +162,7 @@ VisualTrace/
 ## 5. Estado Actual
 
 ### Fase de Desarrollo
-**Fase de Maduración Funcional y Preparación para Despliegue Remoto — Inicio Oficial Fase 1 (Bloque C) — Total Commits: 91.**
+**Fase de Maduración Funcional y Preparación para Despliegue Remoto — Fase 1 (Bloque C) — Total Commits: 92.**
 
 ### Componentes Terminados y Validados
 - **Autenticación Completa:** Flujos de registro, inicio de sesión, cierre de sesión, persistencia de sesión con AsyncStorage y navegación protegida reactiva en base a credenciales válidas.
@@ -173,22 +173,21 @@ VisualTrace/
   - Migración SQL (`202610150001_version_private_comparison_storage.sql`) blindada e idempotente para evitar colisiones contra buckets preexistentes en producción mediante `INSERT INTO storage.buckets ... ON CONFLICT (id) DO UPDATE SET file_size_limit = EXCLUDED.file_size_limit`.
   - Sentencias `CREATE POLICY` blindadas en bloques `DO $$ BEGIN ... EXCEPTION WHEN duplicate_object THEN null; END $$;`.
   - Límites de tamaño sincronizados con la infraestructura remota de producción: **10 MiB (10,485,760 bytes)** por imagen individual y **20 MiB (20,971,520 bytes)** por par de fotografías (`supabase/functions/_shared/comparisonImages.ts` y contratos cliente).
+- **Backend de IA Aprovisionado y Desplegado en Producción (Fase 1 - Bloque C, Commit 92):**
+  - Infraestructura del backend de IA 100% aprovisionada en la nube en Supabase Remote: tablas de reportes de análisis (`ai_analysis_reports`), mecanismos de control de uso (`ai_usage_limits`), procedimientos PL/pgSQL transaccionales de reserva/consumo y RLS activo.
+  - Edge Function `analyze-comparison` desplegada activamente en producción en Supabase con verificación estricta de token JWT (`verify_jwt = true`).
+  - Configuración exitosa del secreto `GEMINI_API_KEY` en el entorno remoto de Supabase, garantizando acceso seguro y aislado al proveedor de IA sin exponer credenciales al bundle móvil.
+  - Validación estricta de binarios activa (máximo 10 MiB individual / 20 MiB combinado, comprobación de cabeceras mágicas), verificación del contrato JSON v1.0 y reserva transaccional de cuotas (`AI_GLOBAL_PER_MINUTE`, `AI_GLOBAL_PER_DAY`, `AI_USER_PER_DAY`, `AI_COMPARISON_PER_DAY`).
 - **Panel Principal (Home):** Paginación por cursores (`keyset pagination`), búsqueda en tiempo real insensible a acentos/caracteres especiales, filtrado por estados (`draft`, `ready`, `analyzed`) y ordenamiento cronológico.
 - **Persistencia de Borradores en Cliente:** Soporte para recuperación de sesión y borrador tras interrupción, con aislamiento por usuario y validación de concurrencia.
-- **Backend de IA & Edge Function:** Edge Function `analyze-comparison` implementada y testeada con mock en Deno. Implementa validación estricta de binarios (tamaño máximo 10 MiB individual / 20 MiB combinado, comprobación de cabeceras mágicas), verificación del contrato JSON v1.0 y reserva transaccional de cuotas (`AI_GLOBAL_PER_MINUTE`, `AI_GLOBAL_PER_DAY`, `AI_USER_PER_DAY`, `AI_COMPARISON_PER_DAY`).
 - **Control de Calidad:**
   - 196 pruebas automatizadas ejecutadas y superadas en Vitest (`21/21` archivos de test pasados).
   - Verificación de tipos TypeScript estricta (`npx tsc --noEmit`) sin advertencias ni errores.
   - Análisis estático con ESLint (`expo lint`) sin observaciones.
 
 ### Fase en Construcción / Próximos Pasos Técnicos
-- **Despliegue y Reconciliación Remota en Supabase (Fase 1):**
-  - Aplicación de las migraciones SQL (`202610140001` a `202610150001`) en el proyecto de producción de Supabase (ahora protegidas contra fallos de colisión en Storage).
-  - Verificación de índices y políticas RLS definitivas en la nube.
-  - Despliegue de la Edge Function `analyze-comparison` con bandera `verify_jwt = true`.
-- **Aprovisionamiento de Claves y Secretos:**
-  - Configuración en el entorno de Supabase de `GEMINI_API_KEY` y variables de límite de cuota.
-  - Validación del modelo activo de Google Gemini (`gemini-2.5-flash`).
-- **Pruebas en Dispositivos Físicos:**
-  - Validación de hardware en iOS y Android con formatos de cámara de alta densidad (especialmente HEIC/HEIF) para confirmar compatibilidad de compresión y envío hacia Supabase Storage bajo el nuevo límite de 10 MiB.
-  - Ejecución de un *smoke test* de inferencia en vivo con dos imágenes reales para auditar consumo de tokens, latencias y fidelidad de los informes generados.
+- **Pruebas en Dispositivos Físicos y Smoke Test de IA en Vivo:**
+  - Validación de hardware en iOS y Android con formatos de cámara nativos (JPEG/PNG/HEIC/HEIF) para confirmar la captura, compresión y subida hacia Supabase Storage bajo el nuevo límite de 10 MiB.
+  - Ejecución del primer *smoke test* de inferencia de extremo a extremo consumiendo la Edge Function `analyze-comparison` desplegada en Supabase remoto con dos imágenes reales para auditar latencias, consumo de cuota y renderizado del informe estructurado.
+- **Monitoreo y Observabilidad en Producción:**
+  - Supervisión de los contadores de cuota en PostgreSQL y trazabilidad de respuestas o eventuales rechazos del proveedor Gemini.
