@@ -122,19 +122,49 @@ export async function requestComparisonAnalysis(
 
   if (error) {
     let code: string | undefined;
+    let status: number | undefined;
     const context = (error as { context?: unknown }).context;
     if (context instanceof Response) {
+      status = context.status;
       try {
-        code = (await context.clone().json() as { code?: string }).code;
+        const body = (await context.clone().json()) as { code?: string };
+        code = body?.code;
       } catch {
         code = undefined;
       }
+    } else if (typeof context === "object" && context !== null) {
+      const obj = context as Record<string, unknown>;
+      code = typeof obj.code === "string" ? obj.code : undefined;
+      status = typeof obj.status === "number" ? obj.status : undefined;
     }
-    if (code === "usage_limit_reached") {
-      throw new AnalysisServiceError(code, "Se alcanzó el límite de análisis disponible.");
+
+    if (
+      code === "usage_limit_reached" ||
+      code === "provider_quota_exceeded" ||
+      status === 429
+    ) {
+      throw new AnalysisServiceError(
+        "usage_limit_reached",
+        "Se alcanzó el límite de análisis disponible.",
+      );
     }
-    if (code === "analysis_in_progress") {
-      throw new AnalysisServiceError(code, "Este análisis ya se está procesando.");
+    if (code === "analysis_in_progress" || status === 409) {
+      throw new AnalysisServiceError(
+        "analysis_in_progress",
+        "Este análisis ya se está procesando.",
+      );
+    }
+    if (code === "unauthorized" || status === 401) {
+      throw new AnalysisServiceError(
+        "unauthorized",
+        "Tu sesión ya no está disponible.",
+      );
+    }
+    if (code === "usage_limits_unavailable" || status === 503) {
+      throw new AnalysisServiceError(
+        "reports_unavailable",
+        "El servicio de análisis no está disponible en este momento.",
+      );
     }
     throw new AnalysisServiceError("retryable", "No fue posible completar el análisis.");
   }

@@ -168,6 +168,51 @@ describe("analysisService", () => {
     });
   });
 
+  it("maps provider quota exceeded to usage_limit_reached", async () => {
+    mocks.invoke.mockResolvedValue({
+      data: null,
+      error: {
+        context: new Response(JSON.stringify({ code: "provider_quota_exceeded" }), {
+          status: 429,
+          headers: { "Content-Type": "application/json" },
+        }),
+      },
+    });
+    await expect(requestComparisonAnalysis("comparison-1")).rejects.toMatchObject({
+      code: "usage_limit_reached",
+    });
+  });
+
+  it("maps service unavailable 503 to reports_unavailable", async () => {
+    mocks.invoke.mockResolvedValue({
+      data: null,
+      error: {
+        context: new Response(JSON.stringify({ code: "usage_limits_unavailable" }), {
+          status: 503,
+          headers: { "Content-Type": "application/json" },
+        }),
+      },
+    });
+    await expect(requestComparisonAnalysis("comparison-1")).rejects.toMatchObject({
+      code: "reports_unavailable",
+    });
+  });
+
+  it("maps analysis in progress to analysis_in_progress", async () => {
+    mocks.invoke.mockResolvedValue({
+      data: null,
+      error: {
+        context: new Response(JSON.stringify({ code: "analysis_in_progress" }), {
+          status: 409,
+          headers: { "Content-Type": "application/json" },
+        }),
+      },
+    });
+    await expect(requestComparisonAnalysis("comparison-1")).rejects.toMatchObject({
+      code: "analysis_in_progress",
+    });
+  });
+
   it("rejects malformed reports", async () => {
     mocks.invoke.mockResolvedValue({ data: { ...record, result: {} }, error: null });
     await expect(requestComparisonAnalysis("comparison-1")).rejects.toMatchObject({

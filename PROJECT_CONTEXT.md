@@ -40,7 +40,7 @@
 - **Motor de Caché y Borradores:** `@react-native-async-storage/async-storage` `2.2.0` (persistencia del token de sesión Supabase y cola transaccional para borradores locales aislados por identificador de usuario).
 
 ### Calidad, Análisis Estático & Testing
-- **Test Runner:** [Vitest](https://vitest.dev/) `5.0.4` (196 pruebas unitarias y de integración que validan contratos, utilidades, servicios y Edge Functions).
+- **Test Runner:** [Vitest](https://vitest.dev/) `5.0.4` (199 pruebas unitarias y de integración que validan contratos, utilidades, servicios y Edge Functions).
 - **Linter:** [ESLint](https://eslint.org/) `^9.39.5` con configuración `eslint-config-expo`.
 - **Pruebas de Base de Datos:** Scripts SQL transaccionales (`ROLLBACK`) para verificación de RLS y cuotas en PostgreSQL.
 
@@ -162,7 +162,7 @@ VisualTrace/
 ## 5. Estado Actual
 
 ### Fase de Desarrollo
-**Fase de Maduración Funcional y Preparación para Despliegue Remoto — Fase 1 (Bloque C) — Total Commits: 92.**
+**Fase de Maduración Funcional y Preparación para Despliegue Remoto — Fase 1 (Bloque C) — Total Commits: 93.**
 
 ### Componentes Terminados y Validados
 - **Autenticación Completa:** Flujos de registro, inicio de sesión, cierre de sesión, persistencia de sesión con AsyncStorage y navegación protegida reactiva en base a credenciales válidas.
@@ -178,10 +178,14 @@ VisualTrace/
   - Edge Function `analyze-comparison` desplegada activamente en producción en Supabase con verificación estricta de token JWT (`verify_jwt = true`).
   - Configuración exitosa del secreto `GEMINI_API_KEY` en el entorno remoto de Supabase, garantizando acceso seguro y aislado al proveedor de IA sin exponer credenciales al bundle móvil.
   - Validación estricta de binarios activa (máximo 10 MiB individual / 20 MiB combinado, comprobación de cabeceras mágicas), verificación del contrato JSON v1.0 y reserva transaccional de cuotas (`AI_GLOBAL_PER_MINUTE`, `AI_GLOBAL_PER_DAY`, `AI_USER_PER_DAY`, `AI_COMPARISON_PER_DAY`).
+- **Integración y Refinamiento del Flujo Cliente de IA (Fase 1 - Bloque C, Commit 93):**
+  - Robustecimiento de `analysisService.ts` con manejo integral de respuestas de Edge Functions: token JWT de sesión activo, mapeo de códigos de cuota HTTP 429 (`usage_limit_reached` y `provider_quota_exceeded`), indisponibilidad de cuota HTTP 503 (`usage_limits_unavailable` -> `reports_unavailable`), concurrencia HTTP 409 (`analysis_in_progress`) y revocación de sesión HTTP 401.
+  - Refinamiento de la presentación visual en `analysisWorkflow.ts` distinguiendo el estado `limited` ("Límite alcanzado").
+  - Fortalecimiento de la interfaz en `comparison-result.tsx`: deshabilitación sistemática de botones interactivos (`isAnalyzing`) durante la invocación (botón de análisis, edición de nombres, retroceso nativo y hardware de Android mediante `BackHandler`), renderizado de loaders contextuales y despliegue prominente del informe estructurado o tarjeta de advertencia ante agotamiento de cuotas.
 - **Panel Principal (Home):** Paginación por cursores (`keyset pagination`), búsqueda en tiempo real insensible a acentos/caracteres especiales, filtrado por estados (`draft`, `ready`, `analyzed`) y ordenamiento cronológico.
 - **Persistencia de Borradores en Cliente:** Soporte para recuperación de sesión y borrador tras interrupción, con aislamiento por usuario y validación de concurrencia.
 - **Control de Calidad:**
-  - 196 pruebas automatizadas ejecutadas y superadas en Vitest (`21/21` archivos de test pasados).
+  - 199 pruebas automatizadas ejecutadas y superadas en Vitest (`21/21` archivos de test pasados).
   - Verificación de tipos TypeScript estricta (`npx tsc --noEmit`) sin advertencias ni errores.
   - Análisis estático con ESLint (`expo lint`) sin observaciones.
 

@@ -150,8 +150,16 @@ export default function ComparisonResultScreen() {
     restoreComparison,
     setName,
   } = useComparison();
+  const userId = user?.id;
+  const refreshSequenceRef = useRef(0);
+  const [refreshSingleFlight] = useState(() => createSingleFlight<boolean>());
+  const [analysisStatus, setAnalysisStatus] = useState<AnalysisStatus>("loading_report");
+  const isAnalyzing = analysisStatus === "analyzing";
 
   const handleBack = useCallback(() => {
+    if (isAnalyzing) {
+      return true;
+    }
     if (
       source === "history" ||
       (Array.isArray(source) && source[0] === "history")
@@ -161,7 +169,7 @@ export default function ComparisonResultScreen() {
       router.back();
     }
     return true;
-  }, [source]);
+  }, [isAnalyzing, source]);
 
   useFocusEffect(
     useCallback(() => {
@@ -178,10 +186,6 @@ export default function ComparisonResultScreen() {
       return () => subscription.remove();
     }, [handleBack]),
   );
-  const userId = user?.id;
-  const refreshSequenceRef = useRef(0);
-  const [refreshSingleFlight] = useState(() => createSingleFlight<boolean>());
-  const [analysisStatus, setAnalysisStatus] = useState<AnalysisStatus>("loading_report");
   const [analysisReport, setAnalysisReport] = useState<AnalysisReportRecord | null>(null);
   const [analysisMessage, setAnalysisMessage] = useState("");
   const [previewStage, setPreviewStage] = useState<ImageStage | null>(null);
@@ -485,8 +489,9 @@ export default function ComparisonResultScreen() {
             <Pressable
               accessibilityLabel="Volver"
               accessibilityRole="button"
+              disabled={isAnalyzing}
               onPress={handleBack}
-              style={styles.backButton}
+              style={[styles.backButton, isAnalyzing && styles.disabledButton]}
             >
               <Text style={styles.backIcon}>←</Text>
               <Text style={styles.backText}>Volver</Text>
@@ -500,8 +505,9 @@ export default function ComparisonResultScreen() {
       >
         <Pressable
           accessibilityRole="button"
+          disabled={isAnalyzing}
           onPress={handleBack}
-          style={styles.backButton}
+          style={[styles.backButton, isAnalyzing && styles.disabledButton]}
         >
           <Text style={styles.backIcon}>←</Text>
           <Text style={styles.backText}>Volver</Text>
@@ -559,8 +565,9 @@ export default function ComparisonResultScreen() {
               <Pressable
                 accessibilityLabel="Editar nombre de la comparación"
                 accessibilityRole="button"
+                disabled={isAnalyzing}
                 onPress={beginRenaming}
-                style={styles.editNameButton}
+                style={[styles.editNameButton, isAnalyzing && styles.disabledButton]}
               >
                 <Text style={styles.editNameText}>Editar</Text>
               </Pressable>
@@ -695,6 +702,7 @@ export default function ComparisonResultScreen() {
         <View style={styles.footer}>
           {analysisPresentation.action && analysisPresentation.actionLabel ? (
             <Button
+              disabled={isAnalyzing || analysisStatus === "loading_report"}
               label={analysisPresentation.actionLabel}
               onPress={() => void handleAnalysisAction()}
             />
@@ -734,6 +742,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     alignSelf: "flex-start",
     marginBottom: Spacing.xl,
+  },
+  disabledButton: {
+    opacity: 0.5,
   },
 
   backIcon: {

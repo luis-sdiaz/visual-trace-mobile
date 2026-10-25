@@ -50,13 +50,17 @@ export function getAnalysisPresentation(
         ? "Analizando imágenes"
         : status === "available"
           ? "Informe disponible"
-          : "Fotografías listas",
+          : status === "limited"
+            ? "Límite alcanzado"
+            : "Fotografías listas",
     statusDescription:
       status === "analyzing"
         ? "Gemini está comparando únicamente los cambios visibles."
         : status === "available"
           ? "El informe corresponde a estas versiones de las fotografías."
-          : "Los dos estados están preparados para el análisis visual.",
+          : status === "limited"
+            ? "Se ha alcanzado la cuota de análisis disponible para este período."
+            : "Los dos estados están preparados para el análisis visual.",
   };
 }
 
