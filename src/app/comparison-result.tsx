@@ -25,6 +25,7 @@ import { AiAnalysisLoadingSkeleton } from "@/components/ui/AiAnalysisLoadingSkel
 import { AiDifferencesCollapsible } from "@/components/ui/AiDifferencesCollapsible";
 import { AiQuotaAlertBanner } from "@/components/ui/AiQuotaAlertBanner";
 import { AiReanalyzeConfirmationModal } from "@/components/ui/AiReanalyzeConfirmationModal";
+import { AiReportFeedbackCard } from "@/components/ui/AiReportFeedbackCard";
 import { PhotoPreviewModal } from "@/components/ui/PhotoPreviewModal";
 import { Colors } from "@/constants/colors";
 import { Radius } from "@/constants/radius";
@@ -816,6 +817,8 @@ export default function ComparisonResultScreen() {
                 Este informe es una ayuda automática. Verifica los hallazgos mediante revisión humana.
               </Text>
             </View>
+
+            <AiReportFeedbackCard comparisonId={comparisonId ?? undefined} />
           </View>
         ) : null}
 

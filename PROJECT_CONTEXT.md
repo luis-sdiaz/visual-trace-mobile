@@ -41,7 +41,7 @@
 - **Motor de Caché y Borradores:** `@react-native-async-storage/async-storage` `2.2.0` (persistencia del token de sesión Supabase y cola transaccional para borradores locales aislados por identificador de usuario).
 
 ### Calidad, Análisis Estático & Testing
-- **Test Runner:** [Vitest](https://vitest.dev/) `5.0.4` (250 pruebas unitarias y de integración en 26 suites que validan componentes UI, contratos, utilidades, servicios y Edge Functions al 100%).
+- **Test Runner:** [Vitest](https://vitest.dev/) `5.0.4` (259 pruebas unitarias y de integración en 27 suites que validan componentes UI, contratos, utilidades, servicios y Edge Functions al 100%).
 - **Linter:** [ESLint](https://eslint.org/) `^9.39.5` con configuración `eslint-config-expo`.
 - **Verificación de Tipos:** `typescript` con validación estricta sin emisiones (`npx tsc --noEmit`).
 
@@ -329,7 +329,23 @@ Habiendo alcanzado la estabilidad total del motor de backend y del proveedor de 
 - **Suite de Pruebas Automatizadas:**
   - `src/components/ui/AiReanalyzeConfirmationModal.test.tsx`: 2 pruebas unitarias que verifican el renderizado del diálogo de advertencia, títulos, insignias de cuota, textos de confirmación y el descarte cuando `visible={false}`.
   - `src/integration/aiWorkflow.test.ts`: prueba contractual de integración que valida la presencia del botón de re-análisis, la integración de `AiReanalyzeConfirmationModal` y la estructura de advertencias y botones del modal.
-- **Estado Actual del Repositorio:**
+- **Estado Actual del Repositorio (Commit 104):**
   - 250 pruebas automatizadas superadas (`26/26` suites en verde).
+  - Verificación de tipos TypeScript estricta sin emisiones (`npx tsc --noEmit` exit 0).
+  - Verificación estática con ESLint al 100% limpia sin errores ni advertencias (`npx eslint .` exit 0).
+
+### Commit 105 — Tarjeta de Retroalimentación y Valoración del Informe de IA
+- **Componente Desacoplado de Feedback:** `src/components/ui/AiReportFeedbackCard.tsx`
+  - Tarjeta contextual de retroalimentación (`testID="ai-report-feedback-card"`) que consulta al usuario: *"¿Te resultó útil este análisis?"*.
+  - Botones interactivos con badges y emojis ("Útil" 👍 con `testID="feedback-useful-button"` y "No útil" 👎 con `testID="feedback-not-useful-button"`), dotados de atributos de accesibilidad completos (`accessibilityRole="button"`, `accessibilityLabel`, `accessibilityHint` y `accessibilityState={{ selected }}`).
+  - Manejo de estado reactivo y memoria de sesión en memoria (`sessionFeedbackStore`, `getSessionFeedback`, `setSessionFeedback`, `clearSessionFeedback`) indexado por identificador de comparación (`comparisonId`), recordando la respuesta seleccionada por el usuario.
+  - Indicador visual contextual de confirmación y agradecimiento (`testID="feedback-thank-you-message"`, *"¡Gracias por tu retroalimentación!"*) desplegado de forma accesible con `accessibilityLiveRegion="polite"` y tokens de diseño (`Colors.surfaceBlue`, `Colors.successSoft`, `Colors.success`, `Radius.lg`, `Radius.md`, `Radius.full`, `Spacing`, `Typography`).
+- **Integración en Pantalla de Resultados:** `src/app/comparison-result.tsx`
+  - Incorporación de `<AiReportFeedbackCard comparisonId={comparisonId ?? undefined} />` al final del informe de IA dentro de la tarjeta de reporte, sucediendo al aviso de revisión humana.
+- **Suite de Pruebas Automatizadas:**
+  - `src/components/ui/AiReportFeedbackCard.test.tsx`: 8 pruebas unitarias exhaustivas que cubren el almacenamiento y recuperación en sesión, limpieza del caché, renderizado inicial de preguntas y botones, renderizado condicional del mensaje de agradecimiento ante selección `"useful"` o `"not_useful"`, persistencia con `comparisonId` y atributos de accesibilidad (`aria-label`).
+  - `src/integration/aiWorkflow.test.ts`: prueba contractual y funcional de integración que valida la presencia de `AiReportFeedbackCard` en la pantalla de resultados, la estructura de testIDs de los botones, la visualización del agradecimiento y la persistencia de sesión integrada.
+- **Estado Actual del Repositorio:**
+  - 259 pruebas automatizadas superadas (`27/27` suites en verde).
   - Verificación de tipos TypeScript estricta sin emisiones (`npx tsc --noEmit` exit 0).
   - Verificación estática con ESLint al 100% limpia sin errores ni advertencias (`npx eslint .` exit 0).

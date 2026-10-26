@@ -340,4 +340,67 @@ describe("AI database and mobile integration safeguards", () => {
     );
     expect(typeof AiReanalyzeConfirmationModal).toBe("function");
   });
+
+  it("provides contextual AI feedback card with useful/not-useful rating options and thank-you confirmation", async () => {
+    const screen = readFileSync(
+      resolve(process.cwd(), "src/app/comparison-result.tsx"),
+      "utf8",
+    );
+    expect(screen).toContain("AiReportFeedbackCard");
+    expect(screen).toContain("<AiReportFeedbackCard comparisonId={comparisonId ?? undefined} />");
+
+    const feedbackFile = readFileSync(
+      resolve(process.cwd(), "src/components/ui/AiReportFeedbackCard.tsx"),
+      "utf8",
+    );
+    expect(feedbackFile).toContain("ai-report-feedback-card");
+    expect(feedbackFile).toContain("feedback-useful-button");
+    expect(feedbackFile).toContain("feedback-not-useful-button");
+    expect(feedbackFile).toContain("feedback-thank-you-message");
+    expect(feedbackFile).toContain("¿Te resultó útil este análisis?");
+    expect(feedbackFile).toContain("¡Gracias por tu retroalimentación!");
+
+    const {
+      AiReportFeedbackCard,
+      setSessionFeedback,
+      getSessionFeedback,
+      clearSessionFeedback,
+    } = await import("@/components/ui/AiReportFeedbackCard");
+
+    // @ts-expect-error react-dom/server type declarations are not in devDependencies
+    const { renderToStaticMarkup } = await import("react-dom/server");
+
+    clearSessionFeedback();
+
+    // Initial state: shows prompt and buttons, but not thank-you message
+    const initialHtml = renderToStaticMarkup(
+      createElement(AiReportFeedbackCard, { comparisonId: "cmp-integration" }),
+    );
+    expect(initialHtml).toContain("¿Te resultó útil este análisis?");
+    expect(initialHtml).toContain("feedback-useful-button");
+    expect(initialHtml).toContain("feedback-not-useful-button");
+    expect(initialHtml).not.toContain("feedback-thank-you-message");
+
+    // State with selection: shows thank-you message and selected indicator
+    const selectedHtml = renderToStaticMarkup(
+      createElement(AiReportFeedbackCard, {
+        comparisonId: "cmp-integration",
+        initialFeedback: "useful",
+      }),
+    );
+    expect(selectedHtml).toContain("¡Gracias por tu retroalimentación!");
+    expect(selectedHtml).toContain("feedback-thank-you-message");
+
+    // Verify session remembering
+    setSessionFeedback("cmp-integration-session", "not_useful");
+    expect(getSessionFeedback("cmp-integration-session")).toBe("not_useful");
+
+    const sessionHtml = renderToStaticMarkup(
+      createElement(AiReportFeedbackCard, {
+        comparisonId: "cmp-integration-session",
+      }),
+    );
+    expect(sessionHtml).toContain("¡Gracias por tu retroalimentación!");
+    clearSessionFeedback();
+  });
 });
