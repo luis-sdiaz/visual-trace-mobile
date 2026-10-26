@@ -41,7 +41,7 @@
 - **Motor de Caché y Borradores:** `@react-native-async-storage/async-storage` `2.2.0` (persistencia del token de sesión Supabase y cola transaccional para borradores locales aislados por identificador de usuario).
 
 ### Calidad, Análisis Estático & Testing
-- **Test Runner:** [Vitest](https://vitest.dev/) `5.0.4` (217 pruebas unitarias y de integración en 22 suites que validan componentes UI, contratos, utilidades, servicios y Edge Functions al 100%).
+- **Test Runner:** [Vitest](https://vitest.dev/) `5.0.4` (227 pruebas unitarias y de integración en 23 suites que validan componentes UI, contratos, utilidades, servicios y Edge Functions al 100%).
 - **Linter:** [ESLint](https://eslint.org/) `^9.39.5` con configuración `eslint-config-expo`.
 - **Verificación de Tipos:** `typescript` con validación estricta sin emisiones (`npx tsc --noEmit`).
 
@@ -224,7 +224,28 @@ Habiendo alcanzado la estabilidad total del motor de backend y del proveedor de 
   - Refactorización de `useAiLoadingStages` en `AiAnalysisLoadingSkeleton.tsx` a estado derivado puro (`effectiveIndex`), eliminando sincronizaciones secundarias con `setState` en efectos y resolviendo las reglas `react-hooks/set-state-in-effect` y `react-hooks/exhaustive-deps`.
 - **Integración de Pruebas Automatizadas:**
   - Actualización de `src/integration/aiWorkflow.test.ts` verificando la presencia estricta de `AiAnalysisLoadingSkeleton` y el modal `ai-analysis-modal` en la pantalla de resultados.
+
+### Commit 99 — Banner y Feedback Amigable para Límites de Cuota de IA en UI
+- **Componente y Utilidad de Cuotas:** `src/components/ui/AiQuotaAlertBanner.tsx`
+  - Función de mapeo semántico `getAiQuotaFeedback(scopeOrCode)` que traduce las respuestas HTTP 429 de la Edge Function y de base de datos a mensajes educativos y tranquilizadores:
+    * `global_minute`: Límite de solicitudes por minuto alcanzado; indica tiempo de espera breve (~1 min) con acción directa de reintento.
+    * `global_day`: Límite diario global del sistema; notifica que las cuotas se restablecerán en las próximas 24 horas.
+    * `user_day`: Cuota diaria de usuario alcanzada; informa de forma clara el reinicio al día siguiente para asegurar uso equitativo.
+    * `comparison_day`: Límite diario para la comparación específica; previene abusos sobre el mismo par fotográfico.
+    * `provider_quota_exceeded`: Sobrecarga temporal del proveedor Gemini; ofrece retroalimentación precisa sin alarmar al usuario.
+    * `usage_limit_reached` (fallback seguro): Mensaje genérico tranquilizador.
+  - Mensaje de seguridad integrado: confirma explícitamente que las fotografías "Antes" y "Después" permanecen intactas y guardadas en la nube.
+  - Botón de reintento adaptativo: permite reintentar el análisis inmediatamente tras límites por minuto o saturación temporal.
+  - Implementación con Design Tokens estrictos (`Colors.warning`, `Colors.warningSoft`, `Spacing`, `Radius`, `Typography`).
+- **Integración en Comparison Result:** `src/app/comparison-result.tsx`
+  - Se desacopló la función `executeAnalysisRequest()` para posibilitar reintentos directos desde el banner de cuota.
+  - Presentación de `AiQuotaAlertBanner` cuando `analysisStatus === "limited"`, conservando `styles.errorCard` para fallos genéricos o de red.
+  - Captura y propagación de `scope` en `AnalysisServiceError` (`src/services/analysisService.ts`), preservando detalles de cuota provistos por el backend.
+- **Suite de Pruebas Unitarias y de Integración:**
+  - `src/components/ui/AiQuotaAlertBanner.test.tsx`: 9 pruebas unitarias que validan el mapeo de cada alcance de cuota, el renderizado del banner, mensajes de seguridad y botones de reintento.
+  - `src/services/analysisService.test.ts`: prueba añadida para comprobar que el `scope` del error 429 se preserva en `AnalysisServiceError`.
+  - `src/integration/aiWorkflow.test.ts`: verificación de la presencia del componente `AiQuotaAlertBanner` en la pantalla de resultados.
 - **Estado Actual del Repositorio:**
-  - 217 pruebas automatizadas superadas (`22/22` suites en verde).
+  - 227 pruebas automatizadas superadas (`23/23` suites en verde).
   - Verificación de tipos TypeScript estricta sin emisiones (`npx tsc --noEmit` exit 0).
   - Verificación estática con ESLint al 100% limpia sin errores ni advertencias (`npx eslint .` exit 0).

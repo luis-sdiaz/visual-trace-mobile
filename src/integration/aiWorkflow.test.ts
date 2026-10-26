@@ -231,5 +231,6 @@ describe("AI database and mobile integration safeguards", () => {
     }
     expect(screen).toContain("AiAnalysisLoadingSkeleton");
     expect(screen).toContain("ai-analysis-modal");
+    expect(screen).toContain("AiQuotaAlertBanner");
   });
 });

@@ -22,6 +22,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Button } from "@/components/ui/Button";
 import { AiAnalysisLoadingSkeleton } from "@/components/ui/AiAnalysisLoadingSkeleton";
+import { AiQuotaAlertBanner } from "@/components/ui/AiQuotaAlertBanner";
 import { PhotoPreviewModal } from "@/components/ui/PhotoPreviewModal";
 import { Colors } from "@/constants/colors";
 import { Radius } from "@/constants/radius";
@@ -190,6 +191,7 @@ export default function ComparisonResultScreen() {
   );
   const [analysisReport, setAnalysisReport] = useState<AnalysisReportRecord | null>(null);
   const [analysisMessage, setAnalysisMessage] = useState("");
+  const [analysisQuotaScope, setAnalysisQuotaScope] = useState<string | undefined>(undefined);
   const [previewStage, setPreviewStage] = useState<ImageStage | null>(null);
   const [isEditingName, setIsEditingName] = useState(false);
   const [nameDraft, setNameDraft] = useState(name);
@@ -303,6 +305,7 @@ export default function ComparisonResultScreen() {
     }
     setAnalysisReport(null);
     setAnalysisMessage("");
+    setAnalysisQuotaScope(undefined);
 
     if (!comparisonId || !initialImagePath || !finalImagePath) {
       setAnalysisStatus("ready");
@@ -350,16 +353,7 @@ export default function ComparisonResultScreen() {
     };
   }, [loadReport]);
 
-  async function handleAnalysisAction() {
-    const action = getAnalysisPresentation(
-      analysisStatus,
-      Boolean(comparisonId && initialImagePath && finalImagePath),
-    ).action;
-    if (!action) return;
-    if (action === "retry_report") {
-      await loadReport();
-      return;
-    }
+  async function executeAnalysisRequest() {
     if (!comparisonId || !initialImagePath || !finalImagePath) return;
 
     const operationKey = `analysis\u0000${analysisContext}`;
@@ -368,6 +362,7 @@ export default function ComparisonResultScreen() {
     const sequence = ++analysisSequenceRef.current;
     setAnalysisStatus("analyzing");
     setAnalysisMessage("");
+    setAnalysisQuotaScope(undefined);
     try {
       const report = await performAnalysisAction("analyze", {
         comparisonId,
@@ -385,12 +380,14 @@ export default function ComparisonResultScreen() {
         !analysisMountedRef.current ||
         sequence !== analysisSequenceRef.current
       ) return;
-      const limited =
+      const isQuota =
         error instanceof AnalysisServiceError && error.code === "usage_limit_reached";
-      setAnalysisStatus(limited ? "limited" : "analysis_error");
+      const scope = error instanceof AnalysisServiceError ? error.scope : undefined;
+      setAnalysisStatus(isQuota ? "limited" : "analysis_error");
+      setAnalysisQuotaScope(isQuota ? scope : undefined);
       setAnalysisMessage(
-        limited
-          ? "Se alcanzó el límite gratuito de análisis. Inténtalo más tarde."
+        isQuota
+          ? ""
           : error instanceof Error
             ? error.message
             : "No fue posible completar el análisis.",
@@ -400,6 +397,19 @@ export default function ComparisonResultScreen() {
         analysisInFlightRef.current = null;
       }
     }
+  }
+
+  async function handleAnalysisAction() {
+    const action = getAnalysisPresentation(
+      analysisStatus,
+      Boolean(comparisonId && initialImagePath && finalImagePath),
+    ).action;
+    if (!action) return;
+    if (action === "retry_report") {
+      await loadReport();
+      return;
+    }
+    await executeAnalysisRequest();
   }
 
   function beginRenaming() {
@@ -693,8 +703,13 @@ export default function ComparisonResultScreen() {
           </View>
         ) : null}
 
-        {analysisMessage ? (
-          <View style={analysisStatus === "limited" ? styles.limitCard : styles.errorCard}>
+        {analysisStatus === "limited" ? (
+          <AiQuotaAlertBanner
+            onRetry={() => void executeAnalysisRequest()}
+            scope={analysisQuotaScope}
+          />
+        ) : analysisMessage ? (
+          <View style={styles.errorCard}>
             <Text style={styles.feedbackText}>{analysisMessage}</Text>
           </View>
         ) : null}

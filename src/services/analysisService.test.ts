@@ -168,6 +168,25 @@ describe("analysisService", () => {
     });
   });
 
+  it("preserves the quota scope from the Edge Function response", async () => {
+    mocks.invoke.mockResolvedValue({
+      data: null,
+      error: {
+        context: new Response(
+          JSON.stringify({ code: "usage_limit_reached", scope: "global_minute" }),
+          {
+            status: 429,
+            headers: { "Content-Type": "application/json" },
+          },
+        ),
+      },
+    });
+    await expect(requestComparisonAnalysis("comparison-1")).rejects.toMatchObject({
+      code: "usage_limit_reached",
+      scope: "global_minute",
+    });
+  });
+
   it("maps provider quota exceeded to usage_limit_reached", async () => {
     mocks.invoke.mockResolvedValue({
       data: null,

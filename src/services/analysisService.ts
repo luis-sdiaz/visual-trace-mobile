@@ -25,7 +25,11 @@ export type AnalysisErrorCode =
   | "invalid_response";
 
 export class AnalysisServiceError extends Error {
-  constructor(public readonly code: AnalysisErrorCode, message: string) {
+  constructor(
+    public readonly code: AnalysisErrorCode,
+    message: string,
+    public readonly scope?: string,
+  ) {
     super(message);
     this.name = "AnalysisServiceError";
   }
@@ -124,6 +128,7 @@ export async function requestComparisonAnalysis(
     let code: string | undefined;
     let status: number | undefined;
     let serverMessage: string | undefined;
+    let scope: string | undefined;
     const context = (error as { context?: unknown }).context;
     if (context instanceof Response) {
       status = context.status;
@@ -135,6 +140,7 @@ export async function requestComparisonAnalysis(
         });
         const body = JSON.parse(bodyText);
         code = body?.code;
+        scope = typeof body?.scope === "string" ? body.scope : undefined;
         serverMessage = body?.error || body?.message;
       } catch {
         code = undefined;
@@ -143,6 +149,7 @@ export async function requestComparisonAnalysis(
       const obj = context as Record<string, unknown>;
       code = typeof obj.code === "string" ? obj.code : undefined;
       status = typeof obj.status === "number" ? obj.status : undefined;
+      scope = typeof obj.scope === "string" ? obj.scope : undefined;
       serverMessage =
         typeof obj.error === "string"
           ? obj.error
@@ -161,9 +168,14 @@ export async function requestComparisonAnalysis(
       code === "provider_quota_exceeded" ||
       status === 429
     ) {
+      const quotaScope =
+        scope ??
+        (code && code !== "usage_limit_reached" ? code : undefined);
+
       throw new AnalysisServiceError(
         "usage_limit_reached",
-        "Se alcanzó el límite de análisis disponible.",
+        serverMessage || "Se alcanzó el límite de análisis disponible.",
+        quotaScope,
       );
     }
     if (code === "analysis_in_progress" || status === 409) {
