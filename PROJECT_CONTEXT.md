@@ -41,7 +41,7 @@
 - **Motor de Caché y Borradores:** `@react-native-async-storage/async-storage` `2.2.0` (persistencia del token de sesión Supabase y cola transaccional para borradores locales aislados por identificador de usuario).
 
 ### Calidad, Análisis Estático & Testing
-- **Test Runner:** [Vitest](https://vitest.dev/) `5.0.4` (232 pruebas unitarias y de integración en 23 suites que validan componentes UI, contratos, utilidades, servicios y Edge Functions al 100%).
+- **Test Runner:** [Vitest](https://vitest.dev/) `5.0.4` (250 pruebas unitarias y de integración en 26 suites que validan componentes UI, contratos, utilidades, servicios y Edge Functions al 100%).
 - **Linter:** [ESLint](https://eslint.org/) `^9.39.5` con configuración `eslint-config-expo`.
 - **Verificación de Tipos:** `typescript` con validación estricta sin emisiones (`npx tsc --noEmit`).
 
@@ -312,7 +312,24 @@ Habiendo alcanzado la estabilidad total del motor de backend y del proveedor de 
 - **Suite de Pruebas Automatizadas:**
   - `src/components/ui/AiDifferencesCollapsible.test.tsx`: 5 pruebas unitarias que validan la función pura de agrupación, el estado inicial colapsado, el despliegue con `initialExpanded={true}` y el renderizado del mensaje ante ausencia de diferencias visibles.
   - `src/integration/aiWorkflow.test.ts`: prueba de integración contractual que valida la presencia de `AiDifferencesCollapsible` en `comparison-result.tsx` y simula la alternancia entre estados colapsado/expandido con el reporte de inferencia de Gemini.
-- **Estado Actual del Repositorio:**
+- **Estado Actual del Repositorio (Commit 103):**
   - 247 pruebas automatizadas superadas (`25/25` suites en verde).
+  - Verificación de tipos TypeScript estricta sin emisiones (`npx tsc --noEmit` exit 0).
+  - Verificación estática con ESLint al 100% limpia sin errores ni advertencias (`npx eslint .` exit 0).
+
+### Commit 104 — Modal de Confirmación y Advertencia de Cuota para Re-análisis de IA
+- **Componente Desacoplado de Confirmación:** `src/components/ui/AiReanalyzeConfirmationModal.tsx`
+  - Diálogo modal accesible (`testID="reanalyze-confirmation-modal"`) que previene el consumo accidental de cuotas antes de volver a solicitar inferencia a Gemini Flash.
+  - Insignia contextual de advertencia ("Consume 1 intento de cuota") y cuadro informativo detallando los requisitos: consumo de 1 intento de cuota diaria, requerimiento de conexión a internet activa y preservación intacta de las fotos originales.
+  - Acciones claras con botones interactivos "Cancelar" (`reanalyze-cancel-button`) y "Confirmar re-análisis" (`reanalyze-confirm-button`).
+  - Implementación con tokens de diseño estrictos (`Colors.surface`, `Colors.warning`, `Colors.warningSoft`, `Colors.primary`, `Radius.xl`, `Radius.lg`, `Spacing`, `Typography`).
+- **Integración en la Pantalla de Resultados:** `src/app/comparison-result.tsx`
+  - Botón de re-análisis interactivo `reanalyze-button` ("🔄 Re-analizar comparación") en el footer cuando ya existe un informe guardado.
+  - Control de estado `showReanalyzeModal`, callbacks `handleRequestReanalysis`, `handleCancelReanalysis`, `handleConfirmReanalysis` e integración en el gestor de retroceso `handleBack` para descarte con botón físico sin salir de la pantalla.
+- **Suite de Pruebas Automatizadas:**
+  - `src/components/ui/AiReanalyzeConfirmationModal.test.tsx`: 2 pruebas unitarias que verifican el renderizado del diálogo de advertencia, títulos, insignias de cuota, textos de confirmación y el descarte cuando `visible={false}`.
+  - `src/integration/aiWorkflow.test.ts`: prueba contractual de integración que valida la presencia del botón de re-análisis, la integración de `AiReanalyzeConfirmationModal` y la estructura de advertencias y botones del modal.
+- **Estado Actual del Repositorio:**
+  - 250 pruebas automatizadas superadas (`26/26` suites en verde).
   - Verificación de tipos TypeScript estricta sin emisiones (`npx tsc --noEmit` exit 0).
   - Verificación estática con ESLint al 100% limpia sin errores ni advertencias (`npx eslint .` exit 0).

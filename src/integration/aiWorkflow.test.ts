@@ -313,4 +313,31 @@ describe("AI database and mobile integration safeguards", () => {
     expect(expandedHtml).toContain("Ocultar detalles");
     expect(expandedHtml).toContain("Aparece un objeto.");
   });
+
+  it("provides re-analysis confirmation dialog with quota warning before execution", async () => {
+    const screen = readFileSync(
+      resolve(process.cwd(), "src/app/comparison-result.tsx"),
+      "utf8",
+    );
+    expect(screen).toContain("reanalyze-button");
+    expect(screen).toContain("AiReanalyzeConfirmationModal");
+    expect(screen).toContain("Re-analizar comparación");
+
+    const modalFile = readFileSync(
+      resolve(process.cwd(), "src/components/ui/AiReanalyzeConfirmationModal.tsx"),
+      "utf8",
+    );
+    expect(modalFile).toContain("reanalyze-confirmation-modal");
+    expect(modalFile).toContain("reanalyze-cancel-button");
+    expect(modalFile).toContain("reanalyze-confirm-button");
+    expect(modalFile).toContain("Consume 1 intento de cuota");
+    expect(modalFile).toContain("Consumirá 1 intento de tu cuota diaria disponible");
+    expect(modalFile).toContain("Confirmar re-análisis");
+    expect(modalFile).toContain("Cancelar");
+
+    const { AiReanalyzeConfirmationModal } = await import(
+      "@/components/ui/AiReanalyzeConfirmationModal"
+    );
+    expect(typeof AiReanalyzeConfirmationModal).toBe("function");
+  });
 });

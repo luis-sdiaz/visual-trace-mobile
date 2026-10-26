@@ -24,6 +24,7 @@ import { Button } from "@/components/ui/Button";
 import { AiAnalysisLoadingSkeleton } from "@/components/ui/AiAnalysisLoadingSkeleton";
 import { AiDifferencesCollapsible } from "@/components/ui/AiDifferencesCollapsible";
 import { AiQuotaAlertBanner } from "@/components/ui/AiQuotaAlertBanner";
+import { AiReanalyzeConfirmationModal } from "@/components/ui/AiReanalyzeConfirmationModal";
 import { PhotoPreviewModal } from "@/components/ui/PhotoPreviewModal";
 import { Colors } from "@/constants/colors";
 import { Radius } from "@/constants/radius";
@@ -155,8 +156,13 @@ export default function ComparisonResultScreen() {
   const [refreshSingleFlight] = useState(() => createSingleFlight<boolean>());
   const [analysisStatus, setAnalysisStatus] = useState<AnalysisStatus>("loading_report");
   const isAnalyzing = analysisStatus === "analyzing";
+  const [showReanalyzeModal, setShowReanalyzeModal] = useState(false);
 
   const handleBack = useCallback(() => {
+    if (showReanalyzeModal) {
+      setShowReanalyzeModal(false);
+      return true;
+    }
     if (isAnalyzing) {
       return true;
     }
@@ -169,7 +175,7 @@ export default function ComparisonResultScreen() {
       router.back();
     }
     return true;
-  }, [isAnalyzing, source]);
+  }, [isAnalyzing, showReanalyzeModal, source]);
 
   useFocusEffect(
     useCallback(() => {
@@ -387,6 +393,19 @@ export default function ComparisonResultScreen() {
       }
     }
   }, [analysisReport, isSharingReport, name, nameDraft]);
+
+  function handleRequestReanalysis() {
+    setShowReanalyzeModal(true);
+  }
+
+  function handleCancelReanalysis() {
+    setShowReanalyzeModal(false);
+  }
+
+  function handleConfirmReanalysis() {
+    setShowReanalyzeModal(false);
+    void executeAnalysisRequest();
+  }
 
   async function executeAnalysisRequest() {
     if (!comparisonId || !initialImagePath || !finalImagePath) return;
@@ -844,6 +863,23 @@ export default function ComparisonResultScreen() {
               label={analysisPresentation.actionLabel}
               onPress={() => void handleAnalysisAction()}
             />
+          ) : analysisReport ? (
+            <Pressable
+              accessibilityHint="Abre el diálogo de advertencia para volver a evaluar la comparación con IA"
+              accessibilityLabel="Re-analizar comparación"
+              accessibilityRole="button"
+              disabled={isAnalyzing}
+              onPress={handleRequestReanalysis}
+              style={[
+                styles.reanalyzeButton,
+                isAnalyzing && styles.disabledButton,
+              ]}
+              testID="reanalyze-button"
+            >
+              <Text style={styles.reanalyzeButtonText}>
+                🔄 Re-analizar comparación
+              </Text>
+            </Pressable>
           ) : null}
 
           <Text style={styles.disclaimer}>
@@ -877,6 +913,12 @@ export default function ComparisonResultScreen() {
         onRefresh={refreshPrivateImages}
         uri={previewStage === "final" ? finalImageUri : initialImageUri}
         visible={previewStage !== null}
+      />
+
+      <AiReanalyzeConfirmationModal
+        onCancel={handleCancelReanalysis}
+        onConfirm={handleConfirmReanalysis}
+        visible={showReanalyzeModal}
       />
     </SafeAreaView>
   );
@@ -1375,6 +1417,26 @@ const styles = StyleSheet.create({
     ...Typography.body,
     color: Colors.textPrimary,
     textAlign: "center",
+  },
+
+  reanalyzeButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.borderPrimary,
+    borderRadius: Radius.lg,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.xl,
+    marginBottom: Spacing.md,
+    gap: Spacing.sm,
+  },
+
+  reanalyzeButtonText: {
+    ...Typography.button,
+    color: Colors.primary,
+    fontSize: 15,
   },
 
   disclaimer: {
