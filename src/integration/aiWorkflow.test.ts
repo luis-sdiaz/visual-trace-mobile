@@ -593,4 +593,48 @@ describe("AI database and mobile integration safeguards", () => {
     element.props.onRetry?.();
     expect(retryCalled).toBe(true);
   });
+
+  it("provides AI quota limit exceeded modal with countdown, local guidance and navigation actions", async () => {
+    const screen = readFileSync(
+      resolve(process.cwd(), "src/app/comparison-result.tsx"),
+      "utf8",
+    );
+    expect(screen).toContain("AiQuotaLimitExceededModal");
+    expect(screen).toContain("<AiQuotaLimitExceededModal");
+    expect(screen).toContain("showQuotaExceededModal");
+
+    const modalFile = readFileSync(
+      resolve(process.cwd(), "src/components/ui/AiQuotaLimitExceededModal.tsx"),
+      "utf8",
+    );
+    expect(modalFile).toContain("ai-quota-limit-exceeded-modal");
+    expect(modalFile).toContain("quota-reset-time-indicator");
+    expect(modalFile).toContain("quota-exceeded-close-button");
+    expect(modalFile).toContain("quota-exceeded-history-button");
+    expect(modalFile).toContain("Límite diario de análisis alcanzado");
+
+    const { AiQuotaLimitExceededModal } = await import(
+      "@/components/ui/AiQuotaLimitExceededModal"
+    );
+
+    let closed = false;
+    let historyNavigated = false;
+
+    const modalElement = createElement(AiQuotaLimitExceededModal, {
+      visible: true,
+      onClose: () => {
+        closed = true;
+      },
+      onViewHistory: () => {
+        historyNavigated = true;
+      },
+    });
+
+    expect(modalElement.props.visible).toBe(true);
+    modalElement.props.onClose();
+    expect(closed).toBe(true);
+
+    modalElement.props.onViewHistory?.();
+    expect(historyNavigated).toBe(true);
+  });
 });

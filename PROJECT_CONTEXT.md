@@ -41,7 +41,7 @@
 - **Motor de Caché y Borradores:** `@react-native-async-storage/async-storage` `2.2.0` (persistencia del token de sesión Supabase y cola transaccional para borradores locales aislados por identificador de usuario).
 
 ### Calidad, Análisis Estático & Testing
-- **Test Runner:** [Vitest](https://vitest.dev/) `5.0.4` (285 pruebas unitarias y de integración en 30 suites que validan componentes UI, contratos, utilidades, servicios y Edge Functions al 100%).
+- **Test Runner:** [Vitest](https://vitest.dev/) `5.0.4` (292 pruebas unitarias y de integración en 31 suites que validan componentes UI, contratos, utilidades, servicios y Edge Functions al 100%).
 - **Linter:** [ESLint](https://eslint.org/) `^9.39.5` con configuración `eslint-config-expo`.
 - **Verificación de Tipos:** `typescript` con validación estricta sin emisiones (`npx tsc --noEmit`).
 
@@ -398,7 +398,25 @@ Habiendo alcanzado la estabilidad total del motor de backend y del proveedor de 
 - **Suite de Pruebas Automatizadas:**
   - `src/components/ui/AiAnalysisErrorFallbackCard.test.tsx`: 9 pruebas unitarias que validan el renderizado predeterminado, títulos y sugerencias personalizadas, descarte del botón de reintento, estado colapsado y desplegado de los detalles técnicos, indicador de progreso y roles de accesibilidad (`role="alert"` y `aria-label`).
   - `src/integration/aiWorkflow.test.ts`: 29 pruebas de integración contractual que verifican la presencia de `AiAnalysisErrorFallbackCard` en la pantalla de resultados, los testIDs de reintento y alternancia de detalles, y la invocación del callback de reintento.
-- **Estado Actual del Repositorio:**
+- **Estado Actual del Repositorio (Commit 108):**
   - 285 pruebas automatizadas superadas (`30/30` suites en verde).
+  - Verificación de tipos TypeScript estricta sin emisiones (`npx tsc --noEmit` exit 0).
+  - Verificación estática con ESLint al 100% limpia sin errores ni advertencias (`npx eslint .` exit 0).
+
+### Commit 109 — Modal de Cuota Diaria Agotada con Estimación de Reinicio y Acciones de Navegación
+- **Componente Desacoplado de Cuota Agotada:** `src/components/ui/AiQuotaLimitExceededModal.tsx`
+  - Diálogo modal accesible (`testID="ai-quota-limit-exceeded-modal"`, `accessibilityViewIsModal`) para notificar de manera clara y amigable cuando se agotan los intentos de análisis diario.
+  - Título contextual (*"Límite diario de análisis alcanzado"*), insignia informativa (*"Cuota de IA"*) y descripción confirmando que las fotografías y datos locales se encuentran protegidos.
+  - Indicador estilizado de estimación de reinicio de cuota (`testID="quota-reset-time-indicator"`), con tiempo dinámico o predeterminado (*"Se restablece a la medianoche (00:00 UTC)"*).
+  - Guía de sugerencias de uso local (captura y organización continua de fotos, comparación manual lado a lado y seguridad de datos locales).
+  - Botones de acción accesibles: *"Entendido"* (`testID="quota-exceeded-close-button"`) para cerrar el diálogo, y *"Ver historial de comparaciones"* (`testID="quota-exceeded-history-button"`) para redirigir al listado principal.
+  - Diseño fiel a los tokens de diseño (`Colors.surface`, `Colors.surfaceBlue`, `Colors.warningSoft`, `Colors.primary`, `Radius.xl`, `Radius.md`, `Spacing`, `Typography`).
+- **Integración en Pantalla de Resultados:** `src/app/comparison-result.tsx`
+  - Manejo de estado reactivo `showQuotaExceededModal`, apertura automática ante captura de error de cuota `isQuota` en `executeAnalysisRequest`, navegación a historial/home y control de cierre prioritario con el botón físico de retroceso Android en `handleBack`.
+- **Suite de Pruebas Automatizadas:**
+  - `src/components/ui/AiQuotaLimitExceededModal.test.tsx`: 6 pruebas unitarias que validan el renderizado del modal, indicador de tiempo de reinicio, sugerencias locales, botones de acción, estado oculto cuando `visible={false}` y roles de accesibilidad.
+  - `src/integration/aiWorkflow.test.ts`: 30 pruebas de integración contractual que verifican la presencia del modal en la pantalla de resultados, sus identificadores testID y el comportamiento interactivo de sus botones de acción.
+- **Estado Actual del Repositorio:**
+  - 292 pruebas automatizadas superadas (`31/31` suites en verde).
   - Verificación de tipos TypeScript estricta sin emisiones (`npx tsc --noEmit` exit 0).
   - Verificación estática con ESLint al 100% limpia sin errores ni advertencias (`npx eslint .` exit 0).

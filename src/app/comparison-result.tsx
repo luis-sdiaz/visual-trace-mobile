@@ -27,6 +27,7 @@ import { AiOfflineResilienceBanner } from "@/components/ui/AiOfflineResilienceBa
 import { AiAnalysisErrorFallbackCard } from "@/components/ui/AiAnalysisErrorFallbackCard";
 import { AiDifferencesCollapsible } from "@/components/ui/AiDifferencesCollapsible";
 import { AiQuotaAlertBanner } from "@/components/ui/AiQuotaAlertBanner";
+import { AiQuotaLimitExceededModal } from "@/components/ui/AiQuotaLimitExceededModal";
 import { AiReanalyzeConfirmationModal } from "@/components/ui/AiReanalyzeConfirmationModal";
 import { AiReportFeedbackCard } from "@/components/ui/AiReportFeedbackCard";
 import { PhotoPreviewModal } from "@/components/ui/PhotoPreviewModal";
@@ -161,8 +162,13 @@ export default function ComparisonResultScreen() {
   const [analysisStatus, setAnalysisStatus] = useState<AnalysisStatus>("loading_report");
   const isAnalyzing = analysisStatus === "analyzing";
   const [showReanalyzeModal, setShowReanalyzeModal] = useState(false);
+  const [showQuotaExceededModal, setShowQuotaExceededModal] = useState(false);
 
   const handleBack = useCallback(() => {
+    if (showQuotaExceededModal) {
+      setShowQuotaExceededModal(false);
+      return true;
+    }
     if (showReanalyzeModal) {
       setShowReanalyzeModal(false);
       return true;
@@ -179,7 +185,7 @@ export default function ComparisonResultScreen() {
       router.back();
     }
     return true;
-  }, [isAnalyzing, showReanalyzeModal, source]);
+  }, [isAnalyzing, showQuotaExceededModal, showReanalyzeModal, source]);
 
   useFocusEffect(
     useCallback(() => {
@@ -455,6 +461,7 @@ export default function ComparisonResultScreen() {
         setAnalysisStatus("limited");
         setAnalysisQuotaScope(scope);
         setAnalysisMessage("");
+        setShowQuotaExceededModal(true);
       } else {
         setAnalysisStatus("analysis_error");
         setAnalysisQuotaScope(undefined);
@@ -905,6 +912,16 @@ export default function ComparisonResultScreen() {
         onCancel={handleCancelReanalysis}
         onConfirm={handleConfirmReanalysis}
         visible={showReanalyzeModal}
+      />
+
+      <AiQuotaLimitExceededModal
+        onClose={() => setShowQuotaExceededModal(false)}
+        onViewHistory={() => {
+          setShowQuotaExceededModal(false);
+          router.replace("/home");
+        }}
+        scope={analysisQuotaScope}
+        visible={showQuotaExceededModal}
       />
     </SafeAreaView>
   );
