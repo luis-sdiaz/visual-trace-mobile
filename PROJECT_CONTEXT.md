@@ -214,6 +214,17 @@ Habiendo alcanzado la estabilidad total del motor de backend y del proveedor de 
 - **Suite de Pruebas Unitaria:** `src/components/ui/AiAnalysisLoadingSkeleton.test.tsx`
   - 9 pruebas unitarias que validan el renderizado estático inicial, props controladas, valores fuera de rango seguros y transiciones de estado mediante temporizadores simulados (`vi.useFakeTimers()`).
 - **Configuración de Testing:** Soporte para resolución en entorno de pruebas Vitest aliando `react-native` hacia `react-native-web` en `vitest.config.mts`.
+
+### Commit 97 — Integración de Modal Bloqueante con Skeleton de Carga en Comparison Result
+- **Integración de Componente:** `src/app/comparison-result.tsx`
+  - Inserción de `Modal` bloqueante con `AiAnalysisLoadingSkeleton` desplegado mientras `isAnalyzing === true` (análisis en vuelo hacia Edge Function `analyze-comparison` y Gemini Flash).
+  - Bloqueo activo de interacciones accidentales de pantalla: interceptación de eventos táctiles mediante overlay (`rgba(15, 23, 42, 0.65)`), bloqueo del botón de retroceso por hardware (`hardwareBackPress` y `onRequestClose`), deshabilitación de botones de navegación, edición de nombre y acción de análisis.
+  - Ajuste de feedback visual: el loader síncrono previo se reserva exclusivamente para la consulta inicial rápida de base de datos (`loading_report`), mientras que la inferencia de IA despliega el overlay con rotación contextual de 4 fases y barras de progreso.
+- **Optimización Arquitectónica y Cumplimiento ESLint:**
+  - Refactorización de `useAiLoadingStages` en `AiAnalysisLoadingSkeleton.tsx` a estado derivado puro (`effectiveIndex`), eliminando sincronizaciones secundarias con `setState` en efectos y resolviendo las reglas `react-hooks/set-state-in-effect` y `react-hooks/exhaustive-deps`.
+- **Integración de Pruebas Automatizadas:**
+  - Actualización de `src/integration/aiWorkflow.test.ts` verificando la presencia estricta de `AiAnalysisLoadingSkeleton` y el modal `ai-analysis-modal` en la pantalla de resultados.
 - **Estado Actual del Repositorio:**
   - 217 pruebas automatizadas superadas (`22/22` suites en verde).
-  - Tipado TypeScript verificado sin emisiones (`npx tsc --noEmit` exit 0).
+  - Verificación de tipos TypeScript estricta sin emisiones (`npx tsc --noEmit` exit 0).
+  - Verificación estática con ESLint al 100% limpia sin errores ni advertencias (`npx eslint .` exit 0).

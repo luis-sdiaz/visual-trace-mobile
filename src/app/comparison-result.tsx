@@ -10,6 +10,7 @@ import {
   AppState,
   BackHandler,
   Image,
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -20,6 +21,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Button } from "@/components/ui/Button";
+import { AiAnalysisLoadingSkeleton } from "@/components/ui/AiAnalysisLoadingSkeleton";
 import { PhotoPreviewModal } from "@/components/ui/PhotoPreviewModal";
 import { Colors } from "@/constants/colors";
 import { Radius } from "@/constants/radius";
@@ -641,12 +643,10 @@ export default function ComparisonResultScreen() {
           </View>
         </View>
 
-        {analysisStatus === "loading_report" || analysisStatus === "analyzing" ? (
+        {analysisStatus === "loading_report" ? (
           <View style={styles.analysisLoading}>
             <ActivityIndicator color={Colors.primary} />
-            <Text style={styles.loadingText}>
-              {analysisStatus === "loading_report" ? "Buscando informe guardado..." : "Analizando imágenes..."}
-            </Text>
+            <Text style={styles.loadingText}>Buscando informe guardado...</Text>
           </View>
         ) : null}
 
@@ -714,6 +714,25 @@ export default function ComparisonResultScreen() {
           </Text>
         </View>
       </ScrollView>
+            <Modal
+        accessibilityLabel="Análisis de IA en curso"
+        accessibilityViewIsModal
+        animationType="fade"
+        onRequestClose={() => {
+          // Bloqueo intencional: se evita cerrar el modal mientras la solicitud está en vuelo
+        }}
+        statusBarTranslucent
+        testID="ai-analysis-modal"
+        transparent
+        visible={isAnalyzing}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <AiAnalysisLoadingSkeleton />
+          </View>
+        </View>
+      </Modal>
+
       <PhotoPreviewModal
         label={previewStage === "final" ? "Estado final" : "Estado inicial"}
         onClose={() => setPreviewStage(null)}
@@ -1175,5 +1194,23 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     textAlign: "center",
     marginBottom: Spacing.xl,
+  },
+
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(15, 23, 42, 0.65)",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: Spacing.xl,
+  },
+
+  modalContent: {
+    width: "100%",
+    maxWidth: 480,
+    shadowColor: Colors.black,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 10,
   },
 });
