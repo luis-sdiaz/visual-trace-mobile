@@ -238,8 +238,7 @@ describe("AI database and mobile integration safeguards", () => {
     expect(screen).toContain("AiAnalysisLoadingSkeleton");
     expect(screen).toContain("ai-analysis-modal");
     expect(screen).toContain("AiQuotaAlertBanner");
-    expect(screen).toContain("ai-offline-banner");
-    expect(screen).toContain("Reintentar conexión");
+    expect(screen).toContain("AiOfflineResilienceBanner");
   });
 
   it(
@@ -479,5 +478,52 @@ describe("AI database and mobile integration safeguards", () => {
     expect(severeHtml).toContain("5");
     expect(severeHtml).toContain("Hallazgos");
     expect(severeHtml).toContain("Cambios relevantes");
+  });
+
+  it("provides offline network resilience banner with retry action and connectivity guidance", async () => {
+    const screen = readFileSync(
+      resolve(process.cwd(), "src/app/comparison-result.tsx"),
+      "utf8",
+    );
+    expect(screen).toContain("AiOfflineResilienceBanner");
+    expect(screen).toContain("<AiOfflineResilienceBanner");
+
+    const bannerFile = readFileSync(
+      resolve(process.cwd(), "src/components/ui/AiOfflineResilienceBanner.tsx"),
+      "utf8",
+    );
+    expect(bannerFile).toContain("ai-offline-resilience-banner");
+    expect(bannerFile).toContain("retry-network-action-button");
+    expect(bannerFile).toContain("Sin conexión a internet para el análisis de IA");
+    expect(bannerFile).toContain("Offline");
+
+    const { AiOfflineResilienceBanner } = await import(
+      "@/components/ui/AiOfflineResilienceBanner"
+    );
+
+    // @ts-expect-error react-dom/server type declarations are not in devDependencies
+    const { renderToStaticMarkup } = await import("react-dom/server");
+
+    let retryCalled = false;
+    const bannerHtml = renderToStaticMarkup(
+      createElement(AiOfflineResilienceBanner, {
+        onRetry: () => {
+          retryCalled = true;
+        },
+      }),
+    );
+    expect(bannerHtml).toContain("ai-offline-resilience-banner");
+    expect(bannerHtml).toContain("Sin conexión a internet para el análisis de IA");
+    expect(bannerHtml).toContain("Offline");
+    expect(bannerHtml).toContain("retry-network-action-button");
+    expect(bannerHtml).toContain("Reintentar");
+
+    const element = createElement(AiOfflineResilienceBanner, {
+      onRetry: () => {
+        retryCalled = true;
+      },
+    });
+    element.props.onRetry?.();
+    expect(retryCalled).toBe(true);
   });
 });

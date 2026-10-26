@@ -41,7 +41,7 @@
 - **Motor de Caché y Borradores:** `@react-native-async-storage/async-storage` `2.2.0` (persistencia del token de sesión Supabase y cola transaccional para borradores locales aislados por identificador de usuario).
 
 ### Calidad, Análisis Estático & Testing
-- **Test Runner:** [Vitest](https://vitest.dev/) `5.0.4` (268 pruebas unitarias y de integración en 28 suites que validan componentes UI, contratos, utilidades, servicios y Edge Functions al 100%).
+- **Test Runner:** [Vitest](https://vitest.dev/) `5.0.4` (275 pruebas unitarias y de integración en 29 suites que validan componentes UI, contratos, utilidades, servicios y Edge Functions al 100%).
 - **Linter:** [ESLint](https://eslint.org/) `^9.39.5` con configuración `eslint-config-expo`.
 - **Verificación de Tipos:** `typescript` con validación estricta sin emisiones (`npx tsc --noEmit`).
 
@@ -365,7 +365,23 @@ Habiendo alcanzado la estabilidad total del motor de backend y del proveedor de 
 - **Suite de Pruebas Automatizadas:**
   - `src/components/ui/AiAnalysisSummaryCard.test.tsx`: 8 pruebas unitarias que validan la función pura `calculateVisualSeverity` en los 4 niveles de impacto ("Sin cambios", "Menor", "Moderado", "Significativo"), el manejo seguro de reportes nulos/indefinidos, la compatibilidad con tipos directos `GeminiAnalysisReport` y envoltorios `AnalysisReportRecord`, y el renderizado de todos los testIDs e indicadores.
   - `src/integration/aiWorkflow.test.ts`: prueba contractual y funcional de integración que valida la presencia de `AiAnalysisSummaryCard` en la pantalla de resultados, la derivación de severidad y el renderizado de indicadores y badges con datos reales de inferencia.
-- **Estado Actual del Repositorio:**
+- **Estado Actual del Repositorio (Commit 106):**
   - 268 pruebas automatizadas superadas (`28/28` suites en verde).
+  - Verificación de tipos TypeScript estricta sin emisiones (`npx tsc --noEmit` exit 0).
+  - Verificación estática con ESLint al 100% limpia sin errores ni advertencias (`npx eslint .` exit 0).
+
+### Commit 107 — Banner Desacoplado de Resiliencia y Recuperación ante Modo Offline en IA
+- **Componente Desacoplado de Resiliencia Offline:** `src/components/ui/AiOfflineResilienceBanner.tsx`
+  - Banner interactivo y accesible (`testID="ai-offline-resilience-banner"`, `accessibilityRole="alert"`) que informa al usuario cuando no hay conectividad a internet para procesar la petición de IA hacia Supabase Edge Functions y Google Gemini.
+  - Título y mensajes contextuales claros (*"Sin conexión a internet para el análisis de IA"*), insignia de estado (`"Offline"`) e indicaciones de comprobación de conectividad local (Wi-Fi o datos móviles), ratificando la preservación segura de las fotografías del dispositivo.
+  - Botón de acción interactivo *"Reintentar"* (`testID="retry-network-action-button"`, `accessibilityLabel="Reintentar conexión"`), con feedback de carga mediante `ActivityIndicator` cuando `isRetrying` se encuentra activo.
+  - Implementación con tokens de diseño del proyecto (`Colors.surfaceBlue`, `Colors.secondary`, `Colors.secondarySoft`, `Colors.primary`, `Radius.lg`, `Radius.md`, `Radius.full`, `Spacing`, `Typography`).
+- **Integración y Limpieza en Pantalla de Resultados:** `src/app/comparison-result.tsx`
+  - Reemplazo del bloque inline previo por `<AiOfflineResilienceBanner onRetry={() => void executeAnalysisRequest()} />`, depurando los estilos heredados obsoletos.
+- **Suite de Pruebas Automatizadas:**
+  - `src/components/ui/AiOfflineResilienceBanner.test.tsx`: 6 pruebas unitarias que cubren el renderizado por defecto, títulos y descripciones personalizadas, descarte opcional del botón cuando no hay callback, indicador de progreso y roles de accesibilidad (`role="alert"` y `aria-label`).
+  - `src/integration/aiWorkflow.test.ts`: 28 pruebas de integración contractual que verifican la presencia de `AiOfflineResilienceBanner` en la pantalla de resultados, los testIDs del banner y del botón de reintento, el contrato de mensaje offline y la ejecución del callback de reintento ante restablecimiento de red.
+- **Estado Actual del Repositorio:**
+  - 275 pruebas automatizadas superadas (`29/29` suites en verde).
   - Verificación de tipos TypeScript estricta sin emisiones (`npx tsc --noEmit` exit 0).
   - Verificación estática con ESLint al 100% limpia sin errores ni advertencias (`npx eslint .` exit 0).
