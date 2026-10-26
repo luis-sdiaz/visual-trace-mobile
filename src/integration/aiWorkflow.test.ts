@@ -247,11 +247,15 @@ describe("AI database and mobile integration safeguards", () => {
       "utf8",
     );
     expect(screen).toContain("copy-report-button");
+    expect(screen).toContain("share-report-button");
     expect(screen).toContain("copied-feedback-badge");
     expect(screen).toContain("Copiar informe");
+    expect(screen).toContain("Compartir informe");
     expect(screen).toContain("¡Copiado al portapapeles!");
 
-    const { formatReportForClipboard } = await import("@/utils/reportExport");
+    const { formatReportForClipboard, shareReportNative } = await import(
+      "@/utils/reportExport"
+    );
     const formatted = formatReportForClipboard(analysis.report, {
       comparisonName: "Comparativa Obra",
     });
@@ -259,5 +263,19 @@ describe("AI database and mobile integration safeguards", () => {
     expect(formatted).toContain("Comparación: Comparativa Obra");
     expect(formatted).toContain(analysis.report.summary);
     expect(formatted).toContain("Aparece un objeto.");
+
+    const { Share } = await import("react-native");
+    const shareSpy = vi.spyOn(Share, "share").mockResolvedValueOnce({
+      action: Share.sharedAction,
+      activityType: null,
+    });
+
+    const shareResult = await shareReportNative(analysis.report, {
+      comparisonName: "Comparativa Obra",
+    });
+    expect(shareResult.success).toBe(true);
+    expect(shareResult.action).toBe("sharedAction");
+    expect(shareSpy).toHaveBeenCalledTimes(1);
+    shareSpy.mockRestore();
   });
 });

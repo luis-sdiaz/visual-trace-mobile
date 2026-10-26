@@ -1,3 +1,4 @@
+import { Share } from "react-native";
 import * as Clipboard from "expo-clipboard";
 import type {
   GeminiAnalysisReport,
@@ -15,6 +16,13 @@ export const CATEGORY_LABELS: Record<VisualDifferenceCategory, string> = {
 
 export type FormatReportOptions = {
   comparisonName?: string | null;
+};
+
+export type ShareReportResult = {
+  success: boolean;
+  action?: "sharedAction" | "dismissedAction";
+  activityType?: string | null;
+  error?: string;
 };
 
 export function formatReportForClipboard(
@@ -80,3 +88,45 @@ export async function copyReportToClipboard(
   }
 }
 
+export async function shareReportNative(
+  report: GeminiAnalysisReport,
+  options?: FormatReportOptions,
+): Promise<ShareReportResult> {
+  try {
+    const text = formatReportForClipboard(report, options);
+    const title = options?.comparisonName && options.comparisonName.trim().length > 0
+      ? `VisualTrace — ${options.comparisonName.trim()}`
+      : "VisualTrace — Informe de Análisis";
+
+    const result = await Share.share(
+      {
+        message: text,
+        title,
+      },
+      {
+        dialogTitle: title,
+        subject: title,
+      },
+    );
+
+    if (result.action === Share.sharedAction) {
+      return {
+        success: true,
+        action: "sharedAction",
+        activityType: result.activityType ?? null,
+      };
+    } else if (result.action === Share.dismissedAction) {
+      return {
+        success: false,
+        action: "dismissedAction",
+      };
+    }
+
+    return { success: true };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Error desconocido al compartir",
+    };
+  }
+}

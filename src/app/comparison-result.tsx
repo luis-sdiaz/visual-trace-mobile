@@ -49,6 +49,7 @@ import type { ImageStage } from "@/services/imageStorageService";
 import {
   CATEGORY_LABELS,
   copyReportToClipboard,
+  shareReportNative,
 } from "@/utils/reportExport";
 import { createSingleFlight } from "@/utils/singleFlight";
 
@@ -189,6 +190,7 @@ export default function ComparisonResultScreen() {
   const [analysisMessage, setAnalysisMessage] = useState("");
   const [analysisQuotaScope, setAnalysisQuotaScope] = useState<string | undefined>(undefined);
   const [copiedReport, setCopiedReport] = useState(false);
+  const [isSharingReport, setIsSharingReport] = useState(false);
   const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [previewStage, setPreviewStage] = useState<ImageStage | null>(null);
   const [isEditingName, setIsEditingName] = useState(false);
@@ -371,6 +373,20 @@ export default function ComparisonResultScreen() {
       }, 2500);
     }
   }, [analysisReport, name, nameDraft]);
+
+  const handleShareReport = useCallback(async () => {
+    if (!analysisReport || isSharingReport) return;
+    setIsSharingReport(true);
+    try {
+      await shareReportNative(analysisReport.result, {
+        comparisonName: nameDraft || name,
+      });
+    } finally {
+      if (analysisMountedRef.current) {
+        setIsSharingReport(false);
+      }
+    }
+  }, [analysisReport, isSharingReport, name, nameDraft]);
 
   async function executeAnalysisRequest() {
     if (!comparisonId || !initialImagePath || !finalImagePath) return;
@@ -697,26 +713,45 @@ export default function ComparisonResultScreen() {
           <View style={styles.reportCard}>
             <View style={styles.reportHeaderRow}>
               <Text style={styles.reportEyebrow}>RESUMEN DE IA</Text>
-              <Pressable
-                accessibilityHint="Copia el resumen, diferencias y observaciones al portapapeles"
-                accessibilityLabel="Copiar informe"
-                accessibilityRole="button"
-                onPress={() => void handleCopyReport()}
-                style={[
-                  styles.copyReportButton,
-                  copiedReport && styles.copyReportButtonActive,
-                ]}
-                testID="copy-report-button"
-              >
-                <Text
+              <View style={styles.reportHeaderActions}>
+                <Pressable
+                  accessibilityHint="Copia el resumen, diferencias y observaciones al portapapeles"
+                  accessibilityLabel="Copiar informe"
+                  accessibilityRole="button"
+                  onPress={() => void handleCopyReport()}
                   style={[
-                    styles.copyReportButtonText,
-                    copiedReport && styles.copyReportButtonTextActive,
+                    styles.copyReportButton,
+                    copiedReport && styles.copyReportButtonActive,
                   ]}
+                  testID="copy-report-button"
                 >
-                  {copiedReport ? "✓ Copiado" : "📋 Copiar informe"}
-                </Text>
-              </Pressable>
+                  <Text
+                    style={[
+                      styles.copyReportButtonText,
+                      copiedReport && styles.copyReportButtonTextActive,
+                    ]}
+                  >
+                    {copiedReport ? "✓ Copiado" : "📋 Copiar informe"}
+                  </Text>
+                </Pressable>
+
+                <Pressable
+                  accessibilityHint="Comparte el informe completo de IA con otras aplicaciones"
+                  accessibilityLabel="Compartir informe"
+                  accessibilityRole="button"
+                  disabled={isSharingReport}
+                  onPress={() => void handleShareReport()}
+                  style={[
+                    styles.shareReportButton,
+                    isSharingReport && styles.disabledButton,
+                  ]}
+                  testID="share-report-button"
+                >
+                  <Text style={styles.shareReportButtonText}>
+                    ↗ Compartir
+                  </Text>
+                </Pressable>
+              </View>
             </View>
 
             {copiedReport ? (
@@ -1188,6 +1223,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     marginBottom: Spacing.sm,
+    gap: Spacing.sm,
+    flexWrap: "wrap",
+  },
+
+  reportHeaderActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.xs,
   },
 
   copyReportButton: {
@@ -1216,6 +1259,24 @@ const styles = StyleSheet.create({
   copyReportButtonTextActive: {
     color: Colors.successDark,
     fontWeight: "700",
+  },
+
+  shareReportButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: Colors.surfaceSecondary,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: Radius.full,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+  },
+
+  shareReportButtonText: {
+    ...Typography.label,
+    fontSize: 12,
+    lineHeight: 16,
+    color: Colors.textPrimary,
   },
 
   copiedFeedbackBadge: {

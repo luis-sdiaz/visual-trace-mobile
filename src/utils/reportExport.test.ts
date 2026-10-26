@@ -1,9 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
+import { Share } from "react-native";
 import * as Clipboard from "expo-clipboard";
 import type { GeminiAnalysisReport } from "@/contracts/geminiAnalysis";
 import {
   copyReportToClipboard,
   formatReportForClipboard,
+  shareReportNative,
 } from "./reportExport";
 
 vi.mock("expo-clipboard", () => ({
@@ -105,5 +107,62 @@ describe("reportExport", () => {
       expect(success).toBe(false);
     });
   });
-});
 
+  describe("shareReportNative", () => {
+    it("opens native share sheet with formatted report and returns sharedAction", async () => {
+      const shareSpy = vi.spyOn(Share, "share").mockResolvedValueOnce({
+        action: Share.sharedAction,
+        activityType: "com.apple.UIKit.activity.PostToTwitter",
+      });
+
+      const result = await shareReportNative(sampleReport, {
+        comparisonName: "Proyecto Fachada",
+      });
+
+      expect(result).toEqual({
+        success: true,
+        action: "sharedAction",
+        activityType: "com.apple.UIKit.activity.PostToTwitter",
+      });
+      expect(shareSpy).toHaveBeenCalledTimes(1);
+      const [content, options] = shareSpy.mock.calls[0];
+      expect(content.title).toBe("VisualTrace — Proyecto Fachada");
+      expect(content.message).toContain("Comparación: Proyecto Fachada");
+      expect(content.message).toContain(sampleReport.summary);
+      expect(options?.dialogTitle).toBe("VisualTrace — Proyecto Fachada");
+      expect(options?.subject).toBe("VisualTrace — Proyecto Fachada");
+
+      shareSpy.mockRestore();
+    });
+
+    it("handles user dismissal without throwing and returns dismissedAction", async () => {
+      const shareSpy = vi.spyOn(Share, "share").mockResolvedValueOnce({
+        action: Share.dismissedAction,
+      });
+
+      const result = await shareReportNative(sampleReport);
+
+      expect(result).toEqual({
+        success: false,
+        action: "dismissedAction",
+      });
+
+      shareSpy.mockRestore();
+    });
+
+    it("handles share exceptions gracefully without throwing", async () => {
+      const shareSpy = vi.spyOn(Share, "share").mockRejectedValueOnce(
+        new Error("Share sheet unavailable on this device"),
+      );
+
+      const result = await shareReportNative(sampleReport);
+
+      expect(result).toEqual({
+        success: false,
+        error: "Share sheet unavailable on this device",
+      });
+
+      shareSpy.mockRestore();
+    });
+  });
+});
