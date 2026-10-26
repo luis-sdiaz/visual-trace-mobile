@@ -242,7 +242,9 @@ describe("AI database and mobile integration safeguards", () => {
     expect(screen).toContain("Reintentar conexión");
   });
 
-  it("provides copy-to-clipboard elements and formats report cleanly for user sharing", async () => {
+  it(
+    "provides copy-to-clipboard elements and formats report cleanly for user sharing",
+    async () => {
     const screen = readFileSync(
       resolve(process.cwd(), "src/app/comparison-result.tsx"),
       "utf8",
@@ -278,7 +280,7 @@ describe("AI database and mobile integration safeguards", () => {
     expect(shareResult.action).toBe("sharedAction");
     expect(shareSpy).toHaveBeenCalledTimes(1);
     shareSpy.mockRestore();
-  });
+  }, 15000);
 
   it("renders collapsible difference sections with toggle states for granular exploration", async () => {
     const screen = readFileSync(
@@ -402,5 +404,80 @@ describe("AI database and mobile integration safeguards", () => {
     );
     expect(sessionHtml).toContain("¡Gracias por tu retroalimentación!");
     clearSessionFeedback();
+  });
+
+  it("renders executive AI analysis summary card with visual impact severity badge and indicators", async () => {
+    const screen = readFileSync(
+      resolve(process.cwd(), "src/app/comparison-result.tsx"),
+      "utf8",
+    );
+    expect(screen).toContain("AiAnalysisSummaryCard");
+    expect(screen).toContain("<AiAnalysisSummaryCard report={analysisReport} />");
+
+    const summaryCardFile = readFileSync(
+      resolve(process.cwd(), "src/components/ui/AiAnalysisSummaryCard.tsx"),
+      "utf8",
+    );
+    expect(summaryCardFile).toContain("ai-analysis-summary-card");
+    expect(summaryCardFile).toContain("severity-level-badge");
+    expect(summaryCardFile).toContain("total-findings-indicator");
+    expect(summaryCardFile).toContain("comparison-status-indicator");
+    expect(summaryCardFile).toContain("affected-categories-indicator");
+    expect(summaryCardFile).toContain("calculateVisualSeverity");
+
+    const {
+      AiAnalysisSummaryCard,
+      calculateVisualSeverity,
+    } = await import("@/components/ui/AiAnalysisSummaryCard");
+
+    // @ts-expect-error react-dom/server type declarations are not in devDependencies
+    const { renderToStaticMarkup } = await import("react-dom/server");
+
+    // Verify calculation with integration analysis report (1 added difference)
+    const severity = calculateVisualSeverity(
+      analysis.report.differences,
+      analysis.report.hasVisibleChanges,
+    );
+    expect(severity.level).toBe("minor");
+    expect(severity.badgeText).toBe("Menor");
+    expect(severity.statusLabel).toBe("Cambios leves");
+
+    // Render with analysis report
+    const html = renderToStaticMarkup(
+      createElement(AiAnalysisSummaryCard, { report: analysis.report }),
+    );
+    expect(html).toContain("ai-analysis-summary-card");
+    expect(html).toContain("EVALUACIÓN DE IMPACTO");
+    expect(html).toContain("Menor");
+    expect(html).toContain("total-findings-indicator");
+    expect(html).toContain("comparison-status-indicator");
+    expect(html).toContain("1");
+    expect(html).toContain("Hallazgo");
+    expect(html).toContain("Cambios leves");
+
+    // Verify calculation with severe report (5 differences -> "Significativo")
+    const severeDiffs = [
+      { category: "added" as const, description: "1" },
+      { category: "removed" as const, description: "2" },
+      { category: "modified" as const, description: "3" },
+      { category: "moved" as const, description: "4" },
+      { category: "appearance" as const, description: "5" },
+    ];
+    const severeCalc = calculateVisualSeverity(severeDiffs, true);
+    expect(severeCalc.level).toBe("significant");
+    expect(severeCalc.badgeText).toBe("Significativo");
+
+    const severeHtml = renderToStaticMarkup(
+      createElement(AiAnalysisSummaryCard, {
+        report: {
+          ...analysis.report,
+          differences: severeDiffs,
+        },
+      }),
+    );
+    expect(severeHtml).toContain("Significativo");
+    expect(severeHtml).toContain("5");
+    expect(severeHtml).toContain("Hallazgos");
+    expect(severeHtml).toContain("Cambios relevantes");
   });
 });

@@ -22,6 +22,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Button } from "@/components/ui/Button";
 import { AiAnalysisLoadingSkeleton } from "@/components/ui/AiAnalysisLoadingSkeleton";
+import { AiAnalysisSummaryCard } from "@/components/ui/AiAnalysisSummaryCard";
 import { AiDifferencesCollapsible } from "@/components/ui/AiDifferencesCollapsible";
 import { AiQuotaAlertBanner } from "@/components/ui/AiQuotaAlertBanner";
 import { AiReanalyzeConfirmationModal } from "@/components/ui/AiReanalyzeConfirmationModal";
@@ -787,6 +788,7 @@ export default function ComparisonResultScreen() {
               </View>
             ) : null}
 
+            <AiAnalysisSummaryCard report={analysisReport} />
             <Text style={styles.reportSummary}>{analysisReport.result.summary}</Text>
 
             {/* Sección: Diferencias detectadas con tarjetas desplegables por categoría */}

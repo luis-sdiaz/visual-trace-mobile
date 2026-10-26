@@ -41,7 +41,7 @@
 - **Motor de Caché y Borradores:** `@react-native-async-storage/async-storage` `2.2.0` (persistencia del token de sesión Supabase y cola transaccional para borradores locales aislados por identificador de usuario).
 
 ### Calidad, Análisis Estático & Testing
-- **Test Runner:** [Vitest](https://vitest.dev/) `5.0.4` (259 pruebas unitarias y de integración en 27 suites que validan componentes UI, contratos, utilidades, servicios y Edge Functions al 100%).
+- **Test Runner:** [Vitest](https://vitest.dev/) `5.0.4` (268 pruebas unitarias y de integración en 28 suites que validan componentes UI, contratos, utilidades, servicios y Edge Functions al 100%).
 - **Linter:** [ESLint](https://eslint.org/) `^9.39.5` con configuración `eslint-config-expo`.
 - **Verificación de Tipos:** `typescript` con validación estricta sin emisiones (`npx tsc --noEmit`).
 
@@ -345,7 +345,27 @@ Habiendo alcanzado la estabilidad total del motor de backend y del proveedor de 
 - **Suite de Pruebas Automatizadas:**
   - `src/components/ui/AiReportFeedbackCard.test.tsx`: 8 pruebas unitarias exhaustivas que cubren el almacenamiento y recuperación en sesión, limpieza del caché, renderizado inicial de preguntas y botones, renderizado condicional del mensaje de agradecimiento ante selección `"useful"` o `"not_useful"`, persistencia con `comparisonId` y atributos de accesibilidad (`aria-label`).
   - `src/integration/aiWorkflow.test.ts`: prueba contractual y funcional de integración que valida la presencia de `AiReportFeedbackCard` en la pantalla de resultados, la estructura de testIDs de los botones, la visualización del agradecimiento y la persistencia de sesión integrada.
-- **Estado Actual del Repositorio:**
+- **Estado Actual del Repositorio (Commit 105):**
   - 259 pruebas automatizadas superadas (`27/27` suites en verde).
+  - Verificación de tipos TypeScript estricta sin emisiones (`npx tsc --noEmit` exit 0).
+  - Verificación estática con ESLint al 100% limpia sin errores ni advertencias (`npx eslint .` exit 0).
+
+### Commit 106 — Resumen Ejecutivo y Evaluación de Severidad e Impacto Visual
+- **Componente Desacoplado de Resumen de Impacto:** `src/components/ui/AiAnalysisSummaryCard.tsx`
+  - Tarjeta ejecutiva (`testID="ai-analysis-summary-card"`) concebida como encabezado visual del informe comparativo de IA.
+  - Función de evaluación y cálculo de severidad visual `calculateVisualSeverity(differences, hasVisibleChanges)` que categoriza el impacto en 4 niveles bien definidos:
+    - `"Sin cambios"` (`level: "none"`): fotografías sin discrepancias visibles detectadas (`statusLabel: "Sin alteraciones"`).
+    - `"Menor"` (`level: "minor"`): discrepancias puntuales o de baja escala que no alteran la estructura general (`statusLabel: "Cambios leves"`).
+    - `"Moderado"` (`level: "moderate"`): modificaciones apreciables que alteran el estado o composición visual (`statusLabel: "Cambios moderados"`).
+    - `"Significativo"` (`level: "significant"`): múltiples diferencias estructurales o cambios de alta relevancia detectados (`statusLabel: "Cambios relevantes"`).
+  - Badge visual de severidad (`testID="severity-level-badge"`) estilizado dinámicamente con tokens de diseño (`Colors`, `Radius.full`, `Spacing`, `Typography`).
+  - Bloque métrico conciso con 3 indicadores clave: total de hallazgos detectados (`testID="total-findings-indicator"`), estado general de la comparación (`testID="comparison-status-indicator"`) y número de categorías afectadas (`testID="affected-categories-indicator"`).
+- **Integración en Pantalla de Resultados:** `src/app/comparison-result.tsx`
+  - Inserción de `<AiAnalysisSummaryCard report={analysisReport} />` como encabezado visual del bloque del informe, situado inmediatamente antes del resumen narrativo de IA.
+- **Suite de Pruebas Automatizadas:**
+  - `src/components/ui/AiAnalysisSummaryCard.test.tsx`: 8 pruebas unitarias que validan la función pura `calculateVisualSeverity` en los 4 niveles de impacto ("Sin cambios", "Menor", "Moderado", "Significativo"), el manejo seguro de reportes nulos/indefinidos, la compatibilidad con tipos directos `GeminiAnalysisReport` y envoltorios `AnalysisReportRecord`, y el renderizado de todos los testIDs e indicadores.
+  - `src/integration/aiWorkflow.test.ts`: prueba contractual y funcional de integración que valida la presencia de `AiAnalysisSummaryCard` en la pantalla de resultados, la derivación de severidad y el renderizado de indicadores y badges con datos reales de inferencia.
+- **Estado Actual del Repositorio:**
+  - 268 pruebas automatizadas superadas (`28/28` suites en verde).
   - Verificación de tipos TypeScript estricta sin emisiones (`npx tsc --noEmit` exit 0).
   - Verificación estática con ESLint al 100% limpia sin errores ni advertencias (`npx eslint .` exit 0).
