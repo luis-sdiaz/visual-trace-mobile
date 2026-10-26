@@ -8,6 +8,8 @@ vi.mock("@/services/analysisService", () => ({
 import {
   getAnalysisAction,
   getAnalysisPresentation,
+  isNetworkError,
+  NetworkOfflineError,
   performAnalysisAction,
   type AnalysisStatus,
 } from "@/services/analysisWorkflow";
@@ -29,6 +31,7 @@ describe("analysisWorkflow", () => {
     ["analyzing", null],
     ["available", null],
     ["limited", null],
+    ["network_offline", "analyze"],
   ] satisfies [AnalysisStatus, "analyze" | "retry_report" | null][];
 
   it.each(actionCases)(
@@ -41,6 +44,7 @@ describe("analysisWorkflow", () => {
   it("does not offer an action without complete persisted image paths", () => {
     expect(getAnalysisAction("ready", false)).toBeNull();
     expect(getAnalysisAction("report_error", false)).toBeNull();
+    expect(getAnalysisAction("network_offline", false)).toBeNull();
   });
 
   it.each(["report_error", "reports_unavailable"] satisfies AnalysisStatus[])(
@@ -51,6 +55,13 @@ describe("analysisWorkflow", () => {
       );
     },
   );
+
+  it("presents appropriate title and action label for network_offline status", () => {
+    const presentation = getAnalysisPresentation("network_offline", true);
+    expect(presentation.statusTitle).toBe("Sin conexión a internet");
+    expect(presentation.actionLabel).toBe("Reintentar conexión");
+    expect(presentation.statusDescription).toContain("conexión de red");
+  });
 
   it("retries only the report query without requesting a Gemini analysis", async () => {
     const fetchReport = vi.fn().mockResolvedValue(null);
@@ -94,5 +105,50 @@ describe("analysisWorkflow", () => {
     ).resolves.toBe(report);
 
     expect(requestAnalysis).not.toHaveBeenCalled();
+  });
+
+  describe("offline detection and network resilience", () => {
+    it("proactively rejects analysis with NetworkOfflineError when offline", async () => {
+      const fetchReport = vi.fn();
+      const requestAnalysis = vi.fn();
+      const checkOnline = vi.fn().mockResolvedValue(false);
+
+      await expect(
+        performAnalysisAction("analyze", params, {
+          fetchReport,
+          requestAnalysis,
+          checkOnline,
+        }),
+      ).rejects.toThrow(NetworkOfflineError);
+
+      expect(requestAnalysis).not.toHaveBeenCalled();
+    });
+
+    it("proceeds with analysis when online check succeeds", async () => {
+      const report = { id: "report-online" } as AnalysisReportRecord;
+      const fetchReport = vi.fn();
+      const requestAnalysis = vi.fn().mockResolvedValue(report);
+      const checkOnline = vi.fn().mockResolvedValue(true);
+
+      const result = await performAnalysisAction("analyze", params, {
+        fetchReport,
+        requestAnalysis,
+        checkOnline,
+      });
+
+      expect(result).toBe(report);
+      expect(requestAnalysis).toHaveBeenCalledWith("comparison-1");
+    });
+
+    it("identifies various network failure shapes correctly", () => {
+      expect(isNetworkError(new NetworkOfflineError())).toBe(true);
+      expect(isNetworkError(new TypeError("Network request failed"))).toBe(true);
+      expect(isNetworkError(new Error("Failed to fetch"))).toBe(true);
+      expect(isNetworkError(new Error("Offline mode"))).toBe(true);
+      expect(isNetworkError(new Error("Sin conexión a internet"))).toBe(true);
+      expect(isNetworkError(new Error("econnrefused"))).toBe(true);
+      expect(isNetworkError(new Error("Invalid JSON body"))).toBe(false);
+      expect(isNetworkError(null)).toBe(false);
+    });
   });
 });

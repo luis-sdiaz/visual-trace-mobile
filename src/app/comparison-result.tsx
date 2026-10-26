@@ -36,6 +36,7 @@ import {
 } from "@/services/analysisService";
 import {
   getAnalysisPresentation,
+  isNetworkError,
   performAnalysisAction,
   type AnalysisStatus,
 } from "@/services/analysisWorkflow";
@@ -380,18 +381,32 @@ export default function ComparisonResultScreen() {
         !analysisMountedRef.current ||
         sequence !== analysisSequenceRef.current
       ) return;
+      const isOffline = isNetworkError(error);
       const isQuota =
-        error instanceof AnalysisServiceError && error.code === "usage_limit_reached";
+        !isOffline &&
+        error instanceof AnalysisServiceError &&
+        error.code === "usage_limit_reached";
       const scope = error instanceof AnalysisServiceError ? error.scope : undefined;
-      setAnalysisStatus(isQuota ? "limited" : "analysis_error");
-      setAnalysisQuotaScope(isQuota ? scope : undefined);
-      setAnalysisMessage(
-        isQuota
-          ? ""
-          : error instanceof Error
+
+      if (isOffline) {
+        setAnalysisStatus("network_offline");
+        setAnalysisQuotaScope(undefined);
+        setAnalysisMessage(
+          "Sin conexión a internet. Comprueba tu conectividad y vuelve a intentar.",
+        );
+      } else if (isQuota) {
+        setAnalysisStatus("limited");
+        setAnalysisQuotaScope(scope);
+        setAnalysisMessage("");
+      } else {
+        setAnalysisStatus("analysis_error");
+        setAnalysisQuotaScope(undefined);
+        setAnalysisMessage(
+          error instanceof Error
             ? error.message
             : "No fue posible completar el análisis.",
-      );
+        );
+      }
     } finally {
       if (analysisInFlightRef.current === operationKey) {
         analysisInFlightRef.current = null;
@@ -708,6 +723,32 @@ export default function ComparisonResultScreen() {
             onRetry={() => void executeAnalysisRequest()}
             scope={analysisQuotaScope}
           />
+        ) : analysisStatus === "network_offline" ? (
+          <View style={styles.offlineCard} testID="ai-offline-banner">
+            <View style={styles.offlineHeader}>
+              <View style={styles.offlineIconContainer}>
+                <Text style={styles.offlineIconText}>⚡</Text>
+              </View>
+              <View style={styles.offlineTitleContainer}>
+                <Text style={styles.offlineTitle}>Modo sin conexión</Text>
+                <View style={styles.offlineBadge}>
+                  <Text style={styles.offlineBadgeText}>Offline</Text>
+                </View>
+              </View>
+            </View>
+            <Text style={styles.offlineDescription}>
+              No se detecta conexión a internet. El análisis de IA requiere conectividad con Supabase y Gemini en la nube. Tus fotografías locales se mantienen seguras.
+            </Text>
+            <Pressable
+              accessibilityLabel="Reintentar conexión"
+              accessibilityRole="button"
+              onPress={() => void executeAnalysisRequest()}
+              style={styles.offlineRetryButton}
+              testID="ai-offline-retry-button"
+            >
+              <Text style={styles.offlineRetryButtonText}>Reintentar conexión</Text>
+            </Pressable>
+          </View>
         ) : analysisMessage ? (
           <View style={styles.errorCard}>
             <Text style={styles.feedbackText}>{analysisMessage}</Text>
@@ -1227,5 +1268,90 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 16,
     elevation: 10,
+  },
+
+  offlineCard: {
+    backgroundColor: Colors.surfaceBlue,
+    borderColor: Colors.borderStrong,
+    borderWidth: 1,
+    borderRadius: Radius.lg,
+    padding: Spacing.lg,
+    marginBottom: Spacing.lg,
+  },
+
+  offlineHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: Spacing.sm,
+  },
+
+  offlineIconContainer: {
+    width: 28,
+    height: 28,
+    borderRadius: Radius.full,
+    backgroundColor: Colors.secondarySoft,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: Spacing.sm,
+  },
+
+  offlineIconText: {
+    color: Colors.secondary,
+    fontWeight: "800",
+    fontSize: 14,
+  },
+
+  offlineTitleContainer: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+
+  offlineTitle: {
+    ...Typography.title,
+    fontSize: 16,
+    lineHeight: 22,
+    color: Colors.textPrimary,
+  },
+
+  offlineBadge: {
+    backgroundColor: Colors.secondarySoft,
+    borderRadius: Radius.full,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 2,
+  },
+
+  offlineBadgeText: {
+    ...Typography.label,
+    fontSize: 11,
+    lineHeight: 14,
+    color: Colors.secondary,
+    fontWeight: "700",
+  },
+
+  offlineDescription: {
+    ...Typography.body,
+    fontSize: 14,
+    lineHeight: 20,
+    color: Colors.textSecondary,
+    marginBottom: Spacing.md,
+  },
+
+  offlineRetryButton: {
+    backgroundColor: Colors.primary,
+    borderRadius: Radius.md,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  offlineRetryButtonText: {
+    ...Typography.button,
+    fontSize: 14,
+    lineHeight: 20,
+    color: Colors.textInverse,
+    fontWeight: "700",
   },
 });

@@ -41,7 +41,7 @@
 - **Motor de Caché y Borradores:** `@react-native-async-storage/async-storage` `2.2.0` (persistencia del token de sesión Supabase y cola transaccional para borradores locales aislados por identificador de usuario).
 
 ### Calidad, Análisis Estático & Testing
-- **Test Runner:** [Vitest](https://vitest.dev/) `5.0.4` (227 pruebas unitarias y de integración en 23 suites que validan componentes UI, contratos, utilidades, servicios y Edge Functions al 100%).
+- **Test Runner:** [Vitest](https://vitest.dev/) `5.0.4` (232 pruebas unitarias y de integración en 23 suites que validan componentes UI, contratos, utilidades, servicios y Edge Functions al 100%).
 - **Linter:** [ESLint](https://eslint.org/) `^9.39.5` con configuración `eslint-config-expo`.
 - **Verificación de Tipos:** `typescript` con validación estricta sin emisiones (`npx tsc --noEmit`).
 
@@ -245,7 +245,20 @@ Habiendo alcanzado la estabilidad total del motor de backend y del proveedor de 
   - `src/components/ui/AiQuotaAlertBanner.test.tsx`: 9 pruebas unitarias que validan el mapeo de cada alcance de cuota, el renderizado del banner, mensajes de seguridad y botones de reintento.
   - `src/services/analysisService.test.ts`: prueba añadida para comprobar que el `scope` del error 429 se preserva en `AnalysisServiceError`.
   - `src/integration/aiWorkflow.test.ts`: verificación de la presencia del componente `AiQuotaAlertBanner` en la pantalla de resultados.
+
+### Commit 100 — HITO CENTENARIO: Detección Proactiva de Modo Offline y Resiliencia de Red en Análisis de IA
+- **Celebración de Hito:** ¡El repositorio VisualTrace Mobile alcanza oficialmente los 100 commits! Consolidando un estándar estricto de calidad, arquitectura desacoplada, seguridad RLS multi-tenant y cero errores en CI/CD.
+- **Detección Proactiva y Manejo Offline en Workflow:** `src/services/analysisWorkflow.ts`
+  - Incorporación del estado `network_offline` en `AnalysisStatus`, mapeado a la acción `analyze` con etiqueta contextual "Reintentar conexión".
+  - Creación de la clase `NetworkOfflineError` y función pura de inspección `isNetworkError(error)` para categorizar fallos de conectividad, caídas de socket, errores de fetch o interrupciones de red.
+  - Inyección de comprobación de conectividad (`checkOnline` / `defaultNetworkChecker`) previa a la solicitud de red, abortando proactivamente solicitudes innecesarias hacia Supabase Edge Functions y protegiendo el ancho de banda y la experiencia del usuario.
+- **Capa Visual y Experiencia de Usuario:** `src/app/comparison-result.tsx`
+  - Detección reactiva de modo offline: si la red falla antes o durante la inferencia, se captura limpiamente el error, se cierra de inmediato el modal de carga bloqueante (evitando congelar la interfaz) y se presenta la tarjeta responsiva de aviso offline (`ai-offline-banner`).
+  - Tarjeta con Design Tokens (`Colors.surfaceBlue`, `Colors.secondary`, `Colors.secondarySoft`, `Radius.lg`, `Spacing.lg`), badge "Offline", mensaje tranquilizador (confirmando que las fotos locales están 100% seguras) y botón destacado "Reintentar conexión".
+- **Suite de Pruebas Automatizadas:**
+  - `src/services/analysisWorkflow.test.ts`: 5 nuevas pruebas unitarias (19 pruebas en total en el archivo) que verifican el mapeo de estados, `NetworkOfflineError` proactivo, ejecución condicional según conectividad, identificación exhaustiva de errores de red y transiciones de recuperación.
+  - `src/integration/aiWorkflow.test.ts`: validación contractual en la pantalla de resultados de los componentes de UI offline (`ai-offline-banner` y botón de reintento).
 - **Estado Actual del Repositorio:**
-  - 227 pruebas automatizadas superadas (`23/23` suites en verde).
+  - 232 pruebas automatizadas superadas (`23/23` suites en verde).
   - Verificación de tipos TypeScript estricta sin emisiones (`npx tsc --noEmit` exit 0).
   - Verificación estática con ESLint al 100% limpia sin errores ni advertencias (`npx eslint .` exit 0).
