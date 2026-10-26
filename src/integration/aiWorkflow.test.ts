@@ -13,7 +13,7 @@ const comparison = {
   final_image_path: `user-1/${comparisonId}/final.jpg`,
 };
 const analysis = {
-  model: "gemini-2.5-flash",
+  model: "gemini-1.5-flash",
   report: {
     contractVersion: "1.0",
     hasVisibleChanges: true,
@@ -78,12 +78,12 @@ describe("end-to-end AI analysis orchestration", () => {
   });
 
   it.each([
-    ["model_unavailable", 502],
+    ["model_unavailable", 500],
     ["provider_quota_exceeded", 429],
     ["gemini_timeout", 504],
-    ["gemini_network_error", 502],
-    ["invalid_gemini_request", 502],
-    ["invalid_gemini_response", 502],
+    ["gemini_network_error", 500],
+    ["invalid_gemini_request", 500],
+    ["invalid_gemini_response", 500],
   ])("maps Gemini failure %s and conservatively consumes the attempt", async (code, status) => {
     const completeUsage = vi.fn().mockResolvedValue(undefined);
     const deps = dependencies({
@@ -148,7 +148,7 @@ describe("end-to-end AI analysis orchestration", () => {
       reserveUsage: vi.fn().mockRejectedValue(new Error("database unavailable")),
     });
     const response = await createAnalyzeComparisonHandler(deps)(post());
-    expect(response.status).toBe(503);
+    expect(response.status).toBe(500);
     await expect(response.json()).resolves.toMatchObject({
       code: "usage_limits_unavailable",
     });

@@ -33,7 +33,7 @@
   - **Edge Functions (Deno Runtime):** Función `analyze-comparison` desplegada activamente en producción con verificación JWT (`verify_jwt = true`), descarga y validación binaria de imágenes, deduplicación de ejecuciones y control estricto de cuotas transaccionales.
 
 ### Inteligencia Artificial
-- **Motor de Inferencia:** Google Gemini REST API (modelo de referencia: `gemini-2.5-flash`), ejecutado de forma privada desde Supabase Edge Functions con secreto `GEMINI_API_KEY` aprovisionado en la nube.
+- **Motor de Inferencia:** Google Gemini REST API (modelo de referencia: `gemini-1.5-flash`), ejecutado de forma privada desde Supabase Edge Functions con secreto `GEMINI_API_KEY` aprovisionado en la nube.
 - **Contrato de Integración:** Especificación `1.0` con salida estructurada mandatoria mediante JSON Schema (`GEMINI_ANALYSIS_RESPONSE_SCHEMA`). La invocación se realiza exclusivamente desde el backend protegido; nunca se expone la API Key ni se procesa directamente en el cliente.
 
 ### Persistencia Local

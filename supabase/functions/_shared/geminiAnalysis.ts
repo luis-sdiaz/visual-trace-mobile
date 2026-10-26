@@ -38,7 +38,6 @@ export const GEMINI_ANALYSIS_LIMITS = {
 
 export const GEMINI_ANALYSIS_RESPONSE_SCHEMA = {
   type: "OBJECT",
-  additionalProperties: false,
   required: [
     "contractVersion",
     "hasVisibleChanges",
@@ -55,14 +54,11 @@ export const GEMINI_ANALYSIS_RESPONSE_SCHEMA = {
     hasVisibleChanges: { type: "BOOLEAN" },
     summary: {
       type: "STRING",
-      maxLength: GEMINI_ANALYSIS_LIMITS.summaryMaxLength,
     },
     differences: {
       type: "ARRAY",
-      maxItems: GEMINI_ANALYSIS_LIMITS.maxDifferences,
       items: {
         type: "OBJECT",
-        additionalProperties: false,
         required: ["category", "description"],
         properties: {
           category: {
@@ -71,25 +67,20 @@ export const GEMINI_ANALYSIS_RESPONSE_SCHEMA = {
           },
           description: {
             type: "STRING",
-            maxLength: GEMINI_ANALYSIS_LIMITS.differenceDescriptionMaxLength,
           },
         },
       },
     },
     observations: {
       type: "ARRAY",
-      maxItems: GEMINI_ANALYSIS_LIMITS.maxObservations,
       items: {
         type: "STRING",
-        maxLength: GEMINI_ANALYSIS_LIMITS.observationMaxLength,
       },
     },
     uncertainties: {
       type: "ARRAY",
-      maxItems: GEMINI_ANALYSIS_LIMITS.maxUncertainties,
       items: {
         type: "STRING",
-        maxLength: GEMINI_ANALYSIS_LIMITS.uncertaintyMaxLength,
       },
     },
   },

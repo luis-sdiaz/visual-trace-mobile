@@ -27,6 +27,46 @@ function request(body: unknown, authorization = "Bearer valid") {
 }
 
 describe("analyze-comparison authorization", () => {
+  it("responds with 200, 'ok', and CORS headers on OPTIONS preflight request", async () => {
+    const handler = createAnalyzeComparisonHandler({
+      authenticate: vi.fn(),
+      findComparison: vi.fn(),
+      loadImages,
+      analyzeImages,
+      persistReport,
+      reserveUsage,
+      completeUsage,
+    });
+    const response = await handler(
+      new Request("http://localhost/analyze-comparison", { method: "OPTIONS" }),
+    );
+    expect(response.status).toBe(200);
+    expect(await response.text()).toBe("ok");
+    expect(response.headers.get("Access-Control-Allow-Origin")).toBe("*");
+    expect(response.headers.get("Access-Control-Allow-Headers")).toBe(
+      "authorization, x-client-info, apikey, content-type",
+    );
+    expect(response.headers.get("Access-Control-Allow-Methods")).toBe("POST, OPTIONS");
+  });
+
+  it("includes CORS headers in error responses", async () => {
+    const handler = createAnalyzeComparisonHandler({
+      authenticate: vi.fn().mockResolvedValue(null),
+      findComparison: vi.fn(),
+      loadImages,
+      analyzeImages,
+      persistReport,
+      reserveUsage,
+      completeUsage,
+    });
+    const response = await handler(request({ comparisonId }));
+    expect(response.status).toBe(401);
+    expect(response.headers.get("Access-Control-Allow-Origin")).toBe("*");
+    expect(response.headers.get("Access-Control-Allow-Headers")).toBe(
+      "authorization, x-client-info, apikey, content-type",
+    );
+  });
+
   it("rejects unsupported methods", async () => {
     const handler = createAnalyzeComparisonHandler({
       authenticate: vi.fn(),
@@ -189,5 +229,82 @@ describe("analyze-comparison authorization", () => {
       code: "usage_limit_reached",
       scope: "user_day",
     });
+  });
+
+  it("catches unhandled exceptions and returns 500 with CORS headers and structured error", async () => {
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const handler = createAnalyzeComparisonHandler({
+      authenticate: vi.fn(),
+      findComparison: vi.fn(),
+      loadImages,
+      analyzeImages,
+      persistReport,
+      reserveUsage,
+      completeUsage,
+    });
+    const faultyRequest = {
+      method: "POST",
+      headers: {
+        get: () => {
+          throw new Error("Simulated unexpected runtime crash");
+        },
+      },
+    } as unknown as Request;
+
+    const response = await handler(faultyRequest);
+    expect(response.status).toBe(500);
+    expect(response.headers.get("Access-Control-Allow-Origin")).toBe("*");
+    expect(response.headers.get("Access-Control-Allow-Headers")).toBe(
+      "authorization, x-client-info, apikey, content-type",
+    );
+    expect(response.headers.get("Access-Control-Allow-Methods")).toBe("POST, OPTIONS");
+
+    const body = await response.json();
+    expect(body).toMatchObject({
+      error: "Simulated unexpected runtime crash",
+      code: "internal_error",
+    });
+    expect(body.stack).toBeDefined();
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      "[analyze-comparison] Unhandled error:",
+      expect.any(Error),
+    );
+    consoleErrorSpy.mockRestore();
+  });
+
+  it("handles non-Error exceptions gracefully in the global catch", async () => {
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const handler = createAnalyzeComparisonHandler({
+      authenticate: vi.fn(),
+      findComparison: vi.fn(),
+      loadImages,
+      analyzeImages,
+      persistReport,
+      reserveUsage,
+      completeUsage,
+    });
+    const faultyRequest = {
+      method: "POST",
+      headers: {
+        get: () => {
+          throw "non-error-string";
+        },
+      },
+    } as unknown as Request;
+
+    const response = await handler(faultyRequest);
+    expect(response.status).toBe(500);
+    expect(response.headers.get("Access-Control-Allow-Origin")).toBe("*");
+
+    const body = await response.json();
+    expect(body).toEqual({
+      error: "Internal server error",
+      code: "internal_error",
+    });
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      "[analyze-comparison] Unhandled error:",
+      "non-error-string",
+    );
+    consoleErrorSpy.mockRestore();
   });
 });

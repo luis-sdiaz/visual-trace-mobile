@@ -12,25 +12,52 @@ export type UsageLimits = {
   comparisonPerDay: number;
 };
 
-function readLimit(value: string | undefined, maximum: number): number {
-  const parsed = Number(value);
-  if (!value || !Number.isInteger(parsed) || parsed < 1 || parsed > maximum) {
-    throw new Error("AI usage limit configuration is unavailable or unsafe.");
+export const DEFAULT_USAGE_LIMITS: UsageLimits = {
+  globalPerMinute: MAX_FREE_TIER_LIMITS.globalPerMinute,
+  globalPerDay: MAX_FREE_TIER_LIMITS.globalPerDay,
+  userPerDay: MAX_FREE_TIER_LIMITS.userPerDay,
+  comparisonPerDay: MAX_FREE_TIER_LIMITS.comparisonPerDay,
+};
+
+function readLimit(
+  value: string | undefined | null,
+  maximum: number,
+  fallback: number,
+): number {
+  if (value === undefined || value === null || typeof value !== "string" || value.trim() === "") {
+    return fallback;
+  }
+  const parsed = Number(value.trim());
+  if (!Number.isInteger(parsed) || parsed < 1 || parsed > maximum) {
+    return fallback;
   }
   return parsed;
 }
 
-export function readUsageLimits(getEnv: (name: string) => string | undefined): UsageLimits {
+export function readUsageLimits(
+  getEnv: (name: string) => string | undefined | null,
+  defaults: UsageLimits = DEFAULT_USAGE_LIMITS,
+): UsageLimits {
   return {
     globalPerMinute: readLimit(
       getEnv("AI_GLOBAL_PER_MINUTE"),
       MAX_FREE_TIER_LIMITS.globalPerMinute,
+      defaults.globalPerMinute,
     ),
-    globalPerDay: readLimit(getEnv("AI_GLOBAL_PER_DAY"), MAX_FREE_TIER_LIMITS.globalPerDay),
-    userPerDay: readLimit(getEnv("AI_USER_PER_DAY"), MAX_FREE_TIER_LIMITS.userPerDay),
+    globalPerDay: readLimit(
+      getEnv("AI_GLOBAL_PER_DAY"),
+      MAX_FREE_TIER_LIMITS.globalPerDay,
+      defaults.globalPerDay,
+    ),
+    userPerDay: readLimit(
+      getEnv("AI_USER_PER_DAY"),
+      MAX_FREE_TIER_LIMITS.userPerDay,
+      defaults.userPerDay,
+    ),
     comparisonPerDay: readLimit(
       getEnv("AI_COMPARISON_PER_DAY"),
       MAX_FREE_TIER_LIMITS.comparisonPerDay,
+      defaults.comparisonPerDay,
     ),
   };
 }

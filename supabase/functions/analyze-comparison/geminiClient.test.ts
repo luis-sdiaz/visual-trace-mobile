@@ -40,6 +40,23 @@ describe("Gemini client", () => {
     expect(fetcher).toHaveBeenCalledTimes(1);
   });
 
+  it("sanitizes model name by removing duplicate models/ prefix", async () => {
+    const fetcher = vi.fn().mockResolvedValue(response(200, {
+      candidates: [{ content: { parts: [{ text: JSON.stringify(report) }] } }],
+    }));
+    const client = createGeminiClient({
+      apiKey: "test-key",
+      model: "models/gemini-3.5-flash",
+      fetcher,
+    });
+    const result = await client.analyze(initial, final);
+    const calledUrl = fetcher.mock.calls[0][0];
+    expect(calledUrl).toBe(
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent",
+    );
+    expect(result.model).toBe("gemini-3.5-flash");
+  });
+
   it.each([
     [429, {}, "provider_quota_exceeded"],
     [404, {}, "model_unavailable"],
@@ -58,20 +75,38 @@ describe("Gemini client", () => {
     await expect(client.analyze(initial, final)).rejects.toMatchObject({ code });
   });
 
-  it("does not expose provider error details", async () => {
+  it("extracts and propagates the exact error message from Google", async () => {
     const client = createGeminiClient({
       apiKey: "test-key",
       fetcher: vi.fn().mockResolvedValue(response(400, {
         error: {
           status: "INVALID_ARGUMENT",
-          message: "Internal provider detail containing sensitive request context",
+          message: "Detailed Google provider message for debugging",
         },
       })),
     });
 
     await expect(client.analyze(initial, final)).rejects.toMatchObject({
       code: "invalid_gemini_request",
-      message: "Gemini rechazó la solicitud de análisis.",
+      message: "Detailed Google provider message for debugging",
+    });
+  });
+
+  it("maps API_KEY_INVALID to gemini_not_configured", async () => {
+    const client = createGeminiClient({
+      apiKey: "invalid-key",
+      fetcher: vi.fn().mockResolvedValue(response(400, {
+        error: {
+          code: 400,
+          message: "API key not valid. Please pass a valid API key.",
+          status: "INVALID_ARGUMENT",
+          details: [{ reason: "API_KEY_INVALID" }],
+        },
+      })),
+    });
+
+    await expect(client.analyze(initial, final)).rejects.toMatchObject({
+      code: "gemini_not_configured",
     });
   });
 

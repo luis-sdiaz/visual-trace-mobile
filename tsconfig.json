@@ -19,7 +19,5 @@
     ".expo/types/**/*.ts",
     "expo-env.d.ts"
   ],
-  "exclude": [
-    "supabase/functions/**/index.ts"
-  ]
+  "exclude": []
 }

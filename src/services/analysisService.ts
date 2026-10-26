@@ -123,12 +123,19 @@ export async function requestComparisonAnalysis(
   if (error) {
     let code: string | undefined;
     let status: number | undefined;
+    let serverMessage: string | undefined;
     const context = (error as { context?: unknown }).context;
     if (context instanceof Response) {
       status = context.status;
       try {
-        const body = (await context.clone().json()) as { code?: string };
+        const bodyText = await context.clone().text();
+        console.error("[analysisService] Error devuelto por Edge Function:", {
+          status,
+          bodyText,
+        });
+        const body = JSON.parse(bodyText);
         code = body?.code;
+        serverMessage = body?.error || body?.message;
       } catch {
         code = undefined;
       }
@@ -136,6 +143,17 @@ export async function requestComparisonAnalysis(
       const obj = context as Record<string, unknown>;
       code = typeof obj.code === "string" ? obj.code : undefined;
       status = typeof obj.status === "number" ? obj.status : undefined;
+      serverMessage =
+        typeof obj.error === "string"
+          ? obj.error
+          : typeof obj.message === "string"
+            ? obj.message
+            : undefined;
+      console.error("[analysisService] Error devuelto por Edge Function:", {
+        status,
+        code,
+        obj,
+      });
     }
 
     if (
@@ -164,6 +182,13 @@ export async function requestComparisonAnalysis(
       throw new AnalysisServiceError(
         "reports_unavailable",
         "El servicio de análisis no está disponible en este momento.",
+      );
+    }
+    if (code === "gemini_not_configured") {
+      throw new AnalysisServiceError(
+        "reports_unavailable",
+        serverMessage ||
+          "La clave GEMINI_API_KEY no es válida o no está configurada en Supabase Secrets.",
       );
     }
     throw new AnalysisServiceError("retryable", "No fue posible completar el análisis.");
