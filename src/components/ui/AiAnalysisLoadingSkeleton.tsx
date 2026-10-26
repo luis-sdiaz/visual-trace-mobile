@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 
 import { Colors } from "@/constants/colors";
@@ -115,38 +115,38 @@ export function useAiLoadingStages({
   loop = false,
   onStageChange,
 }: UseAiLoadingStagesOptions = {}) {
-  const [activeStageIndex, setActiveStageIndex] = useState(
-    currentStageIndex !== undefined ? currentStageIndex : initialIndex,
+  const isControlled = currentStageIndex !== undefined;
+  const [internalIndex, setInternalIndex] = useState(initialIndex);
+
+  const effectiveIndex = Math.min(
+    Math.max(isControlled ? currentStageIndex : internalIndex, 0),
+    Math.max(stages.length - 1, 0),
   );
 
+  const onStageChangeRef = useRef(onStageChange);
   useEffect(() => {
-    if (currentStageIndex !== undefined) {
-      setActiveStageIndex(currentStageIndex);
+    onStageChangeRef.current = onStageChange;
+  });
+
+  useEffect(() => {
+    if (isControlled || stages.length <= 1) {
       return;
     }
 
-    const scheduler = createAiLoadingScheduler({
-      stages,
-      intervalMs,
-      initialIndex: activeStageIndex,
-      loop,
-      onStageChange: (index, stage) => {
-        setActiveStageIndex(index);
-        onStageChange?.(index, stage);
-      },
-    });
-
-    scheduler.start();
+    const timer = setInterval(() => {
+      setInternalIndex((prev) => {
+        const next = prev < stages.length - 1 ? prev + 1 : loop ? 0 : prev;
+        if (next !== prev) {
+          onStageChangeRef.current?.(next, stages[next] ?? stages[0]);
+        }
+        return next;
+      });
+    }, intervalMs);
 
     return () => {
-      scheduler.stop();
+      clearInterval(timer);
     };
-  }, [currentStageIndex, intervalMs, loop, stages]);
-
-  const effectiveIndex =
-    currentStageIndex !== undefined
-      ? Math.min(Math.max(currentStageIndex, 0), Math.max(stages.length - 1, 0))
-      : Math.min(Math.max(activeStageIndex, 0), Math.max(stages.length - 1, 0));
+  }, [intervalMs, isControlled, loop, stages]);
 
   const currentStage = stages[effectiveIndex] ?? stages[0];
 
@@ -413,4 +413,3 @@ const styles = StyleSheet.create({
     fontWeight: "400",
   },
 });
-
