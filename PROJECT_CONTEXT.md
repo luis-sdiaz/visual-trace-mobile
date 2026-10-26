@@ -10,7 +10,7 @@
 
 ### Entorno Móvil & Runtime
 - **Framework Principal:** [React Native](https://reactnative.dev/) `0.86.3` sobre [Expo SDK 57](https://expo.dev/) (`expo ~57.0.30`).
-- **Arquitectura React:** [React 19](https://react.dev/) `19.2.3` con soporte experimental para React Compiler activado (`reactCompiler: true`).
+- **Arquitectura React:** [React 19](https://react.dev/) `19.2.3` con soporte para React Compiler activado (`reactCompiler: true`).
 - **Enrutamiento y Navegación:** [Expo Router](https://docs.expo.dev/router/introduction/) `~57.0.28` (enrutamiento declarativo basado en sistema de archivos con `typedRoutes` habilitado).
 - **Lenguaje:** [TypeScript](https://www.typescriptlang.org/) `~6.0.3` con verificación estricta (`strict: true`) y resolución de rutas modularizada (`@/*`).
 
@@ -26,23 +26,24 @@
 - **Sistema de Archivos:** `expo-file-system` `~57.0.7`.
 
 ### Backend, Persistencia & Servicios en la Nube
-- **Plataforma BaaS:** [Supabase](https://supabase.com/) (`@supabase/supabase-js` `^2.117.2`).
+- **Plataforma BaaS:** [Supabase](https://supabase.com/) (`@supabase/supabase-js` `^2.48.0` / ESM CDN en Deno).
   - **Supabase Auth:** Autenticación por correo y contraseña, control de sesión persistente y revocación.
   - **Base de Datos (PostgreSQL 15+):** Tablas relacionales con Row Level Security (RLS) mandatorio, políticas multi-tenant y procedimientos almacenados transaccionales (`security definer`).
-  - **Supabase Storage:** Bucket privado `comparison-images` protegido por políticas RLS jerárquicas e idempotentes, límite de archivo sincronizado a 10 MiB (10,485,760 bytes), límite de par a 20 MiB (20,971,520 bytes) y acceso mediante URLs prefirmadas de tiempo limitado (TTL corto por defecto de 300 s).
-  - **Edge Functions (Deno Runtime):** Función `analyze-comparison` desplegada activamente en producción con verificación JWT (`verify_jwt = true`), descarga y validación binaria de imágenes, deduplicación de ejecuciones y control estricto de cuotas transaccionales.
+  - **Supabase Storage:** Bucket privado `comparison-images` protegido por políticas RLS jerárquicas e idempotentes, límite individual sincronizado a 10 MiB (10,485,760 bytes), límite de par a 20 MiB (20,971,520 bytes) y acceso mediante URLs prefirmadas de tiempo limitado.
+  - **Edge Functions (Deno Runtime):** Función `analyze-comparison` desplegada activamente en producción (versión 29, `status: ACTIVE`) con verificación JWT (`verify_jwt = true`), descarga y validación binaria de imágenes en memoria, deduplicación de ejecuciones y control estricto de cuotas transaccionales.
 
 ### Inteligencia Artificial
-- **Motor de Inferencia:** Google Gemini REST API (modelo de referencia: `gemini-1.5-flash`), ejecutado de forma privada desde Supabase Edge Functions con secreto `GEMINI_API_KEY` aprovisionado en la nube.
+- **Motor de Inferencia:** Google Gemini REST API v1beta / v1 (modelo activo validado: `gemini-3.5-flash`), ejecutado de forma privada desde Supabase Edge Functions con secreto `GEMINI_API_KEY` aprovisionado en la nube.
+- **Sincronización de Entorno:** Secreto remoto `GEMINI_MODEL=gemini-3.5-flash` activo en Supabase Secrets.
 - **Contrato de Integración:** Especificación `1.0` con salida estructurada mandatoria mediante JSON Schema (`GEMINI_ANALYSIS_RESPONSE_SCHEMA`). La invocación se realiza exclusivamente desde el backend protegido; nunca se expone la API Key ni se procesa directamente en el cliente.
 
 ### Persistencia Local
 - **Motor de Caché y Borradores:** `@react-native-async-storage/async-storage` `2.2.0` (persistencia del token de sesión Supabase y cola transaccional para borradores locales aislados por identificador de usuario).
 
 ### Calidad, Análisis Estático & Testing
-- **Test Runner:** [Vitest](https://vitest.dev/) `5.0.4` (199 pruebas unitarias y de integración que validan contratos, utilidades, servicios y Edge Functions).
+- **Test Runner:** [Vitest](https://vitest.dev/) `5.0.4` (208 pruebas unitarias y de integración que validan contratos, utilidades, servicios y Edge Functions al 100%).
 - **Linter:** [ESLint](https://eslint.org/) `^9.39.5` con configuración `eslint-config-expo`.
-- **Pruebas de Base de Datos:** Scripts SQL transaccionales (`ROLLBACK`) para verificación de RLS y cuotas en PostgreSQL.
+- **Verificación de Tipos:** `typescript` con validación estricta sin emisiones (`npx tsc --noEmit`).
 
 ---
 
@@ -90,20 +91,7 @@
 2. **Control de Concurrencia y Resiliencia:**
    - **Single-Flight Pattern (`singleFlight.ts`):** Deduplica promesas en vuelo para evitar condiciones de carrera al solicitar URLs firmadas o ejecutar análisis de IA.
    - **Optimistic Concurrency & Naming Versioning:** Gestión atómica de reemplazo de imágenes en Supabase Storage mediante prefijos de versionado (`stage-TIMESTAMP.ext`), garantizando que lecturas concurrentes nunca observen un estado inconsistente.
-   - **Defensive Quota Reservation:** Sistema transaccional en PostgreSQL (`ai_usage_limits`) que reserva la cuota previa a la llamada al LLM y maneja fallos inciertos de manera conservadora.
-
-### Manejo de Estado Global y Local
-
-La aplicación evita dependencias de librerías externas de estado (como Redux o Zustand), aprovechando la composición modular de **React Context API** combinada con persistencia asíncrona serializada:
-
-- **`AuthContext` (`src/context/AuthContext.tsx`):**
-  - Administra el ciclo de vida de la sesión activa (`session`, `user`, `isLoading`).
-  - Sincroniza en tiempo real los eventos de autenticación emitidos por Supabase mediante `observeAuthSession`.
-  - Gobierna el enrutamiento protegido mediante la primitiva declarativa `<Stack.Protected guard={...} />` de Expo Router, bloqueando rutas privadas para invitados y viceversa.
-
-- **`ComparisonContext` (`src/context/ComparisonContext.tsx`):**
-  - Controla el estado transaccional del borrador en curso: metadatos (`comparisonId`, `name`), URIs locales (`initialImageUri`, `finalImageUri`), rutas remotas (`initialImagePath`, `finalImagePath`) y banderas de sincronización (`isDirty`, `isTransient`).
-  - Implementa una cola de persistencia serializada hacia AsyncStorage (`persistenceQueueRef`), garantizando aislamiento multiusuario (`@visualtrace/comparison-draft:<userId>`) y evitando sobreescrituras por desincronización en hidratación.
+   - **Defensive Quota Reservation:** Sistema transaccional en PostgreSQL (`ai_usage_limits` y RPCs) que reserva la cuota previa a la llamada al LLM y maneja fallos inciertos de manera conservadora con rollback de reservas.
 
 ---
 
@@ -147,7 +135,7 @@ VisualTrace/
 │   ├── functions/              # Supabase Edge Functions (Deno)
 │   │   ├── _shared/            # Módulos y esquemas compartidos entre cliente y funciones
 │   │   └── analyze-comparison/ # Edge function para inferencia de Gemini y control de cuota
-│   ├── migrations/             # Migraciones SQL versionadas (tablas, RLS, funciones PL/pgSQL)
+│   ├── migrations/             # Migraciones SQL versionadas (tablas, RLS, procedimientos PL/pgSQL)
 │   └── tests/                  # Pruebas de integración sobre PostgreSQL y Storage RLS
 ├── .env.local                  # Variables de entorno públicas del cliente (no versionado)
 ├── app.json                    # Manifiesto de configuración de Expo
@@ -159,39 +147,55 @@ VisualTrace/
 
 ---
 
-## 5. Estado Actual
+## 5. Resumen Ejecutivo de los Logros Técnicos de la Fase 1 (Cierre Oficial)
 
-### Fase de Desarrollo
-**Fase de Maduración Funcional y Preparación para Despliegue Remoto — Fase 1 (Bloque C) — Total Commits: 93.**
+La **Fase 1** concluyó con éxito rotundo, alcanzando la estabilización técnica integral de la arquitectura backend, la integración de IA y la validación end-to-end:
 
-### Componentes Terminados y Validados
-- **Autenticación Completa:** Flujos de registro, inicio de sesión, cierre de sesión, persistencia de sesión con AsyncStorage y navegación protegida reactiva en base a credenciales válidas.
-- **Flujo Guiado de Comparación (Wizard):** Creación de entidad de comparación (`draft`), asignación de título, captura y validación fotográfica de estado inicial y final con subida atómica a Supabase Storage y transición a estado `ready`.
-- **Navegación Contextual y Resiliencia en Historial (Resuelto en Commit 90):** Solución definitiva al ciclo de retroceso forzado en comparaciones abiertas desde el historial (`home` -> `comparison-result`). Se implementó propagación de parámetro contextual (`source: 'history'`), intercepción del botón físico en Android con `BackHandler`, configuración de `headerLeft` en `<Stack.Screen>` y retorno directo a `home` mediante `router.dismissTo('/home')`, preservando el flujo secuencial original del wizard (`router.back()`) para comparaciones en proceso de creación.
-- **Almacenamiento Seguro Multi-inquilino e Idempotencia (Fase 1 - Bloque C, Commit 91):**
-  - Bucket privado `comparison-images` protegido por políticas RLS que verifican propiedad estricta por `user_id`.
-  - Migración SQL (`202610150001_version_private_comparison_storage.sql`) blindada e idempotente para evitar colisiones contra buckets preexistentes en producción mediante `INSERT INTO storage.buckets ... ON CONFLICT (id) DO UPDATE SET file_size_limit = EXCLUDED.file_size_limit`.
-  - Sentencias `CREATE POLICY` blindadas en bloques `DO $$ BEGIN ... EXCEPTION WHEN duplicate_object THEN null; END $$;`.
-  - Límites de tamaño sincronizados con la infraestructura remota de producción: **10 MiB (10,485,760 bytes)** por imagen individual y **20 MiB (20,971,520 bytes)** por par de fotografías (`supabase/functions/_shared/comparisonImages.ts` y contratos cliente).
-- **Backend de IA Aprovisionado y Desplegado en Producción (Fase 1 - Bloque C, Commit 92):**
-  - Infraestructura del backend de IA 100% aprovisionada en la nube en Supabase Remote: tablas de reportes de análisis (`ai_analysis_reports`), mecanismos de control de uso (`ai_usage_limits`), procedimientos PL/pgSQL transaccionales de reserva/consumo y RLS activo.
-  - Edge Function `analyze-comparison` desplegada activamente en producción en Supabase con verificación estricta de token JWT (`verify_jwt = true`).
-  - Configuración exitosa del secreto `GEMINI_API_KEY` en el entorno remoto de Supabase, garantizando acceso seguro y aislado al proveedor de IA sin exponer credenciales al bundle móvil.
-  - Validación estricta de binarios activa (máximo 10 MiB individual / 20 MiB combinado, comprobación de cabeceras mágicas), verificación del contrato JSON v1.0 y reserva transaccional de cuotas (`AI_GLOBAL_PER_MINUTE`, `AI_GLOBAL_PER_DAY`, `AI_USER_PER_DAY`, `AI_COMPARISON_PER_DAY`).
-- **Integración y Refinamiento del Flujo Cliente de IA (Fase 1 - Bloque C, Commit 93):**
-  - Robustecimiento de `analysisService.ts` con manejo integral de respuestas de Edge Functions: token JWT de sesión activo, mapeo de códigos de cuota HTTP 429 (`usage_limit_reached` y `provider_quota_exceeded`), indisponibilidad de cuota HTTP 503 (`usage_limits_unavailable` -> `reports_unavailable`), concurrencia HTTP 409 (`analysis_in_progress`) y revocación de sesión HTTP 401.
-  - Refinamiento de la presentación visual en `analysisWorkflow.ts` distinguiendo el estado `limited` ("Límite alcanzado").
-  - Fortalecimiento de la interfaz en `comparison-result.tsx`: deshabilitación sistemática de botones interactivos (`isAnalyzing`) durante la invocación (botón de análisis, edición de nombres, retroceso nativo y hardware de Android mediante `BackHandler`), renderizado de loaders contextuales y despliegue prominente del informe estructurado o tarjeta de advertencia ante agotamiento de cuotas.
-- **Panel Principal (Home):** Paginación por cursores (`keyset pagination`), búsqueda en tiempo real insensible a acentos/caracteres especiales, filtrado por estados (`draft`, `ready`, `analyzed`) y ordenamiento cronológico.
-- **Persistencia de Borradores en Cliente:** Soporte para recuperación de sesión y borrador tras interrupción, con aislamiento por usuario y validación de concurrencia.
-- **Control de Calidad:**
-  - 199 pruebas automatizadas ejecutadas y superadas en Vitest (`21/21` archivos de test pasados).
-  - Verificación de tipos TypeScript estricta (`npx tsc --noEmit`) sin advertencias ni errores.
-  - Análisis estático con ESLint (`expo lint`) sin observaciones.
+### 1. Estabilización Completa de Supabase Edge Functions (`analyze-comparison`)
+- **Blindaje del Ciclo de Vida Deno:** Se implementó un envoltorio global `try/catch` ultra-robusto alrededor del ciclo de vida de `Deno.serve`, handlers de `unhandledrejection` / `error`, e inicialización diferida (`lazy init`) con validación previa de variables de entorno.
+- **Manejo Integral de CORS:** Preflight `OPTIONS` interceptado de forma inmediata e incondicional con cabeceras CORS homogéneas en respuestas de éxito y de error HTTP (500, 502, 503).
+- **Prevención de Fugas y Control de Memoria:** Descarga y lectura de imágenes binarias optimizada en memoria sin copias redundantes de buffers o strings en Base64, evitando colapsos del worker por límites de RAM (256 MB) o cierres abruptos (evitando códigos 502/503 silenciosos).
+- **Sanitización de Modelos y Compatibilidad de URLs:** Sanitización determinista de identificadores de modelo eliminando prefijos redundantes (`rawModel.replace(/^models\//, "")`) para prevenir rutas inválidas (`models/models/...`) en la API de Google.
+- **Propagación Transparente de Errores:** Captura y extracción del mensaje detallado devuelto por la API de Google Generative Language (`error.message`), facilitando diagnósticos inmediatos sin enmascaramiento genérico.
+- **Valores por Defecto Seguros en Cuotas:** Refactorización de `usageLimits.ts` para aplicar valores por defecto seguros ante variables de entorno no configuradas, impidiendo caídas críticas del runtime.
 
-### Fase en Construcción / Próximos Pasos Técnicos
-- **Pruebas en Dispositivos Físicos y Smoke Test de IA en Vivo:**
-  - Validación de hardware en iOS y Android con formatos de cámara nativos (JPEG/PNG/HEIC/HEIF) para confirmar la captura, compresión y subida hacia Supabase Storage bajo el nuevo límite de 10 MiB.
-  - Ejecución del primer *smoke test* de inferencia de extremo a extremo consumiendo la Edge Function `analyze-comparison` desplegada en Supabase remoto con dos imágenes reales para auditar latencias, consumo de cuota y renderizado del informe estructurado.
-- **Monitoreo y Observabilidad en Producción:**
-  - Supervisión de los contadores de cuota en PostgreSQL y trazabilidad de respuestas o eventuales rechazos del proveedor Gemini.
+### 2. Integración y Validación en Vivo de `gemini-3.5-flash`
+- **Inspección de Modelos Activos en Google ModelService:** Mediante consulta directa al endpoint de modelos con la credencial de producción, se mapeó el catálogo activo, descartando modelos deprecados (`gemini-1.5-*`, `gemini-2.0-*`, `gemini-2.5-flash`) y adoptando el modelo oficial activo **`gemini-3.5-flash`**.
+- **Inferencia en Caliente Exitosa:** Validación en vivo en producción ejecutando inferencia visual comparativa multimodal con dos imágenes binarias, generando reportes estructurados bajo el contrato estricto `1.0` en español en un tiempo de respuesta de ~5 segundos.
+- **Soporte de Esquema Estructurado JSON:** Extracción robusta de texto en `geminiClient.ts` compatible con partes de razonamiento (`thoughtSignature`), validando completamente `hasVisibleChanges`, `summary`, `differences`, `observations` y `uncertainties`.
+
+### 3. Infraestructura de Base de Datos y Procedimientos Almacenados (RPCs)
+- **Migración Consolidada:** Aplicación exitosa de la migración `202610250001_ensure_ai_analysis_rpcs_and_tables.sql` en la base de datos remota de Supabase.
+- **Tablas y Seguridad:** Creación y verificación de `public.ai_analysis_reports` y `public.ai_analysis_attempts`, configuradas con Row Level Security (RLS) e índices de búsqueda eficientes.
+- **Procedimientos Transaccionales Seguros (`security definer`):**
+  * `reserve_ai_analysis_usage`: Control transaccional de cuota con bloqueo (`FOR UPDATE`) verificando ventanas por minuto, por día, por usuario y por comparación, con soporte para reuso de reportes preexistentes (`cached`).
+  * `persist_ai_analysis_report`: Inserción idempotente de reportes con actualización de estado en la comparación y registro del intento exitoso.
+  * `complete_ai_analysis_usage`: Conciliación atómica del resultado del intento (éxito o fallo).
+- **Sincronización de Secretos Remotos:** Registro y actualización exitosa de secretos en Supabase Secrets: `GEMINI_API_KEY` aprovisionada y `GEMINI_MODEL=gemini-3.5-flash` sincronizada.
+
+### 4. Calidad, Pruebas y Validación E2E
+- **Suite Vitest al 100%:** 208 pruebas automatizadas ejecutadas y superadas en su totalidad (`21/21` suites de pruebas en verde).
+- **Tipado TypeScript Estricto:** Compilación limpia sin emisiones (`npx tsc --noEmit`) con código de salida 0.
+- **Prueba E2E Validada:** Flujo completo verificado desde la interfaz cliente móvil (captura de fotos, sincronización en Storage, reserva de cuota, inferencia y persistencia del reporte).
+
+---
+
+## 6. Estado Actual y Contexto para la Fase 2
+
+### Fase en Curso: Fase 2 — Experiencia de Usuario, Feedback Visual y Gestión de Cuotas
+
+Habiendo alcanzado la estabilidad total del motor de backend y del proveedor de IA, el foco del desarrollo se traslada a la capa de presentación y experiencia de usuario (UX/UI).
+
+### Bloque D: Feedback Visual Durante el Análisis de IA y Manejo Intuitivo de Cuotas en la UI
+1. **Feedback Visual Durante la Carga de Análisis:**
+   - Implementación de loaders contextuales, skeletons animados e indicadores de progreso/fase (e.g., "Preparando imágenes...", "Analizando diferencias...", "Generando informe...") durante la ventana de espera de la inferencia (3 a 7 segundos).
+   - Prevención activa de interacciones accidentales o reenvíos mientras el análisis está en vuelo.
+
+2. **Manejo Intuitivo de Cuotas Agotadas en la UI:**
+   - Presentación de estados `limited` amigables y educativos cuando se alcanzan límites por minuto o por día (diferenciando cuota de usuario vs cuota por comparación específica).
+   - Indicadores de tiempo de espera o conteo regresivo para el restablecimiento de cuota por minuto.
+   - Enlaces de acción claros (e.g., "Reintentar más tarde", "Ver comparaciones anteriores").
+
+3. **Manejo de Estados de Error y Resiliencia en Cliente:**
+   - Banners informativos no invasivos ante fallos transitorios de red o tiempo de espera excedido (`timeout`).
+   - Mecanismos de reintento manual que preserven el estado de las fotografías cargadas sin reiniciar el flujo wizard.
