@@ -526,4 +526,71 @@ describe("AI database and mobile integration safeguards", () => {
     element.props.onRetry?.();
     expect(retryCalled).toBe(true);
   });
+
+  it("provides AI analysis error fallback card with retry interaction and collapsible technical details", async () => {
+    const screen = readFileSync(
+      resolve(process.cwd(), "src/app/comparison-result.tsx"),
+      "utf8",
+    );
+    expect(screen).toContain("AiAnalysisErrorFallbackCard");
+    expect(screen).toContain("<AiAnalysisErrorFallbackCard");
+
+    const fallbackFile = readFileSync(
+      resolve(process.cwd(), "src/components/ui/AiAnalysisErrorFallbackCard.tsx"),
+      "utf8",
+    );
+    expect(fallbackFile).toContain("ai-analysis-error-fallback-card");
+    expect(fallbackFile).toContain("retry-analysis-button");
+    expect(fallbackFile).toContain("toggle-error-details-button");
+    expect(fallbackFile).toContain("error-technical-details");
+    expect(fallbackFile).toContain("Ocurrió un inconveniente al procesar el análisis");
+
+    const { AiAnalysisErrorFallbackCard } = await import(
+      "@/components/ui/AiAnalysisErrorFallbackCard"
+    );
+
+    // @ts-expect-error react-dom/server type declarations are not in devDependencies
+    const { renderToStaticMarkup } = await import("react-dom/server");
+
+    let retryCalled = false;
+    const testError = "Edge Function invocation failed: 500 model_unavailable";
+
+    // 1. Initial render: shows title, retry button, toggle button, but details collapsed
+    const collapsedHtml = renderToStaticMarkup(
+      createElement(AiAnalysisErrorFallbackCard, {
+        errorMessage: testError,
+        onRetry: () => {
+          retryCalled = true;
+        },
+      }),
+    );
+    expect(collapsedHtml).toContain("ai-analysis-error-fallback-card");
+    expect(collapsedHtml).toContain("Ocurrió un inconveniente al procesar el análisis");
+    expect(collapsedHtml).toContain("retry-analysis-button");
+    expect(collapsedHtml).toContain("Reintentar análisis");
+    expect(collapsedHtml).toContain("toggle-error-details-button");
+    expect(collapsedHtml).toContain("Ver detalles técnicos ▾");
+    expect(collapsedHtml).not.toContain("error-technical-details");
+
+    // 2. Expanded render: shows technical panel and technical error message
+    const expandedHtml = renderToStaticMarkup(
+      createElement(AiAnalysisErrorFallbackCard, {
+        errorMessage: testError,
+        initialShowDetails: true,
+        onRetry: () => {},
+      }),
+    );
+    expect(expandedHtml).toContain("Ocultar detalles técnicos ▴");
+    expect(expandedHtml).toContain("error-technical-details");
+    expect(expandedHtml).toContain(testError);
+
+    // 3. Verify retry callback invocation
+    const element = createElement(AiAnalysisErrorFallbackCard, {
+      onRetry: () => {
+        retryCalled = true;
+      },
+    });
+    element.props.onRetry?.();
+    expect(retryCalled).toBe(true);
+  });
 });

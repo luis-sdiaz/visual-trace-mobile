@@ -24,6 +24,7 @@ import { Button } from "@/components/ui/Button";
 import { AiAnalysisLoadingSkeleton } from "@/components/ui/AiAnalysisLoadingSkeleton";
 import { AiAnalysisSummaryCard } from "@/components/ui/AiAnalysisSummaryCard";
 import { AiOfflineResilienceBanner } from "@/components/ui/AiOfflineResilienceBanner";
+import { AiAnalysisErrorFallbackCard } from "@/components/ui/AiAnalysisErrorFallbackCard";
 import { AiDifferencesCollapsible } from "@/components/ui/AiDifferencesCollapsible";
 import { AiQuotaAlertBanner } from "@/components/ui/AiQuotaAlertBanner";
 import { AiReanalyzeConfirmationModal } from "@/components/ui/AiReanalyzeConfirmationModal";
@@ -834,10 +835,11 @@ export default function ComparisonResultScreen() {
           <AiOfflineResilienceBanner
             onRetry={() => void executeAnalysisRequest()}
           />
-        ) : analysisMessage ? (
-          <View style={styles.errorCard}>
-            <Text style={styles.feedbackText}>{analysisMessage}</Text>
-          </View>
+        ) : analysisStatus === "analysis_error" || analysisStatus === "report_error" || analysisMessage ? (
+          <AiAnalysisErrorFallbackCard
+            errorMessage={analysisMessage}
+            onRetry={() => void executeAnalysisRequest()}
+          />
         ) : null}
 
         <View style={styles.footer}>
@@ -1383,25 +1385,6 @@ const styles = StyleSheet.create({
     color: Colors.warning,
   },
 
-  errorCard: {
-    padding: Spacing.lg,
-    marginBottom: Spacing.lg,
-    backgroundColor: Colors.dangerSoft,
-    borderRadius: Radius.lg,
-  },
-
-  limitCard: {
-    padding: Spacing.lg,
-    marginBottom: Spacing.lg,
-    backgroundColor: Colors.warningSoft,
-    borderRadius: Radius.lg,
-  },
-
-  feedbackText: {
-    ...Typography.body,
-    color: Colors.textPrimary,
-    textAlign: "center",
-  },
 
   reanalyzeButton: {
     flexDirection: "row",

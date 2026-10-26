@@ -41,7 +41,7 @@
 - **Motor de Caché y Borradores:** `@react-native-async-storage/async-storage` `2.2.0` (persistencia del token de sesión Supabase y cola transaccional para borradores locales aislados por identificador de usuario).
 
 ### Calidad, Análisis Estático & Testing
-- **Test Runner:** [Vitest](https://vitest.dev/) `5.0.4` (275 pruebas unitarias y de integración en 29 suites que validan componentes UI, contratos, utilidades, servicios y Edge Functions al 100%).
+- **Test Runner:** [Vitest](https://vitest.dev/) `5.0.4` (285 pruebas unitarias y de integración en 30 suites que validan componentes UI, contratos, utilidades, servicios y Edge Functions al 100%).
 - **Linter:** [ESLint](https://eslint.org/) `^9.39.5` con configuración `eslint-config-expo`.
 - **Verificación de Tipos:** `typescript` con validación estricta sin emisiones (`npx tsc --noEmit`).
 
@@ -381,7 +381,24 @@ Habiendo alcanzado la estabilidad total del motor de backend y del proveedor de 
 - **Suite de Pruebas Automatizadas:**
   - `src/components/ui/AiOfflineResilienceBanner.test.tsx`: 6 pruebas unitarias que cubren el renderizado por defecto, títulos y descripciones personalizadas, descarte opcional del botón cuando no hay callback, indicador de progreso y roles de accesibilidad (`role="alert"` y `aria-label`).
   - `src/integration/aiWorkflow.test.ts`: 28 pruebas de integración contractual que verifican la presencia de `AiOfflineResilienceBanner` en la pantalla de resultados, los testIDs del banner y del botón de reintento, el contrato de mensaje offline y la ejecución del callback de reintento ante restablecimiento de red.
-- **Estado Actual del Repositorio:**
+- **Estado Actual del Repositorio (Commit 107):**
   - 275 pruebas automatizadas superadas (`29/29` suites en verde).
+  - Verificación de tipos TypeScript estricta sin emisiones (`npx tsc --noEmit` exit 0).
+  - Verificación estática con ESLint al 100% limpia sin errores ni advertencias (`npx eslint .` exit 0).
+
+### Commit 108 — Tarjeta de Fallback para Errores Genéricos de API de IA con Panel de Detalles Técnicos
+- **Componente Desacoplado de Fallback de Errores:** `src/components/ui/AiAnalysisErrorFallbackCard.tsx`
+  - Tarjeta accesible (`testID="ai-analysis-error-fallback-card"`, `accessibilityRole="alert"`) que gestiona visualmente fallos imprevistos, excepciones de red no cubiertas o errores de API devueltos por Supabase o Gemini.
+  - Título claro y directo (*"Ocurrió un inconveniente al procesar el análisis"*), con lista estructurada de sugerencias de solución prácticas (reintentar en unos segundos, validar fotos inicial y final, y comprobar servicios en la nube).
+  - Botón de acción interactivo *"Reintentar análisis"* (`testID="retry-analysis-button"`, `accessibilityLabel="Reintentar análisis"`), con soporte para estado de carga `isRetrying` mediante `ActivityIndicator`.
+  - Panel colapsable de detalles técnicos opcional (`testID="toggle-error-details-button"` y `testID="error-technical-details"`), permitiendo al usuario u operador inspeccionar el mensaje de error del sistema sin sobrecargar la vista principal.
+  - Diseño coherente con tokens de diseño del proyecto (`Colors.dangerSoft`, `Colors.danger`, `Colors.surface`, `Colors.primary`, `Radius.lg`, `Radius.md`, `Spacing`, `Typography`).
+- **Integración en Pantalla de Resultados:** `src/app/comparison-result.tsx`
+  - Integración de `<AiAnalysisErrorFallbackCard errorMessage={analysisMessage} onRetry={() => void executeAnalysisRequest()} />` en sustitución del renderizado textual básico (`errorCard` / `feedbackText`).
+- **Suite de Pruebas Automatizadas:**
+  - `src/components/ui/AiAnalysisErrorFallbackCard.test.tsx`: 9 pruebas unitarias que validan el renderizado predeterminado, títulos y sugerencias personalizadas, descarte del botón de reintento, estado colapsado y desplegado de los detalles técnicos, indicador de progreso y roles de accesibilidad (`role="alert"` y `aria-label`).
+  - `src/integration/aiWorkflow.test.ts`: 29 pruebas de integración contractual que verifican la presencia de `AiAnalysisErrorFallbackCard` en la pantalla de resultados, los testIDs de reintento y alternancia de detalles, y la invocación del callback de reintento.
+- **Estado Actual del Repositorio:**
+  - 285 pruebas automatizadas superadas (`30/30` suites en verde).
   - Verificación de tipos TypeScript estricta sin emisiones (`npx tsc --noEmit` exit 0).
   - Verificación estática con ESLint al 100% limpia sin errores ni advertencias (`npx eslint .` exit 0).
