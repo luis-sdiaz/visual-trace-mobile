@@ -46,18 +46,13 @@ import {
   updateComparisonName,
 } from "@/services/comparisonService";
 import type { ImageStage } from "@/services/imageStorageService";
+import {
+  CATEGORY_LABELS,
+  copyReportToClipboard,
+} from "@/utils/reportExport";
 import { createSingleFlight } from "@/utils/singleFlight";
 
 type PrivateImageStatus = "loading" | "available" | "error" | "retrying";
-
-const CATEGORY_LABELS = {
-  added: "Elemento añadido",
-  removed: "Elemento retirado",
-  modified: "Modificación",
-  moved: "Cambio de posición",
-  appearance: "Cambio de apariencia",
-  other: "Otro cambio visible",
-} as const;
 
 type PrivateComparisonImageProps = {
   accessibilityLabel: string;
@@ -193,6 +188,8 @@ export default function ComparisonResultScreen() {
   const [analysisReport, setAnalysisReport] = useState<AnalysisReportRecord | null>(null);
   const [analysisMessage, setAnalysisMessage] = useState("");
   const [analysisQuotaScope, setAnalysisQuotaScope] = useState<string | undefined>(undefined);
+  const [copiedReport, setCopiedReport] = useState(false);
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [previewStage, setPreviewStage] = useState<ImageStage | null>(null);
   const [isEditingName, setIsEditingName] = useState(false);
   const [nameDraft, setNameDraft] = useState(name);
@@ -211,6 +208,9 @@ export default function ComparisonResultScreen() {
     return () => {
       analysisMountedRef.current = false;
       analysisSequenceRef.current += 1;
+      if (copyTimerRef.current) {
+        clearTimeout(copyTimerRef.current);
+      }
     };
   }, []);
 
@@ -353,6 +353,24 @@ export default function ComparisonResultScreen() {
       analysisSequenceRef.current += 1;
     };
   }, [loadReport]);
+
+  const handleCopyReport = useCallback(async () => {
+    if (!analysisReport) return;
+    const copied = await copyReportToClipboard(analysisReport.result, {
+      comparisonName: nameDraft || name,
+    });
+    if (copied && analysisMountedRef.current) {
+      setCopiedReport(true);
+      if (copyTimerRef.current) {
+        clearTimeout(copyTimerRef.current);
+      }
+      copyTimerRef.current = setTimeout(() => {
+        if (analysisMountedRef.current) {
+          setCopiedReport(false);
+        }
+      }, 2500);
+    }
+  }, [analysisReport, name, nameDraft]);
 
   async function executeAnalysisRequest() {
     if (!comparisonId || !initialImagePath || !finalImagePath) return;
@@ -677,7 +695,43 @@ export default function ComparisonResultScreen() {
 
         {analysisReport ? (
           <View style={styles.reportCard}>
-            <Text style={styles.reportEyebrow}>RESUMEN DE IA</Text>
+            <View style={styles.reportHeaderRow}>
+              <Text style={styles.reportEyebrow}>RESUMEN DE IA</Text>
+              <Pressable
+                accessibilityHint="Copia el resumen, diferencias y observaciones al portapapeles"
+                accessibilityLabel="Copiar informe"
+                accessibilityRole="button"
+                onPress={() => void handleCopyReport()}
+                style={[
+                  styles.copyReportButton,
+                  copiedReport && styles.copyReportButtonActive,
+                ]}
+                testID="copy-report-button"
+              >
+                <Text
+                  style={[
+                    styles.copyReportButtonText,
+                    copiedReport && styles.copyReportButtonTextActive,
+                  ]}
+                >
+                  {copiedReport ? "✓ Copiado" : "📋 Copiar informe"}
+                </Text>
+              </Pressable>
+            </View>
+
+            {copiedReport ? (
+              <View
+                accessibilityLiveRegion="polite"
+                style={styles.copiedFeedbackBadge}
+                testID="copied-feedback-badge"
+              >
+                <Text style={styles.copiedFeedbackIcon}>✓</Text>
+                <Text style={styles.copiedFeedbackText}>
+                  ¡Copiado al portapapeles!
+                </Text>
+              </View>
+            ) : null}
+
             <Text style={styles.reportSummary}>{analysisReport.result.summary}</Text>
 
             <Text style={styles.reportSectionTitle}>Diferencias detectadas</Text>
@@ -1129,10 +1183,71 @@ const styles = StyleSheet.create({
     borderRadius: Radius.xl,
   },
 
+  reportHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: Spacing.sm,
+  },
+
+  copyReportButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: Colors.primarySoft,
+    borderWidth: 1,
+    borderColor: Colors.borderPrimary,
+    borderRadius: Radius.full,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+  },
+
+  copyReportButtonActive: {
+    backgroundColor: Colors.successSoft,
+    borderColor: Colors.success,
+  },
+
+  copyReportButtonText: {
+    ...Typography.label,
+    fontSize: 12,
+    lineHeight: 16,
+    color: Colors.primary,
+  },
+
+  copyReportButtonTextActive: {
+    color: Colors.successDark,
+    fontWeight: "700",
+  },
+
+  copiedFeedbackBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: Colors.successSoft,
+    borderWidth: 1,
+    borderColor: Colors.success,
+    borderRadius: Radius.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    marginBottom: Spacing.md,
+    gap: Spacing.xs,
+  },
+
+  copiedFeedbackIcon: {
+    color: Colors.successDark,
+    fontSize: 14,
+    fontWeight: "700",
+  },
+
+  copiedFeedbackText: {
+    ...Typography.label,
+    fontSize: 12,
+    lineHeight: 16,
+    color: Colors.successDark,
+    fontWeight: "600",
+  },
+
   reportEyebrow: {
     ...Typography.label,
     color: Colors.primary,
-    marginBottom: Spacing.sm,
   },
 
   reportSummary: {

@@ -3,7 +3,12 @@ import { resolve } from "node:path";
 
 import { describe, expect, it, vi } from "vitest";
 
+import type { GeminiAnalysisReport } from "@/contracts/geminiAnalysis";
 import { createAnalyzeComparisonHandler } from "../../supabase/functions/analyze-comparison/handler";
+
+vi.mock("expo-clipboard", () => ({
+  setStringAsync: vi.fn().mockResolvedValue(true),
+}));
 
 const comparisonId = "123e4567-e89b-42d3-a456-426614174000";
 const comparison = {
@@ -12,7 +17,7 @@ const comparison = {
   initial_image_path: `user-1/${comparisonId}/initial.jpg`,
   final_image_path: `user-1/${comparisonId}/final.jpg`,
 };
-const analysis = {
+const analysis: { model: string; report: GeminiAnalysisReport } = {
   model: "gemini-1.5-flash",
   report: {
     contractVersion: "1.0",
@@ -234,5 +239,25 @@ describe("AI database and mobile integration safeguards", () => {
     expect(screen).toContain("AiQuotaAlertBanner");
     expect(screen).toContain("ai-offline-banner");
     expect(screen).toContain("Reintentar conexión");
+  });
+
+  it("provides copy-to-clipboard elements and formats report cleanly for user sharing", async () => {
+    const screen = readFileSync(
+      resolve(process.cwd(), "src/app/comparison-result.tsx"),
+      "utf8",
+    );
+    expect(screen).toContain("copy-report-button");
+    expect(screen).toContain("copied-feedback-badge");
+    expect(screen).toContain("Copiar informe");
+    expect(screen).toContain("¡Copiado al portapapeles!");
+
+    const { formatReportForClipboard } = await import("@/utils/reportExport");
+    const formatted = formatReportForClipboard(analysis.report, {
+      comparisonName: "Comparativa Obra",
+    });
+    expect(formatted).toContain("INFORME DE ANÁLISIS COMPARATIVO — VISUALTRACE");
+    expect(formatted).toContain("Comparación: Comparativa Obra");
+    expect(formatted).toContain(analysis.report.summary);
+    expect(formatted).toContain("Aparece un objeto.");
   });
 });

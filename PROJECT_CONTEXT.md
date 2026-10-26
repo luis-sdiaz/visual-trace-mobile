@@ -258,7 +258,26 @@ Habiendo alcanzado la estabilidad total del motor de backend y del proveedor de 
 - **Suite de Pruebas Automatizadas:**
   - `src/services/analysisWorkflow.test.ts`: 5 nuevas pruebas unitarias (19 pruebas en total en el archivo) que verifican el mapeo de estados, `NetworkOfflineError` proactivo, ejecución condicional según conectividad, identificación exhaustiva de errores de red y transiciones de recuperación.
   - `src/integration/aiWorkflow.test.ts`: validación contractual en la pantalla de resultados de los componentes de UI offline (`ai-offline-banner` y botón de reintento).
-- **Estado Actual del Repositorio:**
+- **Estado Actual del Repositorio (Commit 100):**
   - 232 pruebas automatizadas superadas (`23/23` suites en verde).
+  - Verificación de tipos TypeScript estricta sin emisiones (`npx tsc --noEmit` exit 0).
+  - Verificación estática con ESLint al 100% limpia sin errores ni advertencias (`npx eslint .` exit 0).
+
+### Commit 101 — Acción de Copiado de Informe de IA con Feedback Visual Temporal
+- **Módulo y Utilidades de Exportación:** `src/utils/reportExport.ts`
+  - Función pura `formatReportForClipboard(report, options)` que convierte el resultado del análisis de IA (`GeminiAnalysisReport`) en un texto limpio, legible y estructurado para compartir o archivar externamente (mensajería, correo, blocs de notas).
+  - Incluye encabezado contextual ("INFORME DE ANÁLISIS COMPARATIVO — VISUALTRACE"), nombre de la comparación si existe, resumen ejecutivo, listado numerado con etiquetas semánticas de diferencias detectadas (`CATEGORY_LABELS`), viñetas de observaciones, limitaciones/incertidumbres detectadas y nota de descargo para revisión humana.
+  - Función asíncrona `copyReportToClipboard(report, options)` con captura de excepciones para invocar de forma segura la API nativa de `expo-clipboard` (`Clipboard.setStringAsync`) garantizando cero caídas ante rechazos de permisos en el portapapeles.
+  - Centralización de `CATEGORY_LABELS` como fuente única de verdad para categorías visuales (`added`, `removed`, `modified`, `moved`, `appearance`, `other`).
+- **Integración en Comparison Result:** `src/app/comparison-result.tsx`
+  - Botón de acción interactivo `copy-report-button` ("📋 Copiar informe" / "✓ Copiado") ubicado en la cabecera de la tarjeta del informe de IA (`reportCard`).
+  - Retroalimentación visual temporal mediante insignia contextual `copied-feedback-badge` ("¡Copiado al portapapeles!") mostrada durante 2.5 segundos con accesibilidad nativa (`accessibilityLiveRegion="polite"`).
+  - Limpieza de temporizadores en desmontaje mediante `copyTimerRef` y validación de montaje con `analysisMountedRef.current`, previniendo fugas de memoria o actualizaciones de estado huérfanas.
+  - Implementación con tokens de diseño rigurosos (`Colors.primarySoft`, `Colors.successSoft`, `Colors.successDark`, `Radius.full`, `Radius.md`, `Spacing`, `Typography`).
+- **Suite de Pruebas Automatizadas:**
+  - `src/utils/reportExport.test.ts`: 5 pruebas unitarias que validan el formateo completo de reportes, formateo sin nombre de comparación, manejo limpio de informes sin diferencias ni observaciones, copia asíncrona al portapapeles y captura de errores sin lanzar excepciones no controladas.
+  - `src/integration/aiWorkflow.test.ts`: validación contractual en la pantalla de resultados de los identificadores `copy-report-button`, `copied-feedback-badge`, etiquetas de usuario y formateo limpio integrado.
+- **Estado Actual del Repositorio:**
+  - 238 pruebas automatizadas superadas (`24/24` suites en verde).
   - Verificación de tipos TypeScript estricta sin emisiones (`npx tsc --noEmit` exit 0).
   - Verificación estática con ESLint al 100% limpia sin errores ni advertencias (`npx eslint .` exit 0).
