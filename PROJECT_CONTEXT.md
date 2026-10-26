@@ -41,7 +41,7 @@
 - **Motor de Caché y Borradores:** `@react-native-async-storage/async-storage` `2.2.0` (persistencia del token de sesión Supabase y cola transaccional para borradores locales aislados por identificador de usuario).
 
 ### Calidad, Análisis Estático & Testing
-- **Test Runner:** [Vitest](https://vitest.dev/) `5.0.4` (208 pruebas unitarias y de integración que validan contratos, utilidades, servicios y Edge Functions al 100%).
+- **Test Runner:** [Vitest](https://vitest.dev/) `5.0.4` (217 pruebas unitarias y de integración en 22 suites que validan componentes UI, contratos, utilidades, servicios y Edge Functions al 100%).
 - **Linter:** [ESLint](https://eslint.org/) `^9.39.5` con configuración `eslint-config-expo`.
 - **Verificación de Tipos:** `typescript` con validación estricta sin emisiones (`npx tsc --noEmit`).
 
@@ -187,8 +187,9 @@ La **Fase 1** concluyó con éxito rotundo, alcanzando la estabilización técni
 Habiendo alcanzado la estabilidad total del motor de backend y del proveedor de IA, el foco del desarrollo se traslada a la capa de presentación y experiencia de usuario (UX/UI).
 
 ### Bloque D: Feedback Visual Durante el Análisis de IA y Manejo Intuitivo de Cuotas en la UI
+
 1. **Feedback Visual Durante la Carga de Análisis:**
-   - Implementación de loaders contextuales, skeletons animados e indicadores de progreso/fase (e.g., "Preparando imágenes...", "Analizando diferencias...", "Generando informe...") durante la ventana de espera de la inferencia (3 a 7 segundos).
+   - Implementación de loaders contextuales, skeletons animados e indicadores de progreso/fase (e.g., "Preparando imágenes...", "Conectando con Supabase...", "Invocando Gemini AI...", "Estructurando reporte...") durante la ventana de espera de la inferencia (3 a 7 segundos).
    - Prevención activa de interacciones accidentales o reenvíos mientras el análisis está en vuelo.
 
 2. **Manejo Intuitivo de Cuotas Agotadas en la UI:**
@@ -199,3 +200,20 @@ Habiendo alcanzado la estabilidad total del motor de backend y del proveedor de 
 3. **Manejo de Estados de Error y Resiliencia en Cliente:**
    - Banners informativos no invasivos ante fallos transitorios de red o tiempo de espera excedido (`timeout`).
    - Mecanismos de reintento manual que preserven el estado de las fotografías cargadas sin reiniciar el flujo wizard.
+
+---
+
+## 7. Registro de Commits de la Fase 2
+
+### Commit 96 — Inicio del Bloque D: Componente Esqueleto de Carga Animada de IA
+- **Componente Creado:** `src/components/ui/AiAnalysisLoadingSkeleton.tsx`
+  - Diseño desacoplado siguiendo arquitectura limpia: función pura de programación temporal (`createAiLoadingScheduler`), hook reactivo (`useAiLoadingStages`) y componente de presentación (`AiAnalysisLoadingSkeleton`).
+  - Utiliza Design Tokens estrictos (`Colors`, `Typography`, `Spacing`, `Radius`).
+  - Rotación dinámica e intuitiva de etapas de análisis ("Preparando imágenes...", "Conectando con Supabase...", "Invocando Gemini AI...", "Estructurando reporte...").
+  - Indicadores visuales de paso/fase (pills de progreso dinámicos), spinner nativo `ActivityIndicator`, insignias contextuales y placeholder bars que emulan el informe final.
+- **Suite de Pruebas Unitaria:** `src/components/ui/AiAnalysisLoadingSkeleton.test.tsx`
+  - 9 pruebas unitarias que validan el renderizado estático inicial, props controladas, valores fuera de rango seguros y transiciones de estado mediante temporizadores simulados (`vi.useFakeTimers()`).
+- **Configuración de Testing:** Soporte para resolución en entorno de pruebas Vitest aliando `react-native` hacia `react-native-web` en `vitest.config.mts`.
+- **Estado Actual del Repositorio:**
+  - 217 pruebas automatizadas superadas (`22/22` suites en verde).
+  - Tipado TypeScript verificado sin emisiones (`npx tsc --noEmit` exit 0).
