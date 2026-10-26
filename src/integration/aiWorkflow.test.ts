@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { createElement } from "react";
 
 import { describe, expect, it, vi } from "vitest";
 
@@ -277,5 +278,39 @@ describe("AI database and mobile integration safeguards", () => {
     expect(shareResult.action).toBe("sharedAction");
     expect(shareSpy).toHaveBeenCalledTimes(1);
     shareSpy.mockRestore();
+  });
+
+  it("renders collapsible difference sections with toggle states for granular exploration", async () => {
+    const screen = readFileSync(
+      resolve(process.cwd(), "src/app/comparison-result.tsx"),
+      "utf8",
+    );
+    expect(screen).toContain("AiDifferencesCollapsible");
+
+    const { AiDifferencesCollapsible } = await import(
+      "@/components/ui/AiDifferencesCollapsible"
+    );
+    // @ts-expect-error react-dom/server type declarations are not in devDependencies
+    const { renderToStaticMarkup } = await import("react-dom/server");
+
+    const collapsedHtml = renderToStaticMarkup(
+      createElement(AiDifferencesCollapsible, {
+        differences: analysis.report.differences,
+        initialExpanded: false,
+      }),
+    );
+    expect(collapsedHtml).toContain("Diferencias detectadas");
+    expect(collapsedHtml).toContain("Elemento añadido");
+    expect(collapsedHtml).toContain("Ver detalles");
+    expect(collapsedHtml).not.toContain("Aparece un objeto.");
+
+    const expandedHtml = renderToStaticMarkup(
+      createElement(AiDifferencesCollapsible, {
+        differences: analysis.report.differences,
+        initialExpanded: true,
+      }),
+    );
+    expect(expandedHtml).toContain("Ocultar detalles");
+    expect(expandedHtml).toContain("Aparece un objeto.");
   });
 });

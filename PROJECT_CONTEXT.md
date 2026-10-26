@@ -294,7 +294,25 @@ Habiendo alcanzado la estabilidad total del motor de backend y del proveedor de 
 - **Suite de Pruebas Automatizadas:**
   - `src/utils/reportExport.test.ts`: 3 nuevas pruebas unitarias (8 pruebas en total en el archivo) que verifican la invocación exitosa de `Share.share` con metadatos completos, la cancelación/descarte de usuario segura (`dismissedAction`) y la captura de errores del sistema sin excepciones.
   - `src/integration/aiWorkflow.test.ts`: validación contractual en la pantalla de resultados del identificador `share-report-button`, etiquetas de accesibilidad y verificación de flujo de compartición integrado.
-- **Estado Actual del Repositorio:**
+- **Estado Actual del Repositorio (Commit 102):**
   - 241 pruebas automatizadas superadas (`24/24` suites en verde).
+  - Verificación de tipos TypeScript estricta sin emisiones (`npx tsc --noEmit` exit 0).
+  - Verificación estática con ESLint al 100% limpia sin errores ni advertencias (`npx eslint .` exit 0).
+
+### Commit 103 — Desglose de Diferencias en Secciones Desplegables / Colapsables por Categoría
+- **Componente Desacoplado de UI:** `src/components/ui/AiDifferencesCollapsible.tsx`
+  - Función pura de agrupación `groupDifferencesByCategory(differences)` que organiza los hallazgos en grupos categorizados (`added`, `removed`, `modified`, `moved`, `appearance`, `other`) preservando el orden y asignando etiquetas amigables en español.
+  - Gestión de estado interactivo granular mediante mapa `expandedCategories: Record<string, boolean>` y opción global `toggleAll`, permitiendo abrir o cerrar el detalle de categorías individuales o de forma masiva sin saturar el desplazamiento vertical.
+  - Indicadores visuales y badges numéricos por categoría (`categoryCountBadge`) y totales de cambios detectados.
+  - Botón de alternancia contextual con texto e íconos dinámicos ("Ver detalles ▾" / "Ocultar detalles ▴") y estado de accesibilidad enriquecido (`accessibilityState={{ expanded }}`).
+  - Estructuración limpia de ítems detallados con viñetas estilizadas en contenedores `surfaceBlue` y tipografía jerárquica con tokens de diseño (`Colors`, `Radius.lg`, `Radius.md`, `Spacing`, `Typography`).
+- **Integración en la Pantalla de Resultados:** `src/app/comparison-result.tsx`
+  - Reemplazo del listado plano continuo previo por el componente `AiDifferencesCollapsible`, optimizando drásticamente la ergonomía del scroll vertical en informes extensos.
+  - Eliminación de importaciones y estilos no utilizados, garantizando conformidad estricta con ESLint y TypeScript.
+- **Suite de Pruebas Automatizadas:**
+  - `src/components/ui/AiDifferencesCollapsible.test.tsx`: 5 pruebas unitarias que validan la función pura de agrupación, el estado inicial colapsado, el despliegue con `initialExpanded={true}` y el renderizado del mensaje ante ausencia de diferencias visibles.
+  - `src/integration/aiWorkflow.test.ts`: prueba de integración contractual que valida la presencia de `AiDifferencesCollapsible` en `comparison-result.tsx` y simula la alternancia entre estados colapsado/expandido con el reporte de inferencia de Gemini.
+- **Estado Actual del Repositorio:**
+  - 247 pruebas automatizadas superadas (`25/25` suites en verde).
   - Verificación de tipos TypeScript estricta sin emisiones (`npx tsc --noEmit` exit 0).
   - Verificación estática con ESLint al 100% limpia sin errores ni advertencias (`npx eslint .` exit 0).

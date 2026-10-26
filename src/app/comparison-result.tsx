@@ -22,6 +22,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Button } from "@/components/ui/Button";
 import { AiAnalysisLoadingSkeleton } from "@/components/ui/AiAnalysisLoadingSkeleton";
+import { AiDifferencesCollapsible } from "@/components/ui/AiDifferencesCollapsible";
 import { AiQuotaAlertBanner } from "@/components/ui/AiQuotaAlertBanner";
 import { PhotoPreviewModal } from "@/components/ui/PhotoPreviewModal";
 import { Colors } from "@/constants/colors";
@@ -47,7 +48,6 @@ import {
 } from "@/services/comparisonService";
 import type { ImageStage } from "@/services/imageStorageService";
 import {
-  CATEGORY_LABELS,
   copyReportToClipboard,
   shareReportNative,
 } from "@/utils/reportExport";
@@ -769,17 +769,10 @@ export default function ComparisonResultScreen() {
 
             <Text style={styles.reportSummary}>{analysisReport.result.summary}</Text>
 
-            <Text style={styles.reportSectionTitle}>Diferencias detectadas</Text>
-            {analysisReport.result.differences.length > 0 ? (
-              analysisReport.result.differences.map((difference, index) => (
-                <View key={`${difference.category}-${index}`} style={styles.reportItem}>
-                  <Text style={styles.reportItemLabel}>{CATEGORY_LABELS[difference.category]}</Text>
-                  <Text style={styles.reportItemText}>{difference.description}</Text>
-                </View>
-              ))
-            ) : (
-              <Text style={styles.reportEmpty}>No se identificaron cambios visibles.</Text>
-            )}
+            {/* Sección: Diferencias detectadas con tarjetas desplegables por categoría */}
+            <AiDifferencesCollapsible
+              differences={analysisReport.result.differences}
+            />
 
             {analysisReport.result.observations.length > 0 ? (
               <>
