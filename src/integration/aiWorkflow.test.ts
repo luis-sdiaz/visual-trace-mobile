@@ -281,6 +281,17 @@ describe("AI database and mobile integration safeguards", () => {
     shareSpy.mockRestore();
   }, 15000);
 
+  it("provides PDF export button and report preview modal for document sharing", () => {
+    const screen = readFileSync(
+      resolve(process.cwd(), "src/app/comparison-result.tsx"),
+      "utf8",
+    );
+    expect(screen).toContain("export-pdf-report-button");
+    expect(screen).toContain("ReportPreviewModal");
+    expect(screen).toContain("ExportReportButton");
+    expect(screen).toContain("sharePdfReport");
+  });
+
   it("renders collapsible difference sections with toggle states for granular exploration", async () => {
     const screen = readFileSync(
       resolve(process.cwd(), "src/app/comparison-result.tsx"),
