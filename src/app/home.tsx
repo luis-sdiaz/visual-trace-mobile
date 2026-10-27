@@ -9,6 +9,7 @@ import {
 } from "react";
 import {
   ActivityIndicator,
+  FlatList,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -611,71 +612,80 @@ export default function HomeScreen() {
             </View>
           ) : recentComparisons.length > 0 ? (
             <View style={styles.recentList}>
-              {recentComparisons.map((comparison) => (
-                <Pressable
-                  key={comparison.id}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Abrir ${comparison.name}`}
-                  disabled={openingComparisonId !== null}
-                  onPress={() => void handleOpenComparison(comparison.id, false, "history")}
-                  style={({ pressed }) => [
-                    styles.recentCard,
-                    pressed && styles.recentCardPressed,
-                  ]}
-                >
-                  <View style={styles.recentIcon}>
-                    <Ionicons
-                      name="images-outline"
-                      size={22}
-                      color={Colors.primary}
-                    />
-                  </View>
-
-                  <View style={styles.recentContent}>
-                    <Text style={styles.recentName} numberOfLines={1}>
-                      {comparison.name}
-                    </Text>
-                    <Text style={styles.recentDate}>
-                      {formatComparisonDate(comparison.created_at)}
-                    </Text>
-                  </View>
-
-                  <View
-                    style={[
-                      styles.statusBadge,
-                      comparison.status === "ready" && styles.readyBadge,
-                      comparison.status === "analyzed" &&
-                        styles.analyzedBadge,
+              <FlatList
+                data={recentComparisons}
+                keyExtractor={(item) => item.id}
+                initialNumToRender={6}
+                maxToRenderPerBatch={8}
+                windowSize={5}
+                removeClippedSubviews={true}
+                scrollEnabled={false}
+                renderItem={({ item: comparison }) => (
+                  <Pressable
+                    key={comparison.id}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Abrir ${comparison.name}`}
+                    disabled={openingComparisonId !== null}
+                    onPress={() => void handleOpenComparison(comparison.id, false, "history")}
+                    style={({ pressed }) => [
+                      styles.recentCard,
+                      pressed && styles.recentCardPressed,
                     ]}
                   >
-                    <Text
+                    <View style={styles.recentIcon}>
+                      <Ionicons
+                        name="images-outline"
+                        size={22}
+                        color={Colors.primary}
+                      />
+                    </View>
+
+                    <View style={styles.recentContent}>
+                      <Text style={styles.recentName} numberOfLines={1}>
+                        {comparison.name}
+                      </Text>
+                      <Text style={styles.recentDate}>
+                        {formatComparisonDate(comparison.created_at)}
+                      </Text>
+                    </View>
+
+                    <View
                       style={[
-                        styles.statusText,
-                        comparison.status === "ready" && styles.readyText,
+                        styles.statusBadge,
+                        comparison.status === "ready" && styles.readyBadge,
                         comparison.status === "analyzed" &&
-                          styles.analyzedText,
+                          styles.analyzedBadge,
                       ]}
                     >
-                      {STATUS_LABELS[comparison.status]}
-                    </Text>
-                  </View>
+                      <Text
+                        style={[
+                          styles.statusText,
+                          comparison.status === "ready" && styles.readyText,
+                          comparison.status === "analyzed" &&
+                            styles.analyzedText,
+                        ]}
+                      >
+                        {STATUS_LABELS[comparison.status]}
+                      </Text>
+                    </View>
 
-                  {openingComparisonId === comparison.id ? (
-                    <ActivityIndicator
-                      size="small"
-                      color={Colors.primary}
-                      style={styles.openingIndicator}
-                    />
-                  ) : (
-                    <Ionicons
-                      name="chevron-forward"
-                      size={18}
-                      color={Colors.textMuted}
-                      style={styles.recentChevron}
-                    />
-                  )}
-                </Pressable>
-              ))}
+                    {openingComparisonId === comparison.id ? (
+                      <ActivityIndicator
+                        size="small"
+                        color={Colors.primary}
+                        style={styles.openingIndicator}
+                      />
+                    ) : (
+                      <Ionicons
+                        name="chevron-forward"
+                        size={18}
+                        color={Colors.textMuted}
+                        style={styles.recentChevron}
+                      />
+                    )}
+                  </Pressable>
+                )}
+              />
               {recentError ? (
                 <Text style={styles.loadMoreError}>{recentError}</Text>
               ) : null}
