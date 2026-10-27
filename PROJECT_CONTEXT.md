@@ -450,7 +450,7 @@ Habiendo alcanzado la estabilidad total del motor de backend y del proveedor de 
 
 ## Fase 3 — Exportación, Historial Avanzado y Auditoría Profesional
 
-### Bloque 1: Módulo de Exportación y Compartición de Informes en PDF/Imagen (Commits 111 al 122)
+### Bloque 1: Módulo de Exportación y Compartición de Informes en PDF/Imagen (Commits 111 al 121)
 
 #### Commit 111 — Contratos e Interfaces TypeScript de Exportación
 - **Archivo Creado:** `src/contracts/reportExport.ts`
@@ -482,18 +482,72 @@ Habiendo alcanzado la estabilidad total del motor de backend y del proveedor de 
   - `src/components/ui/ExportReportButton.test.tsx` (5 pruebas unitarias).
   - `src/components/ui/ReportPreviewModal.test.tsx` (5 pruebas unitarias).
 
-#### Commit 121 — Integración en Pantalla de Resultados y Pruebas de Integración
+#### Commit 121 — Integración en Pantalla de Resultados y Cierre de Bloque 1
 - **Integración en Pantalla:** `src/app/comparison-result.tsx`
   - Incorporación de `ExportReportButton` (`testID="export-pdf-report-button"`) en `reportHeaderActions` junto a los botones de copiar y compartir texto.
   - Integración de `ReportPreviewModal` con estados reactivos `showPreviewModal` e `isExportingPdf`.
   - Prioridad de descarte en el botón de retroceso de hardware (`handleBack`).
-- **Prueba de Integración Contractual:** `src/integration/aiWorkflow.test.ts` (actualizado a 31 pruebas con verificación de presencia de componentes y llamadas de servicio).
-
-#### Commit 122 — Refactorización, Accesibilidad Integral y Estado Final de Bloque 1
-- **Refactorización de Estilos y Accesibilidad:**
-  - Identificadores de accesibilidad (`accessibilityRole`, `accessibilityLabel`, `accessibilityHint`, `accessibilityState`), soporte de contraste y consistencia de espaciados.
-- **Estado Actual del Repositorio (Commit 122):**
+- **Prueba de Integración Contractual:** `src/integration/aiWorkflow.test.ts` (verificación de presencia de componentes y llamadas de servicio).
+- **Estado al Cierre del Bloque 1 (Commit 121):**
   - 342 pruebas automatizadas superadas (`36/36` suites en verde).
+  - **Fase 3 (Bloque 1: Módulo de Exportación y Compartición de Informes en PDF/Imagen) oficialmente CERRADO Y CONSOLIDADO.**
+
+### Bloque 2: Optimización de Rendimiento, Caché y Gestión de Memoria en Dispositivos Móviles (Commits 122 al 135)
+
+#### Commit 122 — Servicio de Purga y Rotación de Caché
+- **Archivo Creado:** `src/services/imageCacheService.ts`
+  - Gestión y rotación de imágenes temporales almacenadas en el sistema de archivos local (`FileSystem.cacheDirectory` / `vt-image-cache/`).
+  - Cuota configurable (50 MB máximo, 24 horas de vigencia predeterminada) con algoritmo de rotación LRU por fecha de modificación.
+  - Métricas de almacenamiento en caché (`getImageCacheMetrics`), purga selectiva por antigüedad (`purgeOldImageCache`) y borrado total (`clearAllImageCache`).
+- **Suite de Pruebas:** `src/services/imageCacheService.test.ts` (9 pruebas unitarias cubriendo formateo de bytes, directorio de caché, métricas y rotación LRU).
+
+#### Commit 123 — Hook de Monitoreo de Memoria y Limpieza
+- **Archivo Creado:** `src/hooks/useImageMemoryCleanup.ts`
+  - Monitoreo del ciclo de vida de URIs de vistas previas e imágenes temporales.
+  - Revocación automática de Object URLs (`blob:`) y eliminación idempotente de archivos temporales en caché al desmontar componentes o navegar pantallas.
+- **Suite de Pruebas:** `src/hooks/useImageMemoryCleanup.test.ts` (4 pruebas unitarias validando filtrado inicial, registro dinámico, descarte y revocación).
+
+#### Commit 124 — Optimización de Compresión Previa de Imágenes
+- **Archivo Modificado:** `src/utils/imageSelection.ts`
+  - Límites de calidad JPEG configurables y sanitizados (`sanitizeCompressionQuality`) con rango seguro entre `0.3` y `0.95` (calidad estándar `0.8`).
+  - Parámetros opcionales en `selectComparisonPhoto` para optimizar peso en memoria y disco sin perder nitidez de análisis.
+- **Suite de Pruebas:** `src/utils/imageSelection.test.ts` (13 pruebas unitarias con cobertura de clamping y preservación de umbrales).
+
+#### Commit 125 — Memoización de Componentes en Lista Histórica
+- **Archivo Modificado:** `src/components/ui/ComparisonPreview.tsx`
+  - Optimización con `React.memo` para prevenir re-renderizados innecesarios ante actualizaciones del estado global o padre.
+- **Suite de Pruebas:** `src/components/ui/ComparisonPreview.test.tsx` (2 pruebas unitarias certificando renderizado estático y memoización).
+
+#### Commit 126 — Paginación y Smooth Scrolling en Historial con FlatList
+- **Archivo Modificado:** `src/app/home.tsx`
+  - Sustitución de renderizado manual `.map()` por `FlatList` virtualizada.
+  - Parámetros de optimización móvil aplicados: `maxToRenderPerBatch={8}`, `windowSize={5}`, `removeClippedSubviews={true}` e `initialNumToRender={6}`.
+
+#### Commit 127 — Componente Indicador de Almacenamiento Local
+- **Archivo Creado:** `src/components/ui/StorageUsageBanner.tsx`
+  - Banner estilizado con tokens del sistema (`Colors`, `Radius`, `Spacing`, `Typography`) para visualizar el espacio de caché consumido.
+  - Acción interactiva accesible para liberar espacio (`clear-cache-button`) con retroalimentación inmediata.
+- **Suite de Pruebas:** `src/components/ui/StorageUsageBanner.test.tsx` (3 pruebas unitarias).
+
+#### Commit 128 — Integración de Purga de Caché en Inicio y Sesión
+- **Archivo Modificado:** `src/context/AuthContext.tsx`
+  - Purga automática en segundo plano de imágenes temporales caducadas durante el arranque de la sesión y al cerrar sesión (`signOut`).
+- **Función Modular:** `handleSessionCachePurge` tolerante a fallos.
+
+#### Commits 129 a 134 — Suites de Pruebas de Rendimiento, Integración y Ciclo de Vida
+- **Commit 129:** Pruebas de límites de cuota y rotación en `src/services/imageCacheService.test.ts`.
+- **Commit 130:** Pruebas de integración de purga de sesión en `src/context/AuthContext.test.tsx` (4 pruebas).
+- **Commit 131:** Pruebas de rendimiento y memoización en `src/components/ui/ComparisonPreview.test.tsx` (2 pruebas).
+- **Commit 132:** Pruebas de compresión y sanitización de calidad en `src/utils/imageSelection.test.ts` (13 pruebas).
+- **Commit 133:** Pruebas de ciclo de vida y limpieza de memoria en `src/hooks/useImageMemoryCleanup.test.ts` (4 pruebas).
+- **Commit 134:** Pruebas de integración de rendimiento y almacenamiento en `src/integration/performanceAndStorage.test.ts` (4 pruebas).
+
+#### Commit 135 — Consolidación, Auditoría de Rendimiento y Cierre del Bloque 2
+- **Auditoría Integral de Rendimiento:**
+  - 0 advertencias de desuso, 0 fugas de memoria por listeners huérfanos o URLs no revocadas.
+  - Desempeño fluido en listas de historial y compresión eficiente en capturas fotográficas.
+- **Estado Actual del Repositorio (Commit 135):**
+  - 374 pruebas automatizadas superadas (`42/42` suites en verde).
   - Verificación de tipos TypeScript estricta sin emisiones (`npx tsc --noEmit` exit 0).
   - Verificación estática con ESLint al 100% limpia sin errores ni advertencias (`npx eslint .` exit 0).
-  - **Fase 3 (Bloque 1: Módulo de Exportación y Compartición de Informes en PDF/Imagen) oficialmente CERRADO Y CONSOLIDADO.**
+  - **Fase 3 (Bloque 2: Optimización de Rendimiento, Caché y Gestión de Memoria en Dispositivos Móviles) oficialmente CERRADO Y CONSOLIDADO.**
