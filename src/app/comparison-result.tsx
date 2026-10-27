@@ -30,7 +30,9 @@ import { AiQuotaAlertBanner } from "@/components/ui/AiQuotaAlertBanner";
 import { AiQuotaLimitExceededModal } from "@/components/ui/AiQuotaLimitExceededModal";
 import { AiReanalyzeConfirmationModal } from "@/components/ui/AiReanalyzeConfirmationModal";
 import { AiReportFeedbackCard } from "@/components/ui/AiReportFeedbackCard";
+import { ExportReportButton } from "@/components/ui/ExportReportButton";
 import { PhotoPreviewModal } from "@/components/ui/PhotoPreviewModal";
+import { ReportPreviewModal } from "@/components/ui/ReportPreviewModal";
 import { Colors } from "@/constants/colors";
 import { Radius } from "@/constants/radius";
 import { Spacing } from "@/constants/spacing";
@@ -47,6 +49,8 @@ import {
   performAnalysisAction,
   type AnalysisStatus,
 } from "@/services/analysisWorkflow";
+import type { ExportReportData } from "@/contracts/reportExport";
+import { sharePdfReport } from "@/services/reportExportService";
 import { recoverComparison } from "@/services/comparisonRecoveryService";
 import {
   MAX_COMPARISON_NAME_LENGTH,
@@ -163,8 +167,14 @@ export default function ComparisonResultScreen() {
   const isAnalyzing = analysisStatus === "analyzing";
   const [showReanalyzeModal, setShowReanalyzeModal] = useState(false);
   const [showQuotaExceededModal, setShowQuotaExceededModal] = useState(false);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
 
   const handleBack = useCallback(() => {
+    if (showPreviewModal) {
+      setShowPreviewModal(false);
+      return true;
+    }
     if (showQuotaExceededModal) {
       setShowQuotaExceededModal(false);
       return true;
@@ -185,7 +195,7 @@ export default function ComparisonResultScreen() {
       router.back();
     }
     return true;
-  }, [isAnalyzing, showQuotaExceededModal, showReanalyzeModal, source]);
+  }, [isAnalyzing, showPreviewModal, showQuotaExceededModal, showReanalyzeModal, source]);
 
   useFocusEffect(
     useCallback(() => {
@@ -389,6 +399,40 @@ export default function ComparisonResultScreen() {
       }, 2500);
     }
   }, [analysisReport, name, nameDraft]);
+
+  const handleOpenExportPreview = useCallback(() => {
+    if (!analysisReport) return;
+    setShowPreviewModal(true);
+  }, [analysisReport]);
+
+  const handleSharePdf = useCallback(async () => {
+    if (!analysisReport || isExportingPdf) return;
+    setIsExportingPdf(true);
+    try {
+      const exportData: ExportReportData = {
+        report: analysisReport.result,
+        metadata: {
+          comparisonId,
+          comparisonName: nameDraft || name,
+          createdAt: analysisReport.created_at,
+        },
+        images: {
+          initialImageUri,
+          finalImageUri,
+        },
+      };
+      const result = await sharePdfReport(exportData, {
+        filename: nameDraft || name || "VisualTrace-Reporte",
+      });
+      if (result.success && !result.cancelled && analysisMountedRef.current) {
+        setShowPreviewModal(false);
+      }
+    } finally {
+      if (analysisMountedRef.current) {
+        setIsExportingPdf(false);
+      }
+    }
+  }, [analysisReport, comparisonId, finalImageUri, initialImageUri, isExportingPdf, name, nameDraft]);
 
   const handleShareReport = useCallback(async () => {
     if (!analysisReport || isSharingReport) return;
@@ -781,6 +825,12 @@ export default function ComparisonResultScreen() {
                     ↗ Compartir
                   </Text>
                 </Pressable>
+                <ExportReportButton
+                  disabled={isExportingPdf}
+                  isLoading={isExportingPdf}
+                  onPress={handleOpenExportPreview}
+                  testID="export-pdf-report-button"
+                />
               </View>
             </View>
 
@@ -922,6 +972,28 @@ export default function ComparisonResultScreen() {
         }}
         scope={analysisQuotaScope}
         visible={showQuotaExceededModal}
+      />
+      <ReportPreviewModal
+        isGenerating={isExportingPdf}
+        onClose={() => setShowPreviewModal(false)}
+        onSharePdf={() => void handleSharePdf()}
+        reportData={
+          analysisReport
+            ? {
+                report: analysisReport.result,
+                metadata: {
+                  comparisonId,
+                  comparisonName: nameDraft || name,
+                  createdAt: analysisReport.created_at,
+                },
+                images: {
+                  initialImageUri,
+                  finalImageUri,
+                },
+              }
+            : null
+        }
+        visible={showPreviewModal}
       />
     </SafeAreaView>
   );
