@@ -9,6 +9,7 @@ import {
 
 import { supabase } from "@/lib/supabase";
 import { observeAuthSession } from "@/services/authSessionService";
+import { purgeOldImageCache } from "@/services/imageCacheService";
 
 type AuthContextValue = {
   session: Session | null;
@@ -19,11 +20,22 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
+export async function handleSessionCachePurge(): Promise<void> {
+  try {
+    await purgeOldImageCache();
+  } catch {
+    // Continuar sin interrumpir el flujo de autenticación
+  }
+}
+
 export function AuthProvider({ children }: PropsWithChildren) {
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    // Purga proactiva en segundo plano de imágenes temporales caducadas
+    void handleSessionCachePurge();
+
     return observeAuthSession(supabase.auth, (update) => {
       setSession(update.session);
       setIsLoading(update.isLoading);
@@ -33,6 +45,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const user = session?.user ?? null;
 
   async function signOut() {
+    void handleSessionCachePurge();
+
     const { error } = await supabase.auth.signOut();
 
     if (error) {
