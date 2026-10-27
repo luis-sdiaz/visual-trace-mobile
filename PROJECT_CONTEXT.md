@@ -447,3 +447,53 @@ Habiendo alcanzado la estabilidad total del motor de backend y del proveedor de 
   - Verificación de tipos TypeScript estricta sin emisiones (`npx tsc --noEmit` exit 0).
   - Verificación estática con ESLint al 100% limpia sin errores ni advertencias (`npx eslint .` exit 0).
   - **Fase 2 (Módulo de Análisis Comparativo con IA y Resiliencia UX) oficialmente CERRADA Y CONSOLIDADA.**
+
+## Fase 3 — Exportación, Historial Avanzado y Auditoría Profesional
+
+### Bloque 1: Módulo de Exportación y Compartición de Informes en PDF/Imagen (Commits 111 al 122)
+
+#### Commit 111 — Contratos e Interfaces TypeScript de Exportación
+- **Archivo Creado:** `src/contracts/reportExport.ts`
+  - Definición de tipos formales para exportación (`ExportFormat`, `PageSize`, `ExportReportImages`, `ExportReportMetadata`, `ExportReportData`, `ExportReportOptions`, `ExportReportResult`).
+  - Funciones utilitarias: `sanitizeFilename`, `isExportReportData`, `validateExportOptions` con valores predeterminados seguros (`DEFAULT_EXPORT_OPTIONS`).
+- **Suite de Pruebas:** `src/contracts/reportExport.test.ts` (11 pruebas unitarias cubriendo sanitización de nombres, validación de opciones y contratos de datos).
+
+#### Commits 112, 113 y 114 — Plantilla HTML Estilizada con Design Tokens y Renderizado de Imágenes
+- **Archivo Creado:** `src/utils/reportExportTemplate.ts`
+  - Commit 112: Generación base del documento HTML estructurado con sanitización XSS estricta (`escapeHtml`) y formateo de fechas (`formatReportDate`).
+  - Commit 113: Integración de Design Tokens de la aplicación (`Colors.primary`, `Colors.background`, `Colors.surface`, `Colors.border`, `Spacing`, `Radius`, `Typography`) y reglas CSS de impresión (`@page`, `@media print`, `page-break-inside: avoid`). Insignia ejecutiva de severidad visual basada en `calculateVisualSeverity`.
+  - Commit 114: Normalización y renderizado de imágenes comparativas (`normalizeImageSource`) con soporte para esquemas `data:image/...;base64`, `http(s)://` y `file://`, en un grid visual responsivo con etiquetas de estado ("Estado Inicial" / "Estado Final").
+- **Suite de Pruebas:** `src/utils/reportExportTemplate.test.ts` (11 pruebas unitarias validando escape HTML, formato de fechas, normalización de imágenes, omisión selectiva y protección anti-XSS).
+
+#### Commits 115, 116 y 119 — Servicio de Conversión PDF con Expo Print, Expo Sharing y Manejo de Excepciones
+- **Dependencias Oficiales Incorporadas:** `expo-print` (~57.0.2) y `expo-sharing` (~57.0.24).
+- **Archivo Creado:** `src/services/reportExportService.ts`
+  - Commit 115: Implementación de `generatePdfReport` mediante `Print.printToFileAsync` y `sharePdfReport` mediante `Sharing.shareAsync`.
+  - Commit 116: Pruebas unitarias completas con simulación y aislamiento de `expo-print`, `expo-sharing` y `expo-file-system`.
+  - Commit 119: Resolución segura de imágenes en disco a Base64 (`resolveImageToBase64` vía `FileSystem.readAsStringAsync`), tolerancia ante archivos faltantes, gestión amigable de cancelaciones nativas y verificación de capacidades multiplataforma (`checkStorageAndSharingCapabilities`).
+- **Suite de Pruebas:** `src/services/reportExportService.test.ts` (17 pruebas unitarias cubriendo resolución de imagen, conversión PDF, compartición nativa, fallback sin share sheet y control de errores).
+
+#### Commits 117, 118 y 120 — Componentes UI de Exportación: Botón con Estado de Carga y Modal de Previsualización
+- **Componente de Botón:** `src/components/ui/ExportReportButton.tsx` (Commit 117)
+  - Botón accesible con soporte para estados `isLoading`, indicador `ActivityIndicator`, diseño desacoplado (`variant="outline"|"primary"|"secondary"`) y tokens de diseño coherentes con la barra de acciones de la pantalla.
+- **Componente de Modal de Previsualización:** `src/components/ui/ReportPreviewModal.tsx` (Commit 118)
+  - Diálogo modal accesible (`testID="report-preview-modal"`, `accessibilityViewIsModal`) para previsualizar el título, fecha, badge de severidad visual, miniaturas comparativas, resumen ejecutivo y conteo de hallazgos antes de compartir el PDF.
+- **Suite de Pruebas UI:** (Commit 120)
+  - `src/components/ui/ExportReportButton.test.tsx` (5 pruebas unitarias).
+  - `src/components/ui/ReportPreviewModal.test.tsx` (5 pruebas unitarias).
+
+#### Commit 121 — Integración en Pantalla de Resultados y Pruebas de Integración
+- **Integración en Pantalla:** `src/app/comparison-result.tsx`
+  - Incorporación de `ExportReportButton` (`testID="export-pdf-report-button"`) en `reportHeaderActions` junto a los botones de copiar y compartir texto.
+  - Integración de `ReportPreviewModal` con estados reactivos `showPreviewModal` e `isExportingPdf`.
+  - Prioridad de descarte en el botón de retroceso de hardware (`handleBack`).
+- **Prueba de Integración Contractual:** `src/integration/aiWorkflow.test.ts` (actualizado a 31 pruebas con verificación de presencia de componentes y llamadas de servicio).
+
+#### Commit 122 — Refactorización, Accesibilidad Integral y Estado Final de Bloque 1
+- **Refactorización de Estilos y Accesibilidad:**
+  - Identificadores de accesibilidad (`accessibilityRole`, `accessibilityLabel`, `accessibilityHint`, `accessibilityState`), soporte de contraste y consistencia de espaciados.
+- **Estado Actual del Repositorio (Commit 122):**
+  - 342 pruebas automatizadas superadas (`36/36` suites en verde).
+  - Verificación de tipos TypeScript estricta sin emisiones (`npx tsc --noEmit` exit 0).
+  - Verificación estática con ESLint al 100% limpia sin errores ni advertencias (`npx eslint .` exit 0).
+  - **Fase 3 (Bloque 1: Módulo de Exportación y Compartición de Informes en PDF/Imagen) oficialmente CERRADO Y CONSOLIDADO.**
