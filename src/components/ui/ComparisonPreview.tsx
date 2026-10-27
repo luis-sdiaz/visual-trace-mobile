@@ -1,13 +1,28 @@
-import { StyleSheet, Text, View } from "react-native";
+import React, { memo } from "react";
+import {
+  StyleSheet,
+  Text,
+  View,
+  type StyleProp,
+  type ViewStyle,
+} from "react-native";
 
 import { Colors } from "@/constants/colors";
 import { Radius } from "@/constants/radius";
 import { Spacing } from "@/constants/spacing";
 import { Typography } from "@/constants/typography";
 
-export function ComparisonPreview() {
+export type ComparisonPreviewProps = {
+  style?: StyleProp<ViewStyle>;
+  testID?: string;
+};
+
+export const ComparisonPreview = memo(function ComparisonPreview({
+  style,
+  testID = "comparison-preview-card",
+}: ComparisonPreviewProps = {}) {
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, style]} testID={testID}>
       <View style={styles.header}>
         <View style={styles.headerText}>
           <Text style={styles.eyebrow}>COMPARACIÓN VISUAL</Text>
@@ -31,12 +46,10 @@ export function ComparisonPreview() {
 
           <View style={styles.previewArea}>
             <View style={styles.initialObject} />
-
             <View style={styles.initialMarker} />
           </View>
 
           <Text style={styles.stateTitle}>Antes</Text>
-
           <Text style={styles.stateDescription}>Estado registrado</Text>
         </View>
 
@@ -51,14 +64,12 @@ export function ComparisonPreview() {
 
           <View style={styles.previewArea}>
             <View style={styles.finalObject} />
-
             <View style={styles.changeIndicator}>
               <View style={styles.changeDot} />
             </View>
           </View>
 
           <Text style={styles.stateTitle}>Después</Text>
-
           <Text style={styles.stateDescription}>Estado comparado</Text>
         </View>
       </View>
@@ -70,7 +81,6 @@ export function ComparisonPreview() {
 
         <View style={styles.footerContent}>
           <Text style={styles.footerTitle}>Comparación asistida por IA</Text>
-
           <Text style={styles.footerDescription}>
             VisualTrace identifica posibles diferencias para que puedas
             revisarlas.
@@ -79,7 +89,9 @@ export function ComparisonPreview() {
       </View>
     </View>
   );
-}
+});
+
+ComparisonPreview.displayName = "ComparisonPreview";
 
 const styles = StyleSheet.create({
   container: {
