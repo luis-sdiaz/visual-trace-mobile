@@ -41,7 +41,7 @@
 - **Motor de Caché y Borradores:** `@react-native-async-storage/async-storage` `2.2.0` (persistencia del token de sesión Supabase y cola transaccional para borradores locales aislados por identificador de usuario).
 
 ### Calidad, Análisis Estático & Testing
-- **Test Runner:** [Vitest](https://vitest.dev/) `5.0.4` (441 pruebas unitarias y de integración en 58 suites que validan componentes UI, contratos, utilidades, servicios y Edge Functions al 100%).
+- **Test Runner:** [Vitest](https://vitest.dev/) `5.0.4` (484 pruebas unitarias y de integración en 65 suites que validan componentes UI, contratos, utilidades, servicios y Edge Functions al 100%).
 - **Linter:** [ESLint](https://eslint.org/) `^9.39.5` con configuración `eslint-config-expo`.
 - **Verificación de Tipos:** `typescript` con validación estricta sin emisiones (`npx tsc --noEmit`).
 
@@ -701,9 +701,88 @@ Habiendo alcanzado la estabilidad total del motor de backend y del proveedor de 
 
 ---
 
-### Estado Global del Proyecto tras la Micro-Fase (Commit 159 / 200)
-- **Progreso de Commits:** 159 de 200 commits completados (79.5% hacia la meta de 200).
-- **Suites de Pruebas Automatizadas:** 58 suites ejecutadas y superadas al 100% en Vitest (441 pruebas totales aprobadas).
+## Módulo de Exportación PDF, Compartición y Filtrado de Historial (Commits 160 al 174 — Progreso: 174/200)
+
+### Commit 160 — Contratos e Interfaces TypeScript para Exportación PDF
+- **Archivo Creado:** `src/types/pdfExport.ts`
+  - Definición estricta de interfaces (`PdfExportOptions`, `PdfExportMetadata`, `PdfExportResult`, `ComparisonPdfImageItem`, `ComparisonPdfDifferenceItem`, `ComparisonPdfReportData`), opciones por defecto inmutables (`DEFAULT_PDF_EXPORT_OPTIONS`), helper de resolución `resolvePdfExportOptions` y type guard seguro `isPdfExportResult`.
+- **Mensaje de Commit:** `feat(pdf): define TypeScript interfaces for PDF export options and metadata`
+
+### Commit 161 — Pruebas Unitarias de Definiciones de Exportación PDF
+- **Archivo Creado:** `src/types/__tests__/pdfExport.test.ts`
+  - Suite de pruebas unitarias validando la inmutabilidad de opciones por defecto, resolución con parámetros parciales, validación de type guard `isPdfExportResult` y soporte para cargas útiles tipadas completas.
+- **Mensaje de Commit:** `test(pdf): add unit tests for PDF export options definitions`
+
+### Commit 162 — Generador Puro de Plantilla HTML para Reportes PDF
+- **Archivo Creado:** `src/utils/buildComparisonPdfHtml.ts`
+  - Función pura generadora de documentos HTML5 optimizados para impresión con `@media print`, formateo de severidad con badges de color (`formatSeverityLabel`), sanitización contra inyección XSS (`escapeHtml`), cuadrícula fotográfica lado a lado y tabla estructurada de discrepancias detectadas por IA.
+- **Mensaje de Commit:** `feat(pdf): create pure HTML template builder for comparison report PDF generation`
+
+### Commit 163 — Pruebas Unitarias del Generador HTML y Sanitización
+- **Archivo Creado:** `src/utils/__tests__/buildComparisonPdfHtml.test.ts`
+  - Suite de 7 pruebas unitarias certificando la sanitización de caracteres inseguros (`<script>`, `"`, `'`, `&`), inclusión y omisión condicional de secciones (fotos, IA, metadatos), y manejo de marcadores de posición cuando no existen imágenes registradas.
+- **Mensaje de Commit:** `test(pdf): verify HTML template rendering and data sanitization for PDF export`
+
+### Commit 164 — Servicio Wrapper de Generación PDF con expo-print
+- **Archivo Creado:** `src/services/pdfExportService.ts`
+  - Envoltorio de servicio (`generateComparisonPdf`) sobre `expo-print` (`printToFileAsync`) con validación defensiva de datos de entrada, manejo de representación base64 opcional y clase de error especializada `PdfExportError`.
+- **Mensaje de Commit:** `feat(pdf): implement PDF file generation service wrapper using expo-print`
+
+### Commit 165 — Pruebas Unitarias del Servicio de Exportación PDF
+- **Archivo Creado:** `src/services/__tests__/pdfExportService.test.ts`
+  - Pruebas unitarias certificando la invocación correcta del motor de impresión, generación de rutas de archivo URI, conteo de páginas, banderas base64 y propagación adecuada de `PdfExportError` ante fallos de disco o respuestas vacías.
+- **Mensaje de Commit:** `test(pdf): add unit tests for PDF export generation service`
+
+### Commit 166 — Servicio de Compartición Nativa con expo-sharing
+- **Archivo Creado:** `src/services/shareReportService.ts`
+  - Servicio desacoplado (`sharePdfReport`, `isShareAvailable`) que consulta la disponibilidad en plataforma mediante `expo-sharing` (`isAvailableAsync`) y activa la hoja de diálogo nativa (`shareAsync`) con tipado MIME `application/pdf` y UTI `com.adobe.pdf`.
+- **Mensaje de Commit:** `feat(pdf): implement native share sheet trigger using expo-sharing`
+
+### Commit 167 — Pruebas Unitarias del Servicio de Compartición
+- **Archivo Creado:** `src/services/__tests__/shareReportService.test.ts`
+  - 6 pruebas unitarias verificando la detección de soporte de plataforma, ejecución con opciones por defecto y personalizadas, retorno defensivo `false` cuando no hay soporte y manejo de excepciones mediante `ShareReportError`.
+- **Mensaje de Commit:** `test(pdf): add unit tests for share report service and availability check`
+
+### Commit 168 — Hook Personalizado de Búsqueda y Filtrado de Historial
+- **Archivo Creado:** `src/hooks/useHistorySearchFilter.ts`
+  - Hook modular (`useHistorySearchFilter`) y función pura (`filterHistoryItems`, `normalizeSearchString`) para filtrado insensible a mayúsculas, tildes y espacios en blanco, con soporte para búsqueda por título, notas, etiquetas y categoría de estado (`draft`, `ready`, `analyzed`).
+- **Mensaje de Commit:** `feat(history): create custom search and text filter hook for comparison items`
+
+### Commit 169 — Pruebas Unitarias del Hook de Búsqueda de Historial
+- **Archivo Creado:** `src/hooks/__tests__/useHistorySearchFilter.test.ts`
+  - 7 pruebas unitarias validando la normalización de cadenas, coincidencias parciales, búsqueda combinada texto + estado, conteos reactivos y restablecimiento total de filtros con `clearFilters`.
+- **Mensaje de Commit:** `test(history): add unit tests for history search filter custom hook`
+
+### Commit 170 — Utilidad Pura de Filtrado por Rango de Fechas
+- **Archivo Creado:** `src/utils/filterComparisonsByDateRange.ts`
+  - Utilidad pura (`filterComparisonsByDateRange`, `isSameDay`, `isWithinCurrentWeek`, `isWithinCurrentMonth`, `parseItemDate`) que clasifica registros temporales en presets de calendario ("all", "today", "week", "month") con soporte para zonas horarias y manejo de fechas corruptas.
+- **Mensaje de Commit:** `feat(history): create date range filtering utility for comparison records`
+
+### Commit 171 — Pruebas Unitarias de Filtrado Temporal y Casos Borde
+- **Archivo Creado:** `src/utils/__tests__/filterComparisonsByDateRange.test.ts`
+  - 8 pruebas unitarias validando límites de medianoche (`00:00:01` a `23:59:59`), bordes de ventana semanal de 7 días, cambio de mes calendario y exclusión estricta de registros con fechas inválidas o nulas.
+- **Mensaje de Commit:** `test(history): verify date range filtering utility against edge case dates`
+
+### Commit 172 — Componente UI Cabecera de Historial con Barra de Búsqueda y Filtros
+- **Archivo Creado:** `src/components/history/HistoryListHeader.tsx`
+  - Componente accesible (`accessibilityRole="search"`, `accessibilityRole="button"`) con input de búsqueda reactivo, botón de limpieza instantánea, selector horizontal de chips de estado, chips de rango de fechas y contador visual de resultados encontrados.
+- **Mensaje de Commit:** `feat(history): create history list header with search bar and filter chips`
+
+### Commit 173 — Pruebas Unitarias de la Cabecera de Historial
+- **Archivo Creado:** `src/components/history/__tests__/HistoryListHeader.test.tsx`
+  - 5 pruebas unitarias verificando el renderizado de la barra de búsqueda, visibilidad condicional del botón de limpieza, renderizado de chips de estado y fecha con estilos de selección activos, y visualización de contadores totales vs filtrados.
+- **Mensaje de Commit:** `test(history): add unit tests for history list header UI interactions`
+
+### Commit 174 — Consolidación de Documentación y Contexto Global
+- **Archivo Modificado:** `PROJECT_CONTEXT.md`
+  - Registro pormenorizado de los 15 commits atómicos (160 al 174), elevando el progreso acumulado del proyecto a 174 de 200 commits con 484 pruebas unitarias aprobadas.
+- **Mensaje de Commit:** `docs(project): update project context and total commit count to 174`
+
+---
+
+### Estado Global del Proyecto tras la Micro-Fase (Commit 174 / 200)
+- **Progreso de Commits:** 174 de 200 commits completados (87.0% hacia la meta de 200).
+- **Suites de Pruebas Automatizadas:** 65 suites ejecutadas y superadas al 100% en Vitest (484 pruebas totales aprobadas).
 - **Tipado TypeScript:** 0 errores de compilación (`npx tsc --noEmit` exit code 0).
 - **Linter ESLint:** 0 errores y 0 advertencias (`npx eslint .` exit code 0).
-- **Arquitectura y Calidad:** Módulo de IA, resiliencia offline, retroalimentación háptica, panel dev aislado y accesibilidad completada.
+- **Módulos Nuevos Incorporados:** Generación y exportación de reportes PDF con `expo-print`, compartición nativa de archivos con `expo-sharing`, hook de búsqueda con normalización de caracteres, utilidades de filtrado temporal por calendario y componente UI de cabecera con chips para el historial.

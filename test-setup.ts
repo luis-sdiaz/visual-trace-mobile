@@ -36,3 +36,18 @@ vi.mock("expo-haptics", () => ({
   },
 }));
 
+vi.mock("expo-print", () => ({
+  printToFileAsync: vi.fn().mockResolvedValue({
+    uri: "file:///mock/path/report.pdf",
+    numberOfPages: 2,
+    base64: undefined,
+  }),
+  printAsync: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock("expo-sharing", () => ({
+  isAvailableAsync: vi.fn().mockResolvedValue(true),
+  shareAsync: vi.fn().mockResolvedValue(undefined),
+}));
+
+
