@@ -10,6 +10,7 @@ import {
 import {
   ActivityIndicator,
   FlatList,
+  Modal,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -20,6 +21,12 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { DemoModeToggle } from "@/components/ui/DemoModeToggle";
+import { DevErrorInjectionPanel } from "@/components/ui/DevErrorInjectionPanel";
+import {
+  getDemoState,
+  subscribeDemoConfig,
+} from "@/config/demoConfig";
 import { Button } from "@/components/ui/Button";
 import { Colors } from "@/constants/colors";
 import { Radius } from "@/constants/radius";
@@ -84,6 +91,14 @@ export default function HomeScreen() {
   } = useComparison();
 
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [isDemoActive, setIsDemoActive] = useState(() => getDemoState().enabled);
+  const [showDevModal, setShowDevModal] = useState(false);
+
+  useEffect(() => {
+    return subscribeDemoConfig((state) => {
+      setIsDemoActive(state.enabled);
+    });
+  }, []);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [recentComparisons, setRecentComparisons] = useState<
     ComparisonRecord[]
@@ -402,26 +417,63 @@ export default function HomeScreen() {
         <View style={styles.topBar}>
           <Text style={styles.brand}>VisualTrace</Text>
 
-          <Pressable
-            accessibilityRole="button"
-            disabled={isSigningOut}
-            onPress={handleSignOut}
-            style={({ pressed }) => [
-              styles.signOutButton,
-              pressed && styles.signOutButtonPressed,
-            ]}
-          >
-            <Ionicons
-              name="log-out-outline"
-              size={17}
-              color={Colors.textSecondary}
-            />
+          <View style={styles.topBarActions}>
+            <DemoModeToggle compact={true} testID="home-demo-toggle" />
 
-            <Text style={styles.signOutText}>
-              {isSigningOut ? "Saliendo..." : "Salir"}
-            </Text>
-          </Pressable>
+            <Pressable
+              accessibilityLabel="Configuración y panel de sustentación"
+              accessibilityRole="button"
+              onPress={() => setShowDevModal(true)}
+              style={({ pressed }) => [
+                styles.devSettingsButton,
+                pressed && styles.devSettingsButtonPressed,
+              ]}
+              testID="open-dev-settings-button"
+            >
+              <Ionicons
+                name="settings-outline"
+                size={17}
+                color={Colors.textSecondary}
+              />
+            </Pressable>
+
+            <Pressable
+              accessibilityRole="button"
+              disabled={isSigningOut}
+              onPress={handleSignOut}
+              style={({ pressed }) => [
+                styles.signOutButton,
+                pressed && styles.signOutButtonPressed,
+              ]}
+            >
+              <Ionicons
+                name="log-out-outline"
+                size={17}
+                color={Colors.textSecondary}
+              />
+
+              <Text style={styles.signOutText}>
+                {isSigningOut ? "Saliendo..." : "Salir"}
+              </Text>
+            </Pressable>
+          </View>
         </View>
+
+        {isDemoActive ? (
+          <View style={styles.demoBanner} testID="home-demo-active-banner">
+            <View style={styles.demoBannerIconContainer}>
+              <Ionicons name="school-outline" size={20} color={Colors.accent} />
+            </View>
+            <View style={styles.demoBannerContent}>
+              <Text style={styles.demoBannerTitle}>
+                MODO DEMOSTRACIÓN ACADÉMICA ACTIVO
+              </Text>
+              <Text style={styles.demoBannerText}>
+                Las solicitudes de análisis usan inferencia simulada instantánea y resiliencia para sustentación.
+              </Text>
+            </View>
+          </View>
+        ) : null}
 
         <View style={styles.header}>
           <Text style={styles.greeting}>{accountGreeting}</Text>
@@ -738,6 +790,45 @@ export default function HomeScreen() {
           )}
         </View>
       </ScrollView>
+
+      <Modal
+        accessibilityLabel="Panel de desarrollo y sustentación"
+        accessibilityViewIsModal
+        animationType="slide"
+        onRequestClose={() => setShowDevModal(false)}
+        statusBarTranslucent
+        testID="dev-settings-modal"
+        transparent
+        visible={showDevModal}
+      >
+        <View style={styles.devModalOverlay}>
+          <View style={styles.devModalContainer}>
+            <View style={styles.devModalHeader}>
+              <Text style={styles.devModalTitle}>
+                Panel de Sustentación Académica
+              </Text>
+              <Pressable
+                accessibilityLabel="Cerrar panel de desarrollo"
+                accessibilityRole="button"
+                onPress={() => setShowDevModal(false)}
+                style={styles.devModalCloseButton}
+                testID="close-dev-settings-button"
+              >
+                <Ionicons name="close" size={20} color={Colors.textSecondary} />
+              </Pressable>
+            </View>
+
+            <ScrollView
+              contentContainerStyle={styles.devModalScrollContent}
+              showsVerticalScrollIndicator={false}
+              style={styles.devModalScroll}
+            >
+              <DemoModeToggle testID="modal-demo-toggle" />
+              <DevErrorInjectionPanel testID="modal-dev-error-injection-panel" />
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -766,7 +857,48 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: Spacing.xxxl,
+    marginBottom: Spacing.xl,
+  },
+
+  topBarActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+  },
+
+  demoBanner: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    backgroundColor: Colors.accentSoft,
+    borderColor: Colors.accent,
+    borderWidth: 1,
+    borderRadius: Radius.lg,
+    padding: Spacing.md,
+    marginBottom: Spacing.xl,
+    gap: Spacing.sm,
+  },
+
+  demoBannerIconContainer: {
+    marginTop: 2,
+  },
+
+  demoBannerContent: {
+    flex: 1,
+  },
+
+  demoBannerTitle: {
+    ...Typography.label,
+    fontSize: 11,
+    lineHeight: 14,
+    color: Colors.accent,
+    marginBottom: 2,
+  },
+
+  demoBannerText: {
+    ...Typography.body,
+    fontSize: 12,
+    lineHeight: 17,
+    color: Colors.textPrimary,
   },
 
   brand: {
@@ -795,6 +927,78 @@ const styles = StyleSheet.create({
     ...Typography.label,
     color: Colors.textSecondary,
     marginLeft: Spacing.xs,
+  },
+
+  devSettingsButton: {
+    width: 40,
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: Radius.full,
+  },
+
+  devSettingsButtonPressed: {
+    backgroundColor: Colors.surfaceSecondary,
+  },
+
+  devModalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(15, 23, 42, 0.65)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: Spacing.lg,
+  },
+
+  devModalContainer: {
+    width: "100%",
+    maxWidth: 540,
+    maxHeight: "85%",
+    backgroundColor: Colors.background,
+    borderRadius: Radius.xl,
+    overflow: "hidden",
+    shadowColor: Colors.black,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 10,
+  },
+
+  devModalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    backgroundColor: Colors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+
+  devModalTitle: {
+    ...Typography.title,
+    fontSize: 16,
+    lineHeight: 22,
+    color: Colors.textPrimary,
+  },
+
+  devModalCloseButton: {
+    width: 32,
+    height: 32,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: Radius.full,
+    backgroundColor: Colors.surfaceSecondary,
+  },
+
+  devModalScroll: {
+    flexGrow: 1,
+  },
+
+  devModalScrollContent: {
+    padding: Spacing.lg,
   },
 
   header: {
