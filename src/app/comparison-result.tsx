@@ -20,6 +20,11 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { ArchitectureInfoCard } from "@/components/ui/ArchitectureInfoCard";
+import {
+  getDemoState,
+  subscribeDemoConfig,
+} from "@/config/demoConfig";
 import { Button } from "@/components/ui/Button";
 import { AiAnalysisLoadingSkeleton } from "@/components/ui/AiAnalysisLoadingSkeleton";
 import { AiAnalysisSummaryCard } from "@/components/ui/AiAnalysisSummaryCard";
@@ -217,6 +222,13 @@ export default function ComparisonResultScreen() {
   const [analysisQuotaScope, setAnalysisQuotaScope] = useState<string | undefined>(undefined);
   const [copiedReport, setCopiedReport] = useState(false);
   const [isSharingReport, setIsSharingReport] = useState(false);
+  const [isDemoActive, setIsDemoActive] = useState(() => getDemoState().enabled);
+
+  useEffect(() => {
+    return subscribeDemoConfig((state) => {
+      setIsDemoActive(state.enabled);
+    });
+  }, []);
   const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [previewStage, setPreviewStage] = useState<ImageStage | null>(null);
   const [isEditingName, setIsEditingName] = useState(false);
@@ -760,6 +772,20 @@ export default function ComparisonResultScreen() {
           </View>
         </View>
 
+        {isDemoActive ? (
+          <View style={styles.demoResultBadge} testID="demo-mode-badge">
+            <Text style={styles.demoResultBadgeIcon}>🎓</Text>
+            <View style={styles.demoResultBadgeTextContainer}>
+              <Text style={styles.demoResultBadgeTitle}>
+                MODO DEMOSTRACIÓN ACADÉMICA ACTIVO
+              </Text>
+              <Text style={styles.demoResultBadgeSubtitle}>
+                Inferencia de Gemini simulada y resiliencia para sustentación activa
+              </Text>
+            </View>
+          </View>
+        ) : null}
+
         <View style={styles.statusCard}>
           <View style={styles.statusIcon}>
             <Text style={styles.statusIconText}>✓</Text>
@@ -898,6 +924,8 @@ export default function ComparisonResultScreen() {
             onRetry={() => void executeAnalysisRequest()}
           />
         ) : null}
+
+        <ArchitectureInfoCard testID="result-architecture-info-card" />
 
         <View style={styles.footer}>
           {analysisPresentation.action && analysisPresentation.actionLabel ? (
@@ -1557,4 +1585,38 @@ const styles = StyleSheet.create({
     elevation: 10,
   },
 
+  demoResultBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: Colors.accentSoft,
+    borderColor: Colors.accent,
+    borderWidth: 1,
+    borderRadius: Radius.lg,
+    padding: Spacing.md,
+    marginBottom: Spacing.lg,
+    gap: Spacing.sm,
+  },
+
+  demoResultBadgeIcon: {
+    fontSize: 20,
+  },
+
+  demoResultBadgeTextContainer: {
+    flex: 1,
+  },
+
+  demoResultBadgeTitle: {
+    ...Typography.label,
+    fontSize: 11,
+    lineHeight: 14,
+    color: Colors.accent,
+    marginBottom: 2,
+  },
+
+  demoResultBadgeSubtitle: {
+    ...Typography.body,
+    fontSize: 12,
+    lineHeight: 16,
+    color: Colors.textPrimary,
+  },
 });
