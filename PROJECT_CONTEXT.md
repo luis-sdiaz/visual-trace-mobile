@@ -534,20 +534,98 @@ Habiendo alcanzado la estabilidad total del motor de backend y del proveedor de 
   - Purga automática en segundo plano de imágenes temporales caducadas durante el arranque de la sesión y al cerrar sesión (`signOut`).
 - **Función Modular:** `handleSessionCachePurge` tolerante a fallos.
 
-#### Commits 129 a 134 — Suites de Pruebas de Rendimiento, Integración y Ciclo de Vida
+#### Commits 129 a 131 — Suites de Pruebas de Rendimiento, Integración y Cierre del Bloque 2
 - **Commit 129:** Pruebas de límites de cuota y rotación en `src/services/imageCacheService.test.ts`.
 - **Commit 130:** Pruebas de integración de purga de sesión en `src/context/AuthContext.test.tsx` (4 pruebas).
-- **Commit 131:** Pruebas de rendimiento y memoización en `src/components/ui/ComparisonPreview.test.tsx` (2 pruebas).
-- **Commit 132:** Pruebas de compresión y sanitización de calidad en `src/utils/imageSelection.test.ts` (13 pruebas).
-- **Commit 133:** Pruebas de ciclo de vida y limpieza de memoria en `src/hooks/useImageMemoryCleanup.test.ts` (4 pruebas).
-- **Commit 134:** Pruebas de integración de rendimiento y almacenamiento en `src/integration/performanceAndStorage.test.ts` (4 pruebas).
-
-#### Commit 135 — Consolidación, Auditoría de Rendimiento y Cierre del Bloque 2
-- **Auditoría Integral de Rendimiento:**
-  - 0 advertencias de desuso, 0 fugas de memoria por listeners huérfanos o URLs no revocadas.
-  - Desempeño fluido en listas de historial y compresión eficiente en capturas fotográficas.
-- **Estado Actual del Repositorio (Commit 135):**
+- **Commit 131:** Pruebas de rendimiento, memoización y cierre del Bloque 2 de optimización y caché.
+- **Estado al Cierre del Bloque 2 (Commit 131):**
   - 374 pruebas automatizadas superadas (`42/42` suites en verde).
   - Verificación de tipos TypeScript estricta sin emisiones (`npx tsc --noEmit` exit 0).
   - Verificación estática con ESLint al 100% limpia sin errores ni advertencias (`npx eslint .` exit 0).
   - **Fase 3 (Bloque 2: Optimización de Rendimiento, Caché y Gestión de Memoria en Dispositivos Móviles) oficialmente CERRADO Y CONSOLIDADO.**
+
+### Bloque 3: Módulo de Demostración Académica, Mocks de Red y Resiliencia para Sustentación (Commits 132 al 145)
+
+#### Commit 132 — Configuración de Modo Demostración Académica
+- **Archivo Creado:** `src/config/demoConfig.ts`
+  - Definición de tipos formales para demostración académica: `DemoNetworkCondition`, `DemoMockScenario`, `DemoModeOptions` y `AcademicDemoState`.
+  - Gestor de estado en memoria con patrón observador (`subscribeDemoConfig`), lectura pura (`getDemoState`, `isDemoModeActive`), mutación controlada (`setDemoState`), restablecimiento (`resetDemoConfig`) y telemetría de simulación (`recordMockServed`).
+- **Suite de Pruebas:** `src/config/demoConfig.test.ts` (5 pruebas unitarias).
+
+#### Commit 133 — Interceptor de Mocks de la API Gemini
+- **Archivo Creado:** `src/services/aiMockService.ts`
+  - Generador de reportes deterministas tipados cumpliendo estrictamente con el contrato `GeminiAnalysisReport` (`v1.0`).
+  - Escenarios temáticos preconfigurados para sustentación: `changes_detected` (hallazgos estructurales y pluviales), `no_changes` (estado idéntico), `structural_defect` (alerta crítica con fisuras y cortante) y `minor_cosmetic` (decoloración UV y rayaduras).
+  - Métodos `generateMockAiAnalysisReport` y `resolveMockReport` con inyección de latencia y actualización de telemetría.
+- **Suite de Pruebas:** `src/services/aiMockService.test.ts` (4 pruebas unitarias).
+
+#### Commit 134 — Componente UI Switch / Toggle de Modo Demo
+- **Archivo Creado:** `src/components/ui/DemoModeToggle.tsx`
+  - Switch interactivo accesible con soporte para variante compacta de cabecera (`compact=true`) y modo tarjeta completa (`compact=false`).
+  - Badges visuales de estado: "🎓 DEMO ACTIVO" vs "⚡ API REAL".
+  - Sincronización reactiva mediante suscripción de estado y helper puro `toggleDemoMode`.
+  - Design Tokens estrictos (`Colors`, `Radius`, `Spacing`, `Typography`).
+- **Suite de Pruebas:** `src/components/ui/DemoModeToggle.test.tsx` (5 pruebas unitarias).
+
+#### Commit 135 — Inyector de Latencia y Simulación de Fallos de Red
+- **Archivo Modificado:** `src/services/analysisWorkflow.ts`
+  - Integración condicional en `performAnalysisAction`: cuando el modo demo está activo, intercepta la solicitud hacia el mock resolver, inyecta latencia configurada y simula fallos de cuota (HTTP 429), fallos de servidor (HTTP 500) o desconexión offline total.
+- **Suite de Pruebas Modificada:** `src/services/analysisWorkflow.test.ts` (23 pruebas unitarias, incluyendo 4 nuevas pruebas de inyección y simulación).
+
+#### Commit 136 — Tarjeta Informativa de Arquitectura RLS y Edge Functions
+- **Archivo Creado:** `src/components/ui/ArchitectureInfoCard.tsx`
+  - Tarjeta técnica expositiva con los 5 pilares arquitectónicos de VisualTrace para evaluación ante jurado (PostgreSQL 15 RLS, Storage Privado, Edge Function Deno, Gemini Vision e Inferencia, Circuit Breaker).
+  - Sección colapsable con accesibilidad nativa (`accessibilityRole="button"`, `aria-expanded`).
+- **Suite de Pruebas:** `src/components/ui/ArchitectureInfoCard.test.tsx` (4 pruebas unitarias).
+
+#### Commit 137 — Integración de Controles Demo en Pantalla Principal
+- **Archivo Modificado:** `src/app/home.tsx`
+  - Incorporación de `DemoModeToggle` compacto en la barra superior (`topBarActions`).
+  - Banner informativo persistente `home-demo-active-banner` desplegado cuando el modo de sustentación se encuentra activo.
+
+#### Commit 138 — Integración de Badges Demo en Pantalla de Resultados
+- **Archivo Modificado:** `src/app/comparison-result.tsx`
+  - Inserción de la tarjeta `ArchitectureInfoCard` (`result-architecture-info-card`) y del distintivo contextual `demo-mode-badge` para exponer al jurado la arquitectura activa y las respuestas simuladas.
+
+#### Commit 139 — Extensión del Servicio Offline y Fallback
+- **Archivo Creado:** `src/services/aiOfflineService.ts`
+  - Almacenamiento y recuperación en caché offline de reportes de análisis (`cacheOfflineAnalysisReport`, `getOfflineAnalysisReport`, `hasOfflineReport`, `clearOfflineAnalysisCache`).
+  - Generación idempotente de fallback de emergencia con `resolveOfflineFallback`.
+- **Suite de Pruebas:** `src/services/aiOfflineService.test.ts` (5 pruebas unitarias).
+
+#### Commit 140 — Suite de Pruebas Automatizadas del Flujo Demo
+- **Archivo Creado:** `src/integration/demoWorkflow.test.ts`
+  - 4 pruebas de integración que comprueban aislamiento total del flujo simulado sin llamadas a backend real, alternancia dinámica de escenarios y restablecimiento limpio del enrutamiento de producción.
+
+#### Commit 141 — Banner de Resiliencia de Red en Vivo
+- **Archivo Creado:** `src/components/ui/NetworkResilienceBanner.tsx`
+  - Componente accesible (`accessibilityRole="alert"`) que informa al jurado sobre inestabilidad de red y permite conmutar al modo demo con un solo toque o reintentar conexión.
+- **Suite de Pruebas:** `src/components/ui/NetworkResilienceBanner.test.tsx` (4 pruebas unitarias).
+
+#### Commit 142 — Panel de Inyección de Errores para Desarrollo
+- **Archivo Creado:** `src/components/ui/DevErrorInjectionPanel.tsx`
+  - Panel interactivo para sustentación que permite conmutar en vivo: condiciones de red (200 OK, Red lenta, Cuota 429, Servidor 500, Offline), latencias (0ms, 500ms, 1500ms, 3000ms), escenarios de IA y restablecimiento de valores.
+- **Suite de Pruebas:** `src/components/ui/DevErrorInjectionPanel.test.tsx` (4 pruebas unitarias).
+
+#### Commit 143 — Integración del Panel Dev en Ajustes
+- **Archivo Modificado:** `src/app/home.tsx`
+  - Botón de acceso directo (`open-dev-settings-button`) y diálogo modal accesible (`dev-settings-modal`) para calibrar parámetros de sustentación e inyectar errores en tiempo real desde la pantalla de inicio.
+
+#### Commit 144 — Pruebas End-to-End de Escenarios de Sustentación
+- **Archivo Creado:** `src/integration/sustentationScenarios.test.ts`
+  - 5 pruebas E2E validando:
+    1. Demostración exitosa con análisis visual estructurado y severidad calculada.
+    2. Demostración de manejo defensivo de cuotas (HTTP 429).
+    3. Resiliencia ante caída imprevista de red con recuperación offline.
+    4. Recuperación tras fallo de servidor 500.
+    5. Salvaguardas y contratos de UI en `home.tsx` y `comparison-result.tsx`.
+
+#### Commit 145 — Consolidación de Documentación y Contexto
+- **Archivo Modificado:** `PROJECT_CONTEXT.md`
+  - Registro exhaustivo del Bloque 3, cierre formal de la Fase 3 Bloque 3 y preparación para despliegue final y sustentación académica.
+
+### Estado Global del Proyecto tras el Bloque 3 (Commit 145)
+- **Suites de Pruebas Automatizadas:** 49 suites ejecutadas y superadas al 100% en Vitest (414 pruebas totales aprobadas).
+- **Tipado TypeScript:** 0 errores de compilación (`npx tsc --noEmit` exit code 0).
+- **Linter ESLint:** 0 errores y 0 advertencias (`npx eslint .` exit code 0).
+- **Modo Demostración Académica y Resiliencia:** 100% operativo con mocks de Gemini, inyección de latencia, paneles de control en UI, persistencia offline y tarjetas de arquitectura RLS.
