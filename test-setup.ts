@@ -20,3 +20,19 @@ vi.mock("expo-clipboard", () => ({
   hasStringAsync: vi.fn().mockResolvedValue(true),
 }));
 
+vi.mock("expo-haptics", () => ({
+  notificationAsync: vi.fn().mockResolvedValue(undefined),
+  impactAsync: vi.fn().mockResolvedValue(undefined),
+  selectionAsync: vi.fn().mockResolvedValue(undefined),
+  NotificationFeedbackType: {
+    Success: "success",
+    Warning: "warning",
+    Error: "error",
+  },
+  ImpactFeedbackStyle: {
+    Light: "light",
+    Medium: "medium",
+    Heavy: "heavy",
+  },
+}));
+
