@@ -1,5 +1,8 @@
-import type { AnalysisReportRecord } from "@/services/analysisService";
+import { getDemoState } from "@/config/demoConfig";
+import { resolveMockReport } from "@/services/aiMockService";
 import {
+  AnalysisServiceError,
+  type AnalysisReportRecord,
   fetchCurrentAnalysisReport,
   requestComparisonAnalysis,
 } from "@/services/analysisService";
@@ -124,6 +127,8 @@ type AnalysisActionDependencies = {
   fetchReport: typeof fetchCurrentAnalysisReport;
   requestAnalysis: typeof requestComparisonAnalysis;
   checkOnline?: NetworkChecker;
+  getDemoConfig?: typeof getDemoState;
+  mockResolver?: typeof resolveMockReport;
 };
 
 const defaultDependencies: AnalysisActionDependencies = {
@@ -136,6 +141,50 @@ export async function performAnalysisAction(
   params: AnalysisActionParams,
   dependencies: AnalysisActionDependencies = defaultDependencies,
 ): Promise<AnalysisReportRecord | null> {
+  const demoConfig = (dependencies.getDemoConfig ?? getDemoState)();
+
+  if (demoConfig.enabled) {
+    if (demoConfig.networkCondition === "offline") {
+      throw new NetworkOfflineError(
+        "Sin conexión a internet simulada para demostración académica.",
+      );
+    }
+
+    if (demoConfig.networkCondition === "error_429") {
+      if (demoConfig.mockLatencyMs > 0) {
+        await new Promise((resolve) => setTimeout(resolve, demoConfig.mockLatencyMs));
+      }
+      throw new AnalysisServiceError(
+        "usage_limit_reached",
+        "Límite de cuota simulado para sustentación académica.",
+        "global_minute",
+      );
+    }
+
+    if (demoConfig.networkCondition === "error_500") {
+      if (demoConfig.mockLatencyMs > 0) {
+        await new Promise((resolve) => setTimeout(resolve, demoConfig.mockLatencyMs));
+      }
+      throw new AnalysisServiceError(
+        "reports_unavailable",
+        "Error de servidor 500 simulado para sustentación académica.",
+      );
+    }
+
+    if (action === "analyze" && demoConfig.injectMockAiAnalysis) {
+      const resolver = dependencies.mockResolver ?? resolveMockReport;
+      return resolver(params.comparisonId, {
+        initialImagePath: params.initialImagePath,
+        finalImagePath: params.finalImagePath,
+        scenario: demoConfig.selectedScenario,
+        latencyMs:
+          demoConfig.networkCondition === "slow"
+            ? Math.max(demoConfig.mockLatencyMs, 1500)
+            : demoConfig.mockLatencyMs,
+      });
+    }
+  }
+
   const isOnline = dependencies.checkOnline
     ? await dependencies.checkOnline()
     : defaultNetworkChecker();
