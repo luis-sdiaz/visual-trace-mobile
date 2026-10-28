@@ -1,4 +1,5 @@
-import React from "react";
+import * as Haptics from "expo-haptics";
+import React, { useEffect } from "react";
 import {
   Modal,
   Pressable,
@@ -7,10 +8,12 @@ import {
   View,
 } from "react-native";
 
+import { AiRetryCountdownTimer } from "@/components/ai/AiRetryCountdownTimer";
 import { Colors } from "@/constants/colors";
 import { Radius } from "@/constants/radius";
 import { Spacing } from "@/constants/spacing";
 import { Typography } from "@/constants/typography";
+import { formatAiQuotaErrorMessage } from "@/utils/formatAiQuotaErrorMessage";
 
 export const DEFAULT_QUOTA_RESET_TIME =
   "Se restablece a la medianoche (00:00 UTC)";
@@ -27,6 +30,8 @@ export type AiQuotaLimitExceededModalProps = {
   onViewHistory?: () => void;
   resetTimeText?: string;
   scope?: string;
+  retryAfterSeconds?: number;
+  onTimerComplete?: () => void;
   testID?: string;
 };
 
@@ -35,8 +40,25 @@ export function AiQuotaLimitExceededModal({
   onClose,
   onViewHistory,
   resetTimeText = DEFAULT_QUOTA_RESET_TIME,
+  scope,
+  retryAfterSeconds,
+  onTimerComplete,
   testID = "ai-quota-limit-exceeded-modal",
 }: AiQuotaLimitExceededModalProps) {
+  useEffect(() => {
+    if (visible) {
+      try {
+        void Haptics.notificationAsync(
+          Haptics.NotificationFeedbackType.Warning,
+        );
+      } catch {
+        // Fallback tolerante para entornos web o sin soporte háptico
+      }
+    }
+  }, [visible]);
+
+  const dynamicDescription = formatAiQuotaErrorMessage(scope);
+
   return (
     <Modal
       accessibilityLabel="Límite diario de análisis alcanzado"
@@ -65,10 +87,17 @@ export function AiQuotaLimitExceededModal({
             </View>
           </View>
 
-          <Text style={styles.description}>
-            Has completado las solicitudes de inferencia con IA disponibles para
-            el día de hoy. Tus fotografías y datos locales no se ven afectados.
+          <Text style={styles.description} testID="quota-exceeded-description">
+            {dynamicDescription}
           </Text>
+
+          {retryAfterSeconds !== undefined && retryAfterSeconds > 0 ? (
+            <AiRetryCountdownTimer
+              onTimerComplete={onTimerComplete}
+              retryAfterSeconds={retryAfterSeconds}
+              testID="modal-retry-countdown-timer"
+            />
+          ) : null}
 
           <View
             style={styles.resetIndicator}
@@ -100,22 +129,22 @@ export function AiQuotaLimitExceededModal({
               accessibilityLabel="Entendido"
               accessibilityRole="button"
               onPress={onClose}
-              style={styles.closeButton}
+              style={styles.primaryButton}
               testID="quota-exceeded-close-button"
             >
-              <Text style={styles.closeButtonText}>Entendido</Text>
+              <Text style={styles.primaryButtonText}>Entendido</Text>
             </Pressable>
 
             {onViewHistory ? (
               <Pressable
-                accessibilityHint="Regresa a la pantalla principal para explorar tus comparaciones guardadas"
+                accessibilityHint="Navega a la pantalla de inicio con tus comparaciones previas"
                 accessibilityLabel="Ver historial de comparaciones"
                 accessibilityRole="button"
                 onPress={onViewHistory}
-                style={styles.historyButton}
+                style={styles.secondaryButton}
                 testID="quota-exceeded-history-button"
               >
-                <Text style={styles.historyButtonText}>
+                <Text style={styles.secondaryButtonText}>
                   Ver historial de comparaciones
                 </Text>
               </Pressable>
@@ -142,69 +171,69 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface,
     borderRadius: Radius.xl,
     padding: Spacing.xl,
-    borderWidth: 1,
-    borderColor: Colors.borderPrimary,
-    elevation: 8,
+    shadowColor: Colors.black,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 10,
   },
 
   header: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.lg,
   },
 
   iconContainer: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     borderRadius: Radius.full,
     backgroundColor: Colors.warningSoft,
-    borderWidth: 1,
-    borderColor: Colors.warning,
     alignItems: "center",
     justifyContent: "center",
     marginRight: Spacing.md,
   },
 
   iconText: {
-    fontSize: 20,
+    fontSize: 22,
   },
 
   titleContainer: {
     flex: 1,
-    gap: Spacing.xs,
   },
 
   title: {
     ...Typography.title,
-    fontSize: 16,
+    fontSize: 17,
     lineHeight: 22,
     color: Colors.textPrimary,
+    marginBottom: 4,
   },
 
   quotaBadge: {
     alignSelf: "flex-start",
-    backgroundColor: Colors.warningSoft,
+    backgroundColor: "#FDE68A",
+    borderColor: Colors.warning,
+    borderWidth: 1,
     borderRadius: Radius.full,
     paddingHorizontal: Spacing.sm,
     paddingVertical: 2,
-    borderWidth: 1,
-    borderColor: Colors.warning,
   },
 
   quotaBadgeText: {
     ...Typography.label,
     fontSize: 11,
     lineHeight: 14,
-    color: Colors.warning,
-    fontWeight: "700",
+    color: "#78350F",
+    fontWeight: "600",
   },
 
   description: {
     ...Typography.body,
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: 14,
+    lineHeight: 20,
     color: Colors.textSecondary,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.lg,
   },
 
   resetIndicator: {
@@ -215,12 +244,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.borderPrimary,
     padding: Spacing.md,
-    marginBottom: Spacing.md,
-    gap: Spacing.sm,
+    marginBottom: Spacing.lg,
   },
 
   resetIcon: {
     fontSize: 18,
+    marginRight: Spacing.sm,
   },
 
   resetTextContainer: {
@@ -249,32 +278,30 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     color: Colors.textPrimary,
     fontWeight: "600",
-    marginBottom: Spacing.xs,
+    marginBottom: Spacing.sm,
   },
 
   suggestionsList: {
-    marginBottom: Spacing.lg,
-    gap: Spacing.xs,
+    marginBottom: Spacing.xl,
   },
 
   suggestionRow: {
     flexDirection: "row",
     alignItems: "flex-start",
-    paddingLeft: Spacing.xs,
+    marginBottom: Spacing.xs,
   },
 
   suggestionBullet: {
-    ...Typography.body,
-    fontSize: 13,
+    color: Colors.primary,
+    fontSize: 14,
     lineHeight: 18,
-    color: Colors.textSecondary,
     marginRight: Spacing.xs,
   },
 
   suggestionText: {
     ...Typography.body,
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: 12,
+    lineHeight: 17,
     color: Colors.textSecondary,
     flex: 1,
   },
@@ -283,7 +310,7 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
 
-  closeButton: {
+  primaryButton: {
     backgroundColor: Colors.primary,
     borderRadius: Radius.md,
     paddingVertical: Spacing.md,
@@ -291,28 +318,27 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
 
-  closeButtonText: {
+  primaryButtonText: {
     ...Typography.button,
     fontSize: 15,
-    color: Colors.textInverse,
-    fontWeight: "700",
+    lineHeight: 20,
+    color: Colors.white,
   },
 
-  historyButton: {
+  secondaryButton: {
     backgroundColor: Colors.surfaceSecondary,
-    borderRadius: Radius.md,
     borderWidth: 1,
     borderColor: Colors.border,
+    borderRadius: Radius.md,
     paddingVertical: Spacing.md,
     alignItems: "center",
     justifyContent: "center",
   },
 
-  historyButtonText: {
+  secondaryButtonText: {
     ...Typography.button,
     fontSize: 14,
+    lineHeight: 20,
     color: Colors.textPrimary,
-    fontWeight: "600",
   },
 });
-
