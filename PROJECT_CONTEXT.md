@@ -41,7 +41,7 @@
 - **Motor de Caché y Borradores:** `@react-native-async-storage/async-storage` `2.2.0` (persistencia del token de sesión Supabase y cola transaccional para borradores locales aislados por identificador de usuario).
 
 ### Calidad, Análisis Estático & Testing
-- **Test Runner:** [Vitest](https://vitest.dev/) `5.0.4` (292 pruebas unitarias y de integración en 31 suites que validan componentes UI, contratos, utilidades, servicios y Edge Functions al 100%).
+- **Test Runner:** [Vitest](https://vitest.dev/) `5.0.4` (441 pruebas unitarias y de integración en 58 suites que validan componentes UI, contratos, utilidades, servicios y Edge Functions al 100%).
 - **Linter:** [ESLint](https://eslint.org/) `^9.39.5` con configuración `eslint-config-expo`.
 - **Verificación de Tipos:** `typescript` con validación estricta sin emisiones (`npx tsc --noEmit`).
 
@@ -620,12 +620,90 @@ Habiendo alcanzado la estabilidad total del motor de backend y del proveedor de 
     4. Recuperación tras fallo de servidor 500.
     5. Salvaguardas y contratos de UI en `home.tsx` y `comparison-result.tsx`.
 
-#### Commit 145 — Consolidación de Documentación y Contexto
-- **Archivo Modificado:** `PROJECT_CONTEXT.md`
-  - Registro exhaustivo del Bloque 3, cierre formal de la Fase 3 Bloque 3 y preparación para despliegue final y sustentación académica.
+---
 
-### Estado Global del Proyecto tras el Bloque 3 (Commit 145)
-- **Suites de Pruebas Automatizadas:** 49 suites ejecutadas y superadas al 100% en Vitest (414 pruebas totales aprobadas).
+## Micro-Fase de Refinamiento, Resiliencia y Accesibilidad (Commits 145 al 159 — Progreso: 159/200)
+
+### Commit 145 — Optimización de Animación de Pulso con Driver Nativo
+- **Archivo Creado/Modificado:** `src/components/ai/AiAnalysisLoadingSkeleton.tsx`
+  - Optimización de la animación de pulso con `useNativeDriver: true` en `Animated.loop` y `Animated.sequence` para máximo rendimiento y fluidez visual a 60 FPS en el hilo nativo de UI.
+- **Mensaje de Commit:** `style(ai): optimize loading skeleton pulse animation with native driver`
+
+### Commit 146 — Suite de Pruebas Unitarias del Skeleton de Carga
+- **Archivo Creado:** `src/components/ai/__tests__/AiAnalysisLoadingSkeleton.test.tsx`
+  - Suite de pruebas unitarias verificando renderizado inicial, visibilidad del skeleton, contador de etapas, roles de accesibilidad (`role="progressbar"`) y transiciones controladas de etapas.
+- **Mensaje de Commit:** `test(ai): add unit tests for loading skeleton component`
+
+### Commit 147 — Descarte Temporal en Banner de Alerta de Cuota
+- **Archivo Creado/Modificado:** `src/components/ai/AiQuotaAlertBanner.tsx`
+  - Incorporación de estado local `isDismissed`, prop controlada y botón táctil accesible de cierre rápido (`ai-quota-dismiss-button`) para permitir al usuario ocultar temporalmente la alerta de cuota.
+- **Mensaje de Commit:** `feat(ai): add temporary dismiss interaction to quota alert banner`
+
+### Commit 148 — Pruebas Unitarias de Acción de Descarte en Banner de Cuota
+- **Archivo Creado:** `src/components/ai/__tests__/AiQuotaAlertBanner.test.tsx`
+  - Pruebas unitarias que certifican la renderización correcta, visibilidad condicional según `isDismissed` y mapeo exhaustivo de alcances de cuota.
+- **Mensaje de Commit:** `test(ai): verify dismiss action behavior in quota alert banner`
+
+### Commit 149 — Helper Puro de Formateo de Errores de Cuota
+- **Archivo Creado:** `src/utils/formatAiQuotaErrorMessage.ts`
+  - Función utilitaria pura `formatAiQuotaErrorMessage` y metadata enriquecida `getFormattedAiQuotaDetails` traduciendo códigos de error (`global_minute`, `user_day`, `comparison_day`, `provider_quota_exceeded`, `global_day`) en mensajes tranquilizadores y educativos para el usuario.
+- **Mensaje de Commit:** `feat(utils): create pure helper for AI quota error message formatting`
+
+### Commit 150 — Pruebas Unitarias del Formateador de Errores de Cuota
+- **Archivo Creado:** `src/utils/__tests__/formatAiQuotaErrorMessage.test.ts`
+  - 6 pruebas unitarias exhaustivas con cobertura para límites por minuto, límites diarios, saturación de Gemini Flash y caídas a fallbacks seguros.
+- **Mensaje de Commit:** `test(utils): add unit tests for AI error message formatter`
+
+### Commit 151 — Integración de Mensajes Dinámicos en Modal de Cuota
+- **Archivo Creado/Modificado:** `src/components/ai/AiQuotaLimitExceededModal.tsx`
+  - Integración del helper `formatAiQuotaErrorMessage(scope)` para renderizar dinámicamente descripciones contextuales según el alcance de error devuelto por el backend.
+- **Mensaje de Commit:** `refactor(ai): integrate dynamic error message formatting into quota modal`
+
+### Commit 152 — Retroalimentación Háptica al Presentar Modal de Cuota
+- **Archivo Modificado:** `src/components/ai/AiQuotaLimitExceededModal.tsx`
+  - Invocación segura y tolerante de `Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning)` con la librería oficial `expo-haptics` al activarse la visibilidad del modal.
+- **Mensaje de Commit:** `feat(ai): add haptic warning feedback on quota limit modal presentation`
+
+### Commit 153 — Componente de Cuenta Regresiva para Tiempos de Espera
+- **Archivo Creado:** `src/components/ai/AiRetryCountdownTimer.tsx`
+  - Componente accesible (`role="timer"`) que calcula y renderiza en vivo una cuenta regresiva a partir de `retryAfterSeconds`, con formato de tiempo `mm:ss` y estado de finalización.
+- **Mensaje de Commit:** `feat(ai): create countdown timer component for rate limit wait times`
+
+### Commit 154 — Pruebas Unitarias del Temporizador Regresivo
+- **Archivo Creado:** `src/components/ai/__tests__/AiRetryCountdownTimer.test.tsx`
+  - Validación con temporizadores simulados (`vi.useFakeTimers()`) del formateo de segundos, decremento en intervalos de 1000ms y notificación al completar la espera.
+- **Mensaje de Commit:** `test(ai): add tests for retry countdown timer logic and completion`
+
+### Commit 155 — Incrustación Condicional del Temporizador en Modal de Cuota
+- **Archivo Modificado:** `src/components/ai/AiQuotaLimitExceededModal.tsx`
+  - Renderizado condicional de `AiRetryCountdownTimer` (`modal-retry-countdown-timer`) cuando `retryAfterSeconds` es provisto en las propiedades del modal.
+- **Mensaje de Commit:** `feat(ai): embed retry countdown timer inside quota limit modal`
+
+### Commit 156 — Aislamiento en Producción del Panel de Inyección de Errores
+- **Archivo Creado/Modificado:** `src/components/dev/DevErrorInjectionPanel.tsx`
+  - Envoltorio de seguridad que evalúa `__DEV__` y retorna `null` automáticamente en compilaciones de producción, previniendo fuga de controles de depuración al usuario final.
+- **Mensaje de Commit:** `refactor(dev): enforce conditional null rendering for error injection panel in production`
+
+### Commit 157 — Pruebas de Aislamiento del Panel Dev en Modo Producción
+- **Archivo Creado:** `src/components/dev/__tests__/DevErrorInjectionPanel.test.tsx`
+  - Pruebas unitarias que certifican que el panel renderiza normalmente cuando `__DEV__ === true` y retorna vacío sin nodos DOM cuando `__DEV__ === false`.
+- **Mensaje de Commit:** `test(dev): verify error injection panel isolation in production mode`
+
+### Commit 158 — Accesibilidad y Etiquetas de Lector de Pantalla en Selector de Imágenes
+- **Archivo Creado:** `src/components/comparison/ImagePickerModal.tsx` y su suite `src/components/comparison/__tests__/ImagePickerModal.test.tsx`
+  - Diálogo modal con atributos rigurosos de accesibilidad: `accessibilityRole="button"`, `accessibilityLabel` descriptivo y `accessibilityHint` contextual para las opciones de cámara, galería y cancelación.
+- **Mensaje de Commit:** `accessibility(ui): improve screen reader labels in image selection modal`
+
+### Commit 159 — Consolidación de Contexto y Contador Global
+- **Archivo Modificado:** `PROJECT_CONTEXT.md`
+  - Actualización del estado general del proyecto registrando los 15 commits atómicos (145 al 159) y alcanzando 159/200 commits.
+- **Mensaje de Commit:** `docs(project): update project context and total commit count to 159`
+
+---
+
+### Estado Global del Proyecto tras la Micro-Fase (Commit 159 / 200)
+- **Progreso de Commits:** 159 de 200 commits completados (79.5% hacia la meta de 200).
+- **Suites de Pruebas Automatizadas:** 58 suites ejecutadas y superadas al 100% en Vitest (441 pruebas totales aprobadas).
 - **Tipado TypeScript:** 0 errores de compilación (`npx tsc --noEmit` exit code 0).
 - **Linter ESLint:** 0 errores y 0 advertencias (`npx eslint .` exit code 0).
-- **Modo Demostración Académica y Resiliencia:** 100% operativo con mocks de Gemini, inyección de latencia, paneles de control en UI, persistencia offline y tarjetas de arquitectura RLS.
+- **Arquitectura y Calidad:** Módulo de IA, resiliencia offline, retroalimentación háptica, panel dev aislado y accesibilidad completada.
