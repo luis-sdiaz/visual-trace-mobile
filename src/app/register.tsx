@@ -1,5 +1,5 @@
 import { router } from "expo-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
@@ -14,7 +14,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { EmailConfirmationResend } from "@/components/auth/EmailConfirmationResend";
 import { Button } from "@/components/ui/Button";
-import { Colors } from "@/constants/colors";
+import { type ColorPalette } from "@/constants/colors";
 import { Radius } from "@/constants/radius";
 import { Spacing } from "@/constants/spacing";
 import { Typography } from "@/constants/typography";
@@ -48,6 +48,8 @@ export default function RegisterScreen() {
   >({});
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const submissionRef = useRef(false);
+
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   const validationErrors = validateRegistrationForm({
     fullName,
@@ -140,8 +142,8 @@ export default function RegisterScreen() {
 
   if (isAuthLoading || user) {
     return (
-      <SafeAreaView style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={Colors.primary} />
+      <SafeAreaView style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
       </SafeAreaView>
     );
   }
@@ -159,12 +161,12 @@ export default function RegisterScreen() {
             onPress={() => router.back()}
             style={styles.backButton}
           >
-            <Text style={styles.backIcon}>←</Text>
+            <Text style={[styles.backIcon, { color: colors.textPrimary }]}>←</Text>
             <Text style={[styles.backText, { color: colors.textSecondary }]}>{t("auth.back")}</Text>
           </Pressable>
 
           <View style={styles.header}>
-            <Text style={styles.brand}>VisualTrace</Text>
+            <Text style={[styles.brand, { color: colors.primary }]}>VisualTrace</Text>
 
             <Text style={[styles.title, { color: colors.textPrimary }]}>{t("auth.registerTitle")}</Text>
 
@@ -264,7 +266,7 @@ export default function RegisterScreen() {
                 ]}
               />
 
-              <Text style={styles.helperText}>
+              <Text style={[styles.helperText, { color: colors.textSecondary }]}>
                 Utiliza entre 8 y 72 caracteres, con al menos una letra y un
                 número.
               </Text>
@@ -336,12 +338,12 @@ export default function RegisterScreen() {
             onPress={handleRegister}
           />
 
-          <Text style={styles.loginText}>
+          <Text style={[styles.loginText, { color: colors.textSecondary }]}>
             ¿Ya tienes una cuenta?{" "}
             <Text
               accessibilityRole="link"
               onPress={() => router.push("/login")}
-              style={styles.loginLink}
+              style={[styles.loginLink, { color: colors.primary }]}
             >
               Inicia sesión
             </Text>
@@ -352,143 +354,145 @@ export default function RegisterScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
+function createStyles(colors: ColorPalette) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
 
-  loadingContainer: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: Colors.background,
-  },
+    loadingContainer: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.background,
+    },
 
-  content: {
-    flexGrow: 1,
-    justifyContent: "space-between",
-    paddingHorizontal: Spacing.xl,
-    paddingTop: Spacing.lg,
-    paddingBottom: Spacing.xl,
-  },
+    content: {
+      flexGrow: 1,
+      justifyContent: "space-between",
+      paddingHorizontal: Spacing.xl,
+      paddingTop: Spacing.lg,
+      paddingBottom: Spacing.xl,
+    },
 
-  backButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    alignSelf: "flex-start",
-    marginBottom: Spacing.xxl,
-  },
+    backButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      alignSelf: "flex-start",
+      marginBottom: Spacing.xxl,
+    },
 
-  backIcon: {
-    color: Colors.textPrimary,
-    fontSize: 22,
-    marginRight: Spacing.sm,
-  },
+    backIcon: {
+      color: colors.textPrimary,
+      fontSize: 22,
+      marginRight: Spacing.sm,
+    },
 
-  backText: {
-    ...Typography.label,
-    color: Colors.textPrimary,
-  },
+    backText: {
+      ...Typography.label,
+      color: colors.textPrimary,
+    },
 
-  header: {
-    marginBottom: Spacing.xxl,
-  },
+    header: {
+      marginBottom: Spacing.xxl,
+    },
 
-  brand: {
-    color: Colors.primary,
-    fontSize: 18,
-    fontWeight: "700",
-    marginBottom: Spacing.md,
-  },
+    brand: {
+      color: colors.primary,
+      fontSize: 18,
+      fontWeight: "700",
+      marginBottom: Spacing.md,
+    },
 
-  title: {
-    ...Typography.heading,
-    color: Colors.textPrimary,
-    marginBottom: Spacing.sm,
-  },
+    title: {
+      ...Typography.heading,
+      color: colors.textPrimary,
+      marginBottom: Spacing.sm,
+    },
 
-  description: {
-    ...Typography.body,
-    color: Colors.textSecondary,
-  },
+    description: {
+      ...Typography.body,
+      color: colors.textSecondary,
+    },
 
-  form: {
-    width: "100%",
-  },
+    form: {
+      width: "100%",
+    },
 
-  field: {
-    marginBottom: Spacing.lg,
-  },
+    field: {
+      marginBottom: Spacing.lg,
+    },
 
-  label: {
-    ...Typography.label,
-    color: Colors.textPrimary,
-    marginBottom: Spacing.sm,
-  },
+    label: {
+      ...Typography.label,
+      color: colors.textPrimary,
+      marginBottom: Spacing.sm,
+    },
 
-  input: {
-    minHeight: 52,
-    paddingHorizontal: Spacing.lg,
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.borderStrong,
-    borderRadius: Radius.lg,
-    color: Colors.textPrimary,
-    fontSize: 16,
-  },
+    input: {
+      minHeight: 52,
+      paddingHorizontal: Spacing.lg,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.borderStrong,
+      borderRadius: Radius.lg,
+      color: colors.textPrimary,
+      fontSize: 16,
+    },
 
-  inputError: {
-    borderColor: Colors.danger,
-  },
+    inputError: {
+      borderColor: colors.danger,
+    },
 
-  fieldError: {
-    ...Typography.label,
-    color: Colors.danger,
-    marginTop: Spacing.xs,
-  },
+    fieldError: {
+      ...Typography.label,
+      color: colors.danger,
+      marginTop: Spacing.xs,
+    },
 
-  helperText: {
-    ...Typography.label,
-    color: Colors.textSecondary,
-    marginTop: Spacing.sm,
-  },
+    helperText: {
+      ...Typography.label,
+      color: colors.textSecondary,
+      marginTop: Spacing.sm,
+    },
 
-  errorCard: {
-    padding: Spacing.md,
-    backgroundColor: Colors.dangerSoft,
-    borderRadius: Radius.md,
-  },
+    errorCard: {
+      padding: Spacing.md,
+      backgroundColor: colors.dangerSoft,
+      borderRadius: Radius.md,
+    },
 
-  errorText: {
-    ...Typography.label,
-    color: Colors.danger,
-  },
+    errorText: {
+      ...Typography.label,
+      color: colors.danger,
+    },
 
-  successCard: {
-    padding: Spacing.md,
-    backgroundColor: Colors.successSoft,
-    borderRadius: Radius.md,
-  },
+    successCard: {
+      padding: Spacing.md,
+      backgroundColor: colors.successSoft,
+      borderRadius: Radius.md,
+    },
 
-  successText: {
-    ...Typography.label,
-    color: Colors.success,
-  },
+    successText: {
+      ...Typography.label,
+      color: colors.success,
+    },
 
-  footer: {
-    marginTop: Spacing.xxl,
-  },
+    footer: {
+      marginTop: Spacing.xxl,
+    },
 
-  loginText: {
-    ...Typography.body,
-    color: Colors.textSecondary,
-    textAlign: "center",
-    marginTop: Spacing.lg,
-  },
+    loginText: {
+      ...Typography.body,
+      color: colors.textSecondary,
+      textAlign: "center",
+      marginTop: Spacing.lg,
+    },
 
-  loginLink: {
-    color: Colors.primary,
-    fontWeight: "700",
-  },
-});
+    loginLink: {
+      color: colors.primary,
+      fontWeight: "700",
+    },
+  });
+}

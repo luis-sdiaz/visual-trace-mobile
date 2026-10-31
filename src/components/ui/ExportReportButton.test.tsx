@@ -48,10 +48,12 @@ describe("ExportReportButton", () => {
 
   it("handles user click events via component props", () => {
     const onPressMock = vi.fn();
-    const element = ExportReportButton({
-      onPress: onPressMock,
-      label: "Exportar",
-    });
+    const element = (
+      <ExportReportButton
+        onPress={onPressMock}
+        label="Exportar"
+      />
+    );
 
     // Invoke onPress directly from the element props
     element.props.onPress({} as never);

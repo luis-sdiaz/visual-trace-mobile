@@ -3,10 +3,11 @@ import { useTranslation } from "react-i18next";
 import "@/i18n";
 import { StyleSheet, Text, View } from "react-native";
 
-import { Colors } from "@/constants/colors";
+import { Colors, type ColorPalette } from "@/constants/colors";
 import { Radius } from "@/constants/radius";
 import { Spacing } from "@/constants/spacing";
 import { Typography } from "@/constants/typography";
+import { useTheme } from "@/context/ThemeContext";
 import type {
   GeminiAnalysisReport,
   VisualDifference,
@@ -38,6 +39,7 @@ export type VisualSeverityInfo = {
 export function calculateVisualSeverity(
   differences: VisualDifference[],
   hasVisibleChanges = true,
+  palette: ColorPalette = Colors,
 ): VisualSeverityInfo {
   if (!hasVisibleChanges || !differences || differences.length === 0) {
     return {
@@ -46,9 +48,9 @@ export function calculateVisualSeverity(
       title: "Sin discrepancias detectadas",
       description:
         "Ambas fotografías representan el mismo estado visual sin alteraciones detectadas.",
-      color: Colors.successDark,
-      backgroundColor: Colors.successSoft,
-      borderColor: Colors.success,
+      color: palette.success,
+      backgroundColor: palette.successSoft,
+      borderColor: palette.success,
       statusLabel: "Sin alteraciones",
     };
   }
@@ -82,9 +84,9 @@ export function calculateVisualSeverity(
       title: "Impacto visual menor",
       description:
         "Discrepancias puntuales o de baja escala que no alteran la estructura general.",
-      color: Colors.primaryDark,
-      backgroundColor: Colors.primarySoft,
-      borderColor: Colors.borderPrimary,
+      color: palette.primary,
+      backgroundColor: palette.primarySoft,
+      borderColor: palette.borderPrimary,
       statusLabel: "Cambios leves",
     };
   }
@@ -96,9 +98,9 @@ export function calculateVisualSeverity(
       title: "Impacto visual moderado",
       description:
         "Modificaciones apreciables que alteran el estado o composición visual.",
-      color: Colors.warning,
-      backgroundColor: Colors.warningSoft,
-      borderColor: Colors.warning,
+      color: palette.warning,
+      backgroundColor: palette.warningSoft,
+      borderColor: palette.warning,
       statusLabel: "Cambios moderados",
     };
   }
@@ -109,9 +111,9 @@ export function calculateVisualSeverity(
     title: "Impacto visual significativo",
     description:
       "Múltiples diferencias estructurales o cambios de alta relevancia detectados.",
-    color: Colors.danger,
-    backgroundColor: Colors.dangerSoft,
-    borderColor: Colors.danger,
+    color: palette.danger,
+    backgroundColor: palette.dangerSoft,
+    borderColor: palette.danger,
     statusLabel: "Cambios relevantes",
   };
 }
@@ -126,6 +128,9 @@ export function AiAnalysisSummaryCard({
   testID = "ai-analysis-summary-card",
 }: AiAnalysisSummaryCardProps) {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const geminiReport: GeminiAnalysisReport | null = useMemo(() => {
     if (!report) return null;
     if ("result" in report && report.result) {
@@ -142,8 +147,9 @@ export function AiAnalysisSummaryCard({
     return calculateVisualSeverity(
       geminiReport.differences,
       geminiReport.hasVisibleChanges,
+      colors,
     );
-  }, [geminiReport]);
+  }, [geminiReport, colors]);
 
   const uniqueCategoriesCount = useMemo(() => {
     if (!geminiReport?.differences) return 0;
@@ -250,110 +256,114 @@ export function AiAnalysisSummaryCard({
   );
 }
 
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.lg,
-    borderWidth: 1,
-    borderColor: Colors.borderPrimary,
-    padding: Spacing.md,
-    marginBottom: Spacing.lg,
-  },
+function createStyles(colors: ColorPalette) {
+  return StyleSheet.create({
+    card: {
+      backgroundColor: colors.surface,
+      borderRadius: Radius.lg,
+      borderWidth: 1,
+      borderColor: colors.border,
+      padding: Spacing.md,
+      marginBottom: Spacing.lg,
+    },
 
-  headerRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    justifyContent: "space-between",
-    gap: Spacing.sm,
-    marginBottom: Spacing.xs,
-  },
+    headerRow: {
+      flexDirection: "row",
+      alignItems: "flex-start",
+      justifyContent: "space-between",
+      gap: Spacing.sm,
+      marginBottom: Spacing.xs,
+    },
 
-  headerLeft: {
-    flex: 1,
-  },
+    headerLeft: {
+      flex: 1,
+    },
 
-  headerEyebrow: {
-    ...Typography.label,
-    fontSize: 11,
-    lineHeight: 14,
-    color: Colors.textSecondary,
-    letterSpacing: 0.5,
-    marginBottom: 2,
-  },
+    headerEyebrow: {
+      ...Typography.label,
+      fontSize: 11,
+      lineHeight: 14,
+      color: colors.textSecondary,
+      letterSpacing: 0.5,
+      marginBottom: 2,
+    },
 
-  headerTitle: {
-    ...Typography.title,
-    fontSize: 16,
-    lineHeight: 22,
-    color: Colors.textPrimary,
-  },
+    headerTitle: {
+      ...Typography.title,
+      fontSize: 16,
+      lineHeight: 22,
+      color: colors.textPrimary,
+    },
 
-  severityBadge: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
-    borderRadius: Radius.full,
-    borderWidth: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
+    severityBadge: {
+      paddingHorizontal: Spacing.md,
+      paddingVertical: Spacing.xs,
+      borderRadius: Radius.full,
+      borderWidth: 1,
+      alignItems: "center",
+      justifyContent: "center",
+    },
 
-  severityBadgeText: {
-    ...Typography.label,
-    fontSize: 12,
-    lineHeight: 16,
-    fontWeight: "700",
-  },
+    severityBadgeText: {
+      ...Typography.label,
+      fontSize: 12,
+      lineHeight: 16,
+      fontWeight: "700",
+    },
 
-  description: {
-    ...Typography.body,
-    fontSize: 13,
-    lineHeight: 18,
-    color: Colors.textSecondary,
-    marginBottom: Spacing.md,
-  },
+    description: {
+      ...Typography.body,
+      fontSize: 13,
+      lineHeight: 18,
+      color: colors.textSecondary,
+      marginBottom: Spacing.md,
+    },
 
-  metricsRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: Colors.surfaceSecondary,
-    borderRadius: Radius.md,
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-  },
+    metricsRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: colors.surfaceSecondary,
+      borderRadius: Radius.md,
+      borderWidth: 1,
+      borderColor: colors.border,
+      paddingVertical: Spacing.sm,
+      paddingHorizontal: Spacing.md,
+    },
 
-  metricItem: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
+    metricItem: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+    },
 
-  metricDivider: {
-    width: 1,
-    height: 24,
-    backgroundColor: Colors.border,
-  },
+    metricDivider: {
+      width: 1,
+      height: 24,
+      backgroundColor: colors.border,
+    },
 
-  metricValue: {
-    ...Typography.title,
-    fontSize: 16,
-    lineHeight: 20,
-    fontWeight: "700",
-    color: Colors.textPrimary,
-  },
+    metricValue: {
+      ...Typography.title,
+      fontSize: 16,
+      lineHeight: 20,
+      fontWeight: "700",
+      color: colors.textPrimary,
+    },
 
-  metricValueText: {
-    ...Typography.label,
-    fontSize: 12,
-    lineHeight: 16,
-    fontWeight: "700",
-    textAlign: "center",
-  },
+    metricValueText: {
+      ...Typography.label,
+      fontSize: 12,
+      lineHeight: 16,
+      fontWeight: "700",
+      textAlign: "center",
+    },
 
-  metricLabel: {
-    ...Typography.label,
-    fontSize: 11,
-    lineHeight: 14,
-    color: Colors.textSecondary,
-    marginTop: 2,
-  },
-});
+    metricLabel: {
+      ...Typography.label,
+      fontSize: 11,
+      lineHeight: 14,
+      color: colors.textSecondary,
+      marginTop: 2,
+    },
+  });
+}

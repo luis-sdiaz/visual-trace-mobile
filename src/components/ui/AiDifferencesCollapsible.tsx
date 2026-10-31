@@ -7,10 +7,11 @@ import {
   View,
 } from "react-native";
 
-import { Colors } from "@/constants/colors";
+import { type ColorPalette } from "@/constants/colors";
 import { Radius } from "@/constants/radius";
 import { Spacing } from "@/constants/spacing";
 import { Typography } from "@/constants/typography";
+import { useTheme } from "@/context/ThemeContext";
 import type {
   VisualDifference,
   VisualDifferenceCategory,
@@ -51,6 +52,9 @@ export function AiDifferencesCollapsible({
   initialExpanded = false,
 }: AiDifferencesCollapsibleProps) {
   const { t, i18n } = useTranslation();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const knownTranslations = (i18n.getResource(
     i18n.language,
     "common",
@@ -202,179 +206,183 @@ export function AiDifferencesCollapsible({
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    marginTop: Spacing.xl,
-    marginBottom: Spacing.sm,
-  },
+function createStyles(colors: ColorPalette) {
+  return StyleSheet.create({
+    container: {
+      marginTop: Spacing.xl,
+      marginBottom: Spacing.sm,
+    },
 
-  sectionHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: Spacing.sm,
-  },
+    sectionHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginBottom: Spacing.sm,
+    },
 
-  titleWithCount: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-  },
+    titleWithCount: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: Spacing.sm,
+    },
 
-  sectionTitle: {
-    ...Typography.title,
-    color: Colors.textPrimary,
-  },
+    sectionTitle: {
+      ...Typography.title,
+      color: colors.textPrimary,
+    },
 
-  totalBadge: {
-    backgroundColor: Colors.primarySoft,
-    borderRadius: Radius.full,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 2,
-    borderWidth: 1,
-    borderColor: Colors.borderPrimary,
-  },
+    totalBadge: {
+      backgroundColor: colors.primarySoft,
+      borderRadius: Radius.full,
+      paddingHorizontal: Spacing.sm,
+      paddingVertical: 2,
+      borderWidth: 1,
+      borderColor: colors.borderPrimary,
+    },
 
-  totalBadgeText: {
-    ...Typography.label,
-    fontSize: 12,
-    lineHeight: 16,
-    color: Colors.primaryDark,
-    fontWeight: "700",
-  },
+    totalBadgeText: {
+      ...Typography.label,
+      fontSize: 12,
+      lineHeight: 16,
+      color: colors.primary,
+      fontWeight: "700",
+    },
 
-  toggleAllButton: {
-    paddingVertical: Spacing.xs,
-    paddingHorizontal: Spacing.sm,
-  },
+    toggleAllButton: {
+      paddingVertical: Spacing.xs,
+      paddingHorizontal: Spacing.sm,
+    },
 
-  toggleAllButtonText: {
-    ...Typography.label,
-    fontSize: 13,
-    color: Colors.primary,
-    fontWeight: "600",
-  },
+    toggleAllButtonText: {
+      ...Typography.label,
+      fontSize: 13,
+      color: colors.primary,
+      fontWeight: "600",
+    },
 
-  emptyText: {
-    ...Typography.body,
-    color: Colors.textSecondary,
-    marginTop: Spacing.xs,
-  },
+    emptyText: {
+      ...Typography.body,
+      color: colors.textSecondary,
+      marginTop: Spacing.xs,
+    },
 
-  cardsList: {
-    gap: Spacing.sm,
-  },
+    cardsList: {
+      gap: Spacing.sm,
+    },
 
-  card: {
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: Radius.lg,
-    overflow: "hidden",
-  },
+    card: {
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: Radius.lg,
+      overflow: "hidden",
+    },
 
-  cardExpanded: {
-    borderColor: Colors.borderPrimary,
-  },
+    cardExpanded: {
+      borderColor: colors.borderPrimary,
+    },
 
-  cardHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    backgroundColor: Colors.surface,
-  },
+    cardHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingHorizontal: Spacing.lg,
+      paddingVertical: Spacing.md,
+      backgroundColor: colors.surface,
+    },
 
-  headerLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-    flex: 1,
-    marginRight: Spacing.sm,
-  },
+    headerLeft: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: Spacing.sm,
+      flex: 1,
+      marginRight: Spacing.sm,
+    },
 
-  categoryCountBadge: {
-    backgroundColor: Colors.primarySoft,
-    borderRadius: Radius.full,
-    minWidth: 22,
-    height: 22,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: Spacing.xs,
-    borderWidth: 1,
-    borderColor: Colors.borderPrimary,
-  },
+    categoryCountBadge: {
+      backgroundColor: colors.primarySoft,
+      borderRadius: Radius.full,
+      minWidth: 22,
+      height: 22,
+      alignItems: "center",
+      justifyContent: "center",
+      paddingHorizontal: Spacing.xs,
+      borderWidth: 1,
+      borderColor: colors.borderPrimary,
+    },
 
-  categoryCountText: {
-    ...Typography.label,
-    fontSize: 11,
-    lineHeight: 14,
-    color: Colors.primaryDark,
-    fontWeight: "700",
-  },
+    categoryCountText: {
+      ...Typography.label,
+      fontSize: 11,
+      lineHeight: 14,
+      color: colors.primary,
+      fontWeight: "700",
+    },
 
-  categoryLabel: {
-    ...Typography.label,
-    fontSize: 15,
-    lineHeight: 20,
-    color: Colors.textPrimary,
-    fontWeight: "700",
-    flexShrink: 1,
-  },
+    categoryLabel: {
+      ...Typography.label,
+      fontSize: 15,
+      lineHeight: 20,
+      color: colors.textPrimary,
+      fontWeight: "700",
+      flexShrink: 1,
+    },
 
-  toggleAction: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.xs,
-  },
+    toggleAction: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: Spacing.xs,
+    },
 
-  toggleText: {
-    ...Typography.label,
-    fontSize: 12,
-    lineHeight: 16,
-    color: Colors.primary,
-    fontWeight: "600",
-  },
+    toggleText: {
+      ...Typography.label,
+      fontSize: 12,
+      lineHeight: 16,
+      color: colors.primary,
+      fontWeight: "600",
+    },
 
-  toggleIcon: {
-    fontSize: 12,
-    color: Colors.primary,
-    fontWeight: "700",
-  },
+    toggleIcon: {
+      fontSize: 12,
+      color: colors.primary,
+      fontWeight: "700",
+    },
 
-  cardBody: {
-    paddingHorizontal: Spacing.md,
-    paddingBottom: Spacing.md,
-    paddingTop: Spacing.xs,
-    backgroundColor: Colors.surfaceSecondary,
-    borderTopWidth: 1,
-    borderTopColor: Colors.border,
-    gap: Spacing.xs,
-  },
+    cardBody: {
+      paddingHorizontal: Spacing.md,
+      paddingBottom: Spacing.md,
+      paddingTop: Spacing.xs,
+      backgroundColor: colors.surfaceSecondary,
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+      gap: Spacing.xs,
+    },
 
-  detailItem: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    backgroundColor: Colors.surfaceBlue,
-    borderRadius: Radius.md,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    gap: Spacing.xs,
-  },
+    detailItem: {
+      flexDirection: "row",
+      alignItems: "flex-start",
+      backgroundColor: colors.surfaceBlue,
+      borderRadius: Radius.md,
+      borderWidth: 1,
+      borderColor: colors.border,
+      paddingHorizontal: Spacing.md,
+      paddingVertical: Spacing.sm,
+      gap: Spacing.xs,
+    },
 
-  bullet: {
-    ...Typography.body,
-    color: Colors.primary,
-    fontWeight: "700",
-    lineHeight: 20,
-  },
+    bullet: {
+      ...Typography.body,
+      color: colors.primary,
+      fontWeight: "700",
+      lineHeight: 20,
+    },
 
-  detailText: {
-    ...Typography.body,
-    fontSize: 14,
-    lineHeight: 20,
-    color: Colors.textPrimary,
-    flex: 1,
-  },
-});
+    detailText: {
+      ...Typography.body,
+      fontSize: 14,
+      lineHeight: 20,
+      color: colors.textPrimary,
+      flex: 1,
+    },
+  });
+}

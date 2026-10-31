@@ -1,6 +1,6 @@
 import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Alert,
@@ -15,7 +15,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Button } from "@/components/ui/Button";
 import { PhotoPreviewModal } from "@/components/ui/PhotoPreviewModal";
-import { Colors } from "@/constants/colors";
+import { type ColorPalette } from "@/constants/colors";
 import { Radius } from "@/constants/radius";
 import { Spacing } from "@/constants/spacing";
 import { Typography } from "@/constants/typography";
@@ -55,6 +55,8 @@ export default function FinalStateScreen() {
 
   const uploadingRef = useRef(false);
   const discardingRef = useRef(false);
+
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   function acceptSelectedImage(uri: string) {
     if (!finalImagePath) {
@@ -185,7 +187,7 @@ export default function FinalStateScreen() {
             onPress={() => router.replace("/initial-state")}
             style={styles.backButton}
           >
-            <Text style={styles.backIcon}>←</Text>
+            <Text style={[styles.backIcon, { color: colors.textPrimary }]}>←</Text>
             <Text style={[styles.backText, { color: colors.textSecondary }]}>{t("flow.back")}</Text>
           </Pressable>
 
@@ -203,7 +205,7 @@ export default function FinalStateScreen() {
             {t("flow.finalDescription")}
           </Text>
 
-          <View style={[styles.photoCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <View style={[styles.photoCard, { backgroundColor: colors.surface, borderColor: colors.borderStrong }]}>
             {finalImageUri ? (
               <Pressable
                 accessibilityLabel={t("flow.expandFinalPhoto")}
@@ -296,180 +298,182 @@ export default function FinalStateScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
+function createStyles(colors: ColorPalette) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
 
-  content: {
-    flexGrow: 1,
-    justifyContent: "space-between",
-    paddingHorizontal: Spacing.xl,
-    paddingTop: Spacing.lg,
-    paddingBottom: Spacing.xl,
-  },
+    content: {
+      flexGrow: 1,
+      justifyContent: "space-between",
+      paddingHorizontal: Spacing.xl,
+      paddingTop: Spacing.lg,
+      paddingBottom: Spacing.xl,
+    },
 
-  backButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    alignSelf: "flex-start",
-    marginBottom: Spacing.xxl,
-  },
+    backButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      alignSelf: "flex-start",
+      marginBottom: Spacing.xxl,
+    },
 
-  backIcon: {
-    color: Colors.textPrimary,
-    fontSize: 22,
-    marginRight: Spacing.sm,
-  },
+    backIcon: {
+      color: colors.textPrimary,
+      fontSize: 22,
+      marginRight: Spacing.sm,
+    },
 
-  backText: {
-    ...Typography.label,
-    color: Colors.textPrimary,
-  },
+    backText: {
+      ...Typography.label,
+      color: colors.textPrimary,
+    },
 
-  progressContainer: {
-    marginBottom: Spacing.xl,
-  },
+    progressContainer: {
+      marginBottom: Spacing.xl,
+    },
 
-  progressText: {
-    ...Typography.label,
-    color: Colors.primary,
-    marginBottom: Spacing.sm,
-  },
+    progressText: {
+      ...Typography.label,
+      color: colors.primary,
+      marginBottom: Spacing.sm,
+    },
 
-  progressTrack: {
-    height: 6,
-    overflow: "hidden",
-    backgroundColor: Colors.border,
-    borderRadius: Radius.full,
-  },
+    progressTrack: {
+      height: 6,
+      overflow: "hidden",
+      backgroundColor: colors.border,
+      borderRadius: Radius.full,
+    },
 
-  progressValue: {
-    width: "100%",
-    height: "100%",
-    backgroundColor: Colors.primary,
-    borderRadius: Radius.full,
-  },
+    progressValue: {
+      width: "100%",
+      height: "100%",
+      backgroundColor: colors.primary,
+      borderRadius: Radius.full,
+    },
 
-  title: {
-    ...Typography.heading,
-    color: Colors.textPrimary,
-    marginBottom: Spacing.sm,
-  },
+    title: {
+      ...Typography.heading,
+      color: colors.textPrimary,
+      marginBottom: Spacing.sm,
+    },
 
-  description: {
-    ...Typography.body,
-    color: Colors.textSecondary,
-    marginBottom: Spacing.xl,
-  },
+    description: {
+      ...Typography.body,
+      color: colors.textSecondary,
+      marginBottom: Spacing.xl,
+    },
 
-  photoCard: {
-    width: "100%",
-    aspectRatio: 4 / 3,
-    overflow: "hidden",
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderStyle: "dashed",
-    borderColor: Colors.borderStrong,
-    borderRadius: Radius.xl,
-  },
+    photoCard: {
+      width: "100%",
+      aspectRatio: 4 / 3,
+      overflow: "hidden",
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderStyle: "dashed",
+      borderColor: colors.borderStrong,
+      borderRadius: Radius.xl,
+    },
 
-  placeholder: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: Spacing.xl,
-  },
+    placeholder: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      paddingHorizontal: Spacing.xl,
+    },
 
-  placeholderIcon: {
-    width: 52,
-    height: 52,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: Colors.primarySoft,
-    borderRadius: Radius.full,
-    marginBottom: Spacing.md,
-  },
+    placeholderIcon: {
+      width: 52,
+      height: 52,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.primarySoft,
+      borderRadius: Radius.full,
+      marginBottom: Spacing.md,
+    },
 
-  placeholderIconText: {
-    color: Colors.primary,
-    fontSize: 28,
-    fontWeight: "500",
-  },
+    placeholderIconText: {
+      color: colors.primary,
+      fontSize: 28,
+      fontWeight: "500",
+    },
 
-  placeholderTitle: {
-    ...Typography.title,
-    color: Colors.textPrimary,
-    textAlign: "center",
-    marginBottom: Spacing.sm,
-  },
+    placeholderTitle: {
+      ...Typography.title,
+      color: colors.textPrimary,
+      textAlign: "center",
+      marginBottom: Spacing.sm,
+    },
 
-  placeholderDescription: {
-    ...Typography.body,
-    color: Colors.textSecondary,
-    textAlign: "center",
-  },
+    placeholderDescription: {
+      ...Typography.body,
+      color: colors.textSecondary,
+      textAlign: "center",
+    },
 
-  image: {
-    width: "100%",
-    height: "100%",
-    resizeMode: "cover",
-  },
+    image: {
+      width: "100%",
+      height: "100%",
+      resizeMode: "cover",
+    },
 
-  actions: {
-    marginTop: Spacing.lg,
-  },
+    actions: {
+      marginTop: Spacing.lg,
+    },
 
-  primaryAction: {
-    minHeight: 52,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: Colors.primarySoft,
-    borderRadius: Radius.lg,
-    marginBottom: Spacing.md,
-  },
+    primaryAction: {
+      minHeight: 52,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.primarySoft,
+      borderRadius: Radius.lg,
+      marginBottom: Spacing.md,
+    },
 
-  primaryActionText: {
-    ...Typography.button,
-    color: Colors.primary,
-  },
+    primaryActionText: {
+      ...Typography.button,
+      color: colors.primary,
+    },
 
-  secondaryAction: {
-    minHeight: 52,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: Radius.lg,
-  },
+    secondaryAction: {
+      minHeight: 52,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: Radius.lg,
+    },
 
-  secondaryActionText: {
-    ...Typography.button,
-    color: Colors.textPrimary,
-  },
+    secondaryActionText: {
+      ...Typography.button,
+      color: colors.textPrimary,
+    },
 
-  discardAction: {
-    minHeight: 44,
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: Spacing.sm,
-  },
+    discardAction: {
+      minHeight: 44,
+      alignItems: "center",
+      justifyContent: "center",
+      marginTop: Spacing.sm,
+    },
 
-  discardActionText: {
-    ...Typography.label,
-    color: Colors.danger,
-  },
+    discardActionText: {
+      ...Typography.label,
+      color: colors.danger,
+    },
 
-  errorText: {
-    ...Typography.body,
-    color: Colors.danger,
-    marginTop: Spacing.md,
-    textAlign: "center",
-  },
+    errorText: {
+      ...Typography.body,
+      color: colors.danger,
+      marginTop: Spacing.md,
+      textAlign: "center",
+    },
 
-  footer: {
-    marginTop: Spacing.xxl,
-  },
-});
+    footer: {
+      marginTop: Spacing.xxl,
+    },
+  });
+}

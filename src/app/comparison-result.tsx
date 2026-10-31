@@ -4,7 +4,13 @@ import {
   useFocusEffect,
   useLocalSearchParams,
 } from "expo-router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
@@ -34,7 +40,7 @@ import { AiReportFeedbackCard } from "@/components/ui/AiReportFeedbackCard";
 import { ExportReportButton } from "@/components/ui/ExportReportButton";
 import { PhotoPreviewModal } from "@/components/ui/PhotoPreviewModal";
 import { ReportPreviewModal } from "@/components/ui/ReportPreviewModal";
-import { Colors } from "@/constants/colors";
+import { type ColorPalette } from "@/constants/colors";
 import { Radius } from "@/constants/radius";
 import { Spacing } from "@/constants/spacing";
 import { Typography } from "@/constants/typography";
@@ -82,6 +88,8 @@ function PrivateComparisonImage({
   onOpen,
 }: PrivateComparisonImageProps) {
   const { t, i18n } = useTranslation();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [status, setStatus] = useState<PrivateImageStatus>("loading");
 
   async function handleRetry() {
@@ -137,7 +145,7 @@ function PrivateComparisonImage({
             </>
           ) : (
             <>
-              <ActivityIndicator color={Colors.primary} />
+              <ActivityIndicator color={colors.primary} />
               <Text style={styles.loadingText}>
                 {status === "retrying"
                   ? t("result.recoveringPhoto")
@@ -154,6 +162,7 @@ function PrivateComparisonImage({
 export default function ComparisonResultScreen() {
   const { t, i18n } = useTranslation();
   const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { source } = useLocalSearchParams<{ source?: string }>();
   const { user } = useAuth();
   const {
@@ -611,8 +620,8 @@ export default function ComparisonResultScreen() {
                 onPress={handleBack}
                 style={styles.backButton}
               >
-                <Text style={styles.backIcon}>←</Text>
-                <Text style={styles.backText}>{t("result.back")}</Text>
+                <Text style={[styles.backIcon, { color: colors.textPrimary }]}>←</Text>
+                <Text style={[styles.backText, { color: colors.textPrimary }]}>{t("result.back")}</Text>
               </Pressable>
             ),
           }}
@@ -649,8 +658,8 @@ export default function ComparisonResultScreen() {
               onPress={handleBack}
               style={[styles.backButton, isAnalyzing && styles.disabledButton]}
             >
-              <Text style={styles.backIcon}>←</Text>
-              <Text style={styles.backText}>{t("result.back")}</Text>
+              <Text style={[styles.backIcon, { color: colors.textPrimary }]}>←</Text>
+                <Text style={[styles.backText, { color: colors.textPrimary }]}>{t("result.back")}</Text>
             </Pressable>
           ),
         }}
@@ -665,8 +674,8 @@ export default function ComparisonResultScreen() {
           onPress={handleBack}
           style={[styles.backButton, isAnalyzing && styles.disabledButton]}
         >
-          <Text style={styles.backIcon}>←</Text>
-          <Text style={styles.backText}>{t("result.back")}</Text>
+          <Text style={[styles.backIcon, { color: colors.textPrimary }]}>←</Text>
+                <Text style={[styles.backText, { color: colors.textPrimary }]}>{t("result.back")}</Text>
         </Pressable>
 
         <View style={styles.header}>
@@ -684,6 +693,7 @@ export default function ComparisonResultScreen() {
                   setNameDraft(value);
                   setRenameError(null);
                 }}
+                placeholderTextColor={colors.textMuted}
                 returnKeyType="done"
                 style={styles.renameInput}
                 value={nameDraft}
@@ -799,8 +809,8 @@ export default function ComparisonResultScreen() {
 
         {analysisStatus === "loading_report" ? (
           <View style={styles.analysisLoading}>
-            <ActivityIndicator color={Colors.primary} />
-            <Text style={styles.loadingText}>{t("result.loadingReport")}</Text>
+            <ActivityIndicator color={colors.primary} />
+              <Text style={styles.loadingText}>{t("result.loadingReport")}</Text>
           </View>
         ) : null}
 
@@ -808,6 +818,14 @@ export default function ComparisonResultScreen() {
           <View style={styles.reportCard}>
             <View style={styles.reportHeaderRow}>
               <Text style={styles.reportEyebrow}>{t("result.aiSummary")}</Text>
+            </View>
+
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.reportHeaderActionsScroll}
+              style={styles.reportHeaderActionsWrapper}
+            >
               <View style={styles.reportHeaderActions}>
                 <Pressable
                   accessibilityHint={t("result.copyHint")}
@@ -853,7 +871,7 @@ export default function ComparisonResultScreen() {
                   testID="export-pdf-report-button"
                 />
               </View>
-            </View>
+            </ScrollView>
 
             {copiedReport ? (
               <View
@@ -1027,10 +1045,11 @@ export default function ComparisonResultScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ColorPalette) {
+  return StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
   },
 
   content: {
@@ -1050,14 +1069,14 @@ const styles = StyleSheet.create({
   },
 
   backIcon: {
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     fontSize: 22,
     marginRight: Spacing.sm,
   },
 
   backText: {
     ...Typography.label,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
   },
 
   header: {
@@ -1066,13 +1085,13 @@ const styles = StyleSheet.create({
 
   eyebrow: {
     ...Typography.label,
-    color: Colors.primary,
+    color: colors.primary,
     marginBottom: Spacing.sm,
   },
 
   title: {
     ...Typography.heading,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     marginBottom: Spacing.sm,
   },
 
@@ -1092,21 +1111,21 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingHorizontal: Spacing.md,
     marginLeft: Spacing.sm,
-    backgroundColor: Colors.primarySoft,
+    backgroundColor: colors.primarySoft,
     borderRadius: Radius.full,
   },
 
   editNameText: {
     ...Typography.label,
-    color: Colors.primary,
+    color: colors.primary,
   },
 
   renameCard: {
     padding: Spacing.md,
     marginBottom: Spacing.sm,
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: colors.border,
     borderRadius: Radius.lg,
   },
 
@@ -1114,16 +1133,16 @@ const styles = StyleSheet.create({
     minHeight: 48,
     paddingHorizontal: Spacing.md,
     ...Typography.bodyLarge,
-    color: Colors.textPrimary,
-    backgroundColor: Colors.background,
+    color: colors.textPrimary,
+    backgroundColor: colors.background,
     borderWidth: 1,
-    borderColor: Colors.borderStrong,
+    borderColor: colors.borderStrong,
     borderRadius: Radius.md,
   },
 
   renameError: {
     ...Typography.body,
-    color: Colors.danger,
+    color: colors.danger,
     marginTop: Spacing.sm,
   },
 
@@ -1142,25 +1161,25 @@ const styles = StyleSheet.create({
 
   renameCancelText: {
     ...Typography.label,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
   },
 
   renameSave: {
     minHeight: 42,
     justifyContent: "center",
     paddingHorizontal: Spacing.md,
-    backgroundColor: Colors.primary,
+    backgroundColor: colors.primary,
     borderRadius: Radius.md,
   },
 
   renameSaveText: {
     ...Typography.label,
-    color: Colors.textInverse,
+    color: colors.textInverse,
   },
 
   description: {
     ...Typography.body,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
   },
 
   comparisonSection: {
@@ -1169,9 +1188,9 @@ const styles = StyleSheet.create({
 
   imageCard: {
     overflow: "hidden",
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: colors.border,
     borderRadius: Radius.xl,
   },
 
@@ -1185,30 +1204,30 @@ const styles = StyleSheet.create({
   initialBadge: {
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
-    backgroundColor: Colors.primarySoft,
+    backgroundColor: colors.primarySoft,
     borderRadius: Radius.full,
   },
 
   initialBadgeText: {
     ...Typography.label,
-    color: Colors.primary,
+    color: colors.primary,
   },
 
   finalBadge: {
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
-    backgroundColor: Colors.successSoft,
+    backgroundColor: colors.successSoft,
     borderRadius: Radius.full,
   },
 
   finalBadgeText: {
     ...Typography.label,
-    color: Colors.success,
+    color: colors.success,
   },
 
   imageLabel: {
     ...Typography.label,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
   },
 
   image: {
@@ -1235,24 +1254,24 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: Spacing.xl,
-    backgroundColor: Colors.surfaceSecondary,
+    backgroundColor: colors.surfaceSecondary,
   },
 
   loadingText: {
     ...Typography.body,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     marginTop: Spacing.md,
   },
 
   imageErrorTitle: {
     ...Typography.title,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     textAlign: "center",
   },
 
   imageErrorDescription: {
     ...Typography.body,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     textAlign: "center",
     marginTop: Spacing.xs,
   },
@@ -1261,13 +1280,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.sm,
     marginTop: Spacing.md,
-    backgroundColor: Colors.primarySoft,
+    backgroundColor: colors.primarySoft,
     borderRadius: Radius.full,
   },
 
   retryButtonText: {
     ...Typography.label,
-    color: Colors.primary,
+    color: colors.primary,
   },
 
   connector: {
@@ -1279,7 +1298,7 @@ const styles = StyleSheet.create({
   connectorLine: {
     flex: 1,
     height: 1,
-    backgroundColor: Colors.border,
+    backgroundColor: colors.border,
   },
 
   connectorIcon: {
@@ -1288,12 +1307,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginHorizontal: Spacing.md,
-    backgroundColor: Colors.primarySoft,
+    backgroundColor: colors.primarySoft,
     borderRadius: Radius.full,
   },
 
   connectorIconText: {
-    color: Colors.primary,
+    color: colors.primary,
     fontSize: 20,
     fontWeight: "700",
   },
@@ -1301,7 +1320,7 @@ const styles = StyleSheet.create({
   statusCard: {
     flexDirection: "row",
     padding: Spacing.lg,
-    backgroundColor: Colors.successSoft,
+    backgroundColor: colors.successSoft,
     borderRadius: Radius.lg,
     marginBottom: Spacing.xl,
   },
@@ -1311,13 +1330,13 @@ const styles = StyleSheet.create({
     height: 36,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     borderRadius: Radius.full,
     marginRight: Spacing.md,
   },
 
   statusIconText: {
-    color: Colors.success,
+    color: colors.success,
     fontSize: 18,
     fontWeight: "700",
   },
@@ -1328,13 +1347,13 @@ const styles = StyleSheet.create({
 
   statusTitle: {
     ...Typography.label,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     marginBottom: Spacing.xs,
   },
 
   statusDescription: {
     ...Typography.body,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
   },
 
   footer: {
@@ -1350,19 +1369,24 @@ const styles = StyleSheet.create({
   reportCard: {
     padding: Spacing.xl,
     marginBottom: Spacing.xl,
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: Colors.borderPrimary,
+    borderColor: colors.border,
     borderRadius: Radius.xl,
   },
 
   reportHeaderRow: {
+    marginBottom: Spacing.xs,
+  },
+
+  reportHeaderActionsWrapper: {
+    marginBottom: Spacing.md,
+  },
+
+  reportHeaderActionsScroll: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: Spacing.sm,
-    gap: Spacing.sm,
-    flexWrap: "wrap",
+    paddingVertical: 2,
   },
 
   reportHeaderActions: {
@@ -1374,37 +1398,37 @@ const styles = StyleSheet.create({
   copyReportButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: Colors.primarySoft,
+    backgroundColor: colors.primarySoft,
     borderWidth: 1,
-    borderColor: Colors.borderPrimary,
+    borderColor: colors.borderPrimary,
     borderRadius: Radius.full,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
   },
 
   copyReportButtonActive: {
-    backgroundColor: Colors.successSoft,
-    borderColor: Colors.success,
+    backgroundColor: colors.successSoft,
+    borderColor: colors.success,
   },
 
   copyReportButtonText: {
     ...Typography.label,
     fontSize: 12,
     lineHeight: 16,
-    color: Colors.primary,
+    color: colors.primary,
   },
 
   copyReportButtonTextActive: {
-    color: Colors.successDark,
+    color: colors.successDark,
     fontWeight: "700",
   },
 
   shareReportButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: Colors.surfaceSecondary,
+    backgroundColor: colors.surfaceSecondary,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: colors.border,
     borderRadius: Radius.full,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
@@ -1414,15 +1438,15 @@ const styles = StyleSheet.create({
     ...Typography.label,
     fontSize: 12,
     lineHeight: 16,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
   },
 
   copiedFeedbackBadge: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: Colors.successSoft,
+    backgroundColor: colors.successSoft,
     borderWidth: 1,
-    borderColor: Colors.success,
+    borderColor: colors.success,
     borderRadius: Radius.md,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
@@ -1431,7 +1455,7 @@ const styles = StyleSheet.create({
   },
 
   copiedFeedbackIcon: {
-    color: Colors.successDark,
+    color: colors.successDark,
     fontSize: 14,
     fontWeight: "700",
   },
@@ -1440,23 +1464,23 @@ const styles = StyleSheet.create({
     ...Typography.label,
     fontSize: 12,
     lineHeight: 16,
-    color: Colors.successDark,
+    color: colors.successDark,
     fontWeight: "600",
   },
 
   reportEyebrow: {
     ...Typography.label,
-    color: Colors.primary,
+    color: colors.primary,
   },
 
   reportSummary: {
     ...Typography.bodyLarge,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
   },
 
   reportSectionTitle: {
     ...Typography.title,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     marginTop: Spacing.xl,
     marginBottom: Spacing.sm,
   },
@@ -1464,52 +1488,55 @@ const styles = StyleSheet.create({
   reportItem: {
     padding: Spacing.md,
     marginTop: Spacing.sm,
-    backgroundColor: Colors.surfaceBlue,
+    backgroundColor: colors.surfaceBlue,
+    borderWidth: 1,
+    borderColor: colors.border,
     borderRadius: Radius.lg,
   },
 
   reportItemLabel: {
     ...Typography.label,
-    color: Colors.primaryDark,
+    color: colors.primaryDark,
     marginBottom: Spacing.xs,
   },
 
   reportItemText: {
     ...Typography.body,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
   },
 
   reportEmpty: {
     ...Typography.body,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
   },
 
   reportBullet: {
     ...Typography.body,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     marginBottom: Spacing.xs,
   },
 
   reviewNotice: {
     padding: Spacing.md,
     marginTop: Spacing.xl,
-    backgroundColor: Colors.warningSoft,
+    backgroundColor: colors.warningSoft,
+    borderWidth: 1,
+    borderColor: colors.warning,
     borderRadius: Radius.lg,
   },
 
   reviewNoticeText: {
     ...Typography.label,
-    color: Colors.warning,
+    color: colors.warning,
   },
-
 
   reanalyzeButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: Colors.borderPrimary,
+    borderColor: colors.border,
     borderRadius: Radius.lg,
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.xl,
@@ -1519,13 +1546,13 @@ const styles = StyleSheet.create({
 
   reanalyzeButtonText: {
     ...Typography.button,
-    color: Colors.primary,
+    color: colors.primary,
     fontSize: 15,
   },
 
   disclaimer: {
     ...Typography.label,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     textAlign: "center",
     marginTop: Spacing.md,
   },
@@ -1542,27 +1569,27 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     alignSelf: "center",
-    backgroundColor: Colors.warningSoft,
+    backgroundColor: colors.warningSoft,
     borderRadius: Radius.full,
     marginBottom: Spacing.lg,
   },
 
   missingIconText: {
-    color: Colors.warning,
+    color: colors.warning,
     fontSize: 24,
     fontWeight: "700",
   },
 
   missingTitle: {
     ...Typography.heading,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     textAlign: "center",
     marginBottom: Spacing.sm,
   },
 
   missingDescription: {
     ...Typography.body,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     textAlign: "center",
     marginBottom: Spacing.xl,
   },
@@ -1578,7 +1605,7 @@ const styles = StyleSheet.create({
   modalContent: {
     width: "100%",
     maxWidth: 480,
-    shadowColor: Colors.black,
+    shadowColor: colors.black,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.25,
     shadowRadius: 16,
@@ -1586,3 +1613,4 @@ const styles = StyleSheet.create({
   },
 
 });
+}

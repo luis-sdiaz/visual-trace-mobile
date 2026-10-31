@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useTranslation } from "react-i18next";
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   Pressable,
   ScrollView,
@@ -13,7 +13,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Button } from "@/components/ui/Button";
-import { Colors } from "@/constants/colors";
+import { type ColorPalette } from "@/constants/colors";
 import { Radius } from "@/constants/radius";
 import { Spacing } from "@/constants/spacing";
 import { Typography } from "@/constants/typography";
@@ -33,6 +33,8 @@ export default function NewComparisonScreen() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const savingRef = useRef(false);
+
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   const isNameValid = name.trim().length > 0;
 
@@ -86,7 +88,7 @@ export default function NewComparisonScreen() {
             pressed && !isSaving && styles.backButtonPressed,
           ]}
         >
-          <Ionicons name="arrow-back" size={20} color={Colors.textPrimary} />
+          <Ionicons name="arrow-back" size={20} color={colors.textPrimary} />
 
           <Text style={[styles.backText, { color: colors.textSecondary }]}>{t("flow.back")}</Text>
         </Pressable>
@@ -118,7 +120,7 @@ export default function NewComparisonScreen() {
             <Ionicons
               name="document-text-outline"
               size={20}
-              color={Colors.textMuted}
+              color={colors.textMuted}
               style={styles.inputIcon}
             />
 
@@ -127,11 +129,12 @@ export default function NewComparisonScreen() {
               onChangeText={handleNameChange}
               editable={!isSaving}
               placeholder={t("newComparison.placeholder")}
+              placeholderTextColor={colors.textMuted}
               autoCapitalize="sentences"
               autoCorrect
               maxLength={50}
               returnKeyType="done"
-              style={[styles.input, { color: colors.textPrimary, backgroundColor: colors.surface, borderColor: colors.border }]}
+              style={[styles.input, { color: colors.textPrimary }]}
             />
           </View>
 
@@ -139,7 +142,7 @@ export default function NewComparisonScreen() {
             <Ionicons
               name="information-circle-outline"
               size={16}
-              color={Colors.textMuted}
+              color={colors.textMuted}
             />
 
             <Text style={[styles.helperText, { color: colors.textSecondary }]}>
@@ -153,7 +156,7 @@ export default function NewComparisonScreen() {
             <Ionicons
               name="alert-circle-outline"
               size={20}
-              color={Colors.danger}
+              color={colors.danger}
             />
 
             <Text style={styles.errorText}>{errorMessage}</Text>
@@ -170,20 +173,20 @@ export default function NewComparisonScreen() {
 
         <View style={styles.guideCard}>
           <View style={styles.guideTop}>
-            <Text style={styles.guideEyebrow}>{t("newComparison.guideEyebrow")}</Text>
+            <Text style={[styles.guideEyebrow, { color: colors.primary }]}>{t("newComparison.guideEyebrow")}</Text>
 
             <Ionicons
               name="sparkles-outline"
               size={18}
-              color={Colors.primary}
+              color={colors.primary}
             />
           </View>
 
-          <Text style={styles.guideTitle}>
+          <Text style={[styles.guideTitle, { color: colors.textPrimary }]}>
             {t("newComparison.guideTitle")}
           </Text>
 
-          <Text style={styles.guideDescription}>
+          <Text style={[styles.guideDescription, { color: colors.textSecondary }]}>
             {t("newComparison.guideDescription")}
           </Text>
 
@@ -194,11 +197,11 @@ export default function NewComparisonScreen() {
               </View>
 
               <View style={styles.guideItemContent}>
-                <Text style={styles.guideItemTitle}>
+                <Text style={[styles.guideItemTitle, { color: colors.textPrimary }]}>
                   {t("newComparison.framingTitle")}
                 </Text>
 
-                <Text style={styles.guideItemDescription}>
+                <Text style={[styles.guideItemDescription, { color: colors.textSecondary }]}>
                   {t("newComparison.framingDescription")}
                 </Text>
               </View>
@@ -212,11 +215,11 @@ export default function NewComparisonScreen() {
               </View>
 
               <View style={styles.guideItemContent}>
-                <Text style={styles.guideItemTitle}>
+                <Text style={[styles.guideItemTitle, { color: colors.textPrimary }]}>
                   {t("newComparison.lightingTitle")}
                 </Text>
 
-                <Text style={styles.guideItemDescription}>
+                <Text style={[styles.guideItemDescription, { color: colors.textSecondary }]}>
                   {t("newComparison.lightingDescription")}
                 </Text>
               </View>
@@ -228,251 +231,253 @@ export default function NewComparisonScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
+function createStyles(colors: ColorPalette) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
 
-  content: {
-    flexGrow: 1,
-    paddingHorizontal: Spacing.xl,
-    paddingTop: Spacing.lg,
-    paddingBottom: Spacing.xxl,
-  },
+    content: {
+      flexGrow: 1,
+      paddingHorizontal: Spacing.xl,
+      paddingTop: Spacing.lg,
+      paddingBottom: Spacing.xxl,
+    },
 
-  backButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    alignSelf: "flex-start",
-    minHeight: 40,
-    paddingHorizontal: Spacing.sm,
-    marginLeft: -Spacing.sm,
-    marginBottom: Spacing.xl,
-    borderRadius: Radius.md,
-  },
+    backButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      alignSelf: "flex-start",
+      minHeight: 40,
+      paddingHorizontal: Spacing.sm,
+      marginLeft: -Spacing.sm,
+      marginBottom: Spacing.xl,
+      borderRadius: Radius.md,
+    },
 
-  backButtonPressed: {
-    backgroundColor: Colors.surfaceSecondary,
-  },
+    backButtonPressed: {
+      backgroundColor: colors.surfaceSecondary,
+    },
 
-  backText: {
-    ...Typography.label,
-    color: Colors.textPrimary,
-    marginLeft: Spacing.sm,
-  },
+    backText: {
+      ...Typography.label,
+      color: colors.textPrimary,
+      marginLeft: Spacing.sm,
+    },
 
-  progressSection: {
-    marginBottom: Spacing.xl,
-  },
+    progressSection: {
+      marginBottom: Spacing.xl,
+    },
 
-  progressHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: Spacing.sm,
-  },
+    progressHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginBottom: Spacing.sm,
+    },
 
-  progressText: {
-    color: Colors.primary,
-    fontSize: 12,
-    lineHeight: 16,
-    fontWeight: "800",
-    letterSpacing: 0.5,
-  },
+    progressText: {
+      color: colors.primary,
+      fontSize: 12,
+      lineHeight: 16,
+      fontWeight: "800",
+      letterSpacing: 0.5,
+    },
 
-  progressLabel: {
-    color: Colors.textSecondary,
-    fontSize: 12,
-    lineHeight: 16,
-    fontWeight: "600",
-  },
+    progressLabel: {
+      color: colors.textSecondary,
+      fontSize: 12,
+      lineHeight: 16,
+      fontWeight: "600",
+    },
 
-  progressTrack: {
-    height: 4,
-    overflow: "hidden",
-    backgroundColor: Colors.border,
-    borderRadius: Radius.full,
-  },
+    progressTrack: {
+      height: 4,
+      overflow: "hidden",
+      backgroundColor: colors.border,
+      borderRadius: Radius.full,
+    },
 
-  progressValue: {
-    width: "33.33%",
-    height: "100%",
-    backgroundColor: Colors.primary,
-    borderRadius: Radius.full,
-  },
+    progressValue: {
+      width: "33.33%",
+      height: "100%",
+      backgroundColor: colors.primary,
+      borderRadius: Radius.full,
+    },
 
-  header: {
-    marginBottom: Spacing.xl,
-  },
+    header: {
+      marginBottom: Spacing.xl,
+    },
 
-  title: {
-    ...Typography.heading,
-    color: Colors.textPrimary,
-    marginBottom: Spacing.sm,
-  },
+    title: {
+      ...Typography.heading,
+      color: colors.textPrimary,
+      marginBottom: Spacing.sm,
+    },
 
-  description: {
-    ...Typography.body,
-    color: Colors.textSecondary,
-  },
+    description: {
+      ...Typography.body,
+      color: colors.textSecondary,
+    },
 
-  formCard: {
-    padding: Spacing.lg,
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: Radius.xl,
-  },
+    formCard: {
+      padding: Spacing.lg,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: Radius.xl,
+    },
 
-  label: {
-    ...Typography.label,
-    color: Colors.textPrimary,
-    marginBottom: Spacing.sm,
-  },
+    label: {
+      ...Typography.label,
+      color: colors.textPrimary,
+      marginBottom: Spacing.sm,
+    },
 
-  inputContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    minHeight: 56,
-    paddingHorizontal: Spacing.lg,
-    backgroundColor: Colors.background,
-    borderWidth: 1,
-    borderColor: Colors.borderStrong,
-    borderRadius: Radius.lg,
-  },
+    inputContainer: {
+      flexDirection: "row",
+      alignItems: "center",
+      minHeight: 56,
+      paddingHorizontal: Spacing.lg,
+      backgroundColor: colors.background,
+      borderWidth: 1,
+      borderColor: colors.borderStrong,
+      borderRadius: Radius.lg,
+    },
 
-  inputIcon: {
-    marginRight: Spacing.md,
-  },
+    inputIcon: {
+      marginRight: Spacing.md,
+    },
 
-  input: {
-    flex: 1,
-    minHeight: 54,
-    color: Colors.textPrimary,
-    fontSize: 16,
-  },
+    input: {
+      flex: 1,
+      minHeight: 54,
+      color: colors.textPrimary,
+      fontSize: 16,
+    },
 
-  helperRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    marginTop: Spacing.md,
-  },
+    helperRow: {
+      flexDirection: "row",
+      alignItems: "flex-start",
+      marginTop: Spacing.md,
+    },
 
-  helperText: {
-    flex: 1,
-    color: Colors.textSecondary,
-    fontSize: 12,
-    lineHeight: 18,
-    marginLeft: Spacing.xs,
-  },
+    helperText: {
+      flex: 1,
+      color: colors.textSecondary,
+      fontSize: 12,
+      lineHeight: 18,
+      marginLeft: Spacing.xs,
+    },
 
-  errorCard: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    padding: Spacing.md,
-    backgroundColor: Colors.dangerSoft,
-    borderRadius: Radius.md,
-    marginTop: Spacing.lg,
-  },
+    errorCard: {
+      flexDirection: "row",
+      alignItems: "flex-start",
+      padding: Spacing.md,
+      backgroundColor: colors.dangerSoft,
+      borderRadius: Radius.md,
+      marginTop: Spacing.lg,
+    },
 
-  errorText: {
-    flex: 1,
-    ...Typography.label,
-    color: Colors.danger,
-    marginLeft: Spacing.sm,
-  },
+    errorText: {
+      flex: 1,
+      ...Typography.label,
+      color: colors.danger,
+      marginLeft: Spacing.sm,
+    },
 
-  footer: {
-    marginTop: Spacing.lg,
-  },
+    footer: {
+      marginTop: Spacing.lg,
+    },
 
-  guideCard: {
-    marginTop: Spacing.xxl,
-    padding: Spacing.lg,
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: Radius.xl,
-  },
+    guideCard: {
+      marginTop: Spacing.xxl,
+      padding: Spacing.lg,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: Radius.xl,
+    },
 
-  guideTop: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: Spacing.sm,
-  },
+    guideTop: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginBottom: Spacing.sm,
+    },
 
-  guideEyebrow: {
-    color: Colors.primary,
-    fontSize: 10,
-    lineHeight: 14,
-    fontWeight: "800",
-    letterSpacing: 0.8,
-  },
+    guideEyebrow: {
+      color: colors.primary,
+      fontSize: 10,
+      lineHeight: 14,
+      fontWeight: "800",
+      letterSpacing: 0.8,
+    },
 
-  guideTitle: {
-    ...Typography.title,
-    color: Colors.textPrimary,
-    fontSize: 18,
-    lineHeight: 24,
-    marginBottom: Spacing.xs,
-  },
+    guideTitle: {
+      ...Typography.title,
+      color: colors.textPrimary,
+      fontSize: 18,
+      lineHeight: 24,
+      marginBottom: Spacing.xs,
+    },
 
-  guideDescription: {
-    color: Colors.textSecondary,
-    fontSize: 13,
-    lineHeight: 19,
-    marginBottom: Spacing.xl,
-  },
+    guideDescription: {
+      color: colors.textSecondary,
+      fontSize: 13,
+      lineHeight: 19,
+      marginBottom: Spacing.xl,
+    },
 
-  guideContent: {
-    width: "100%",
-  },
+    guideContent: {
+      width: "100%",
+    },
 
-  guideItem: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-  },
+    guideItem: {
+      flexDirection: "row",
+      alignItems: "flex-start",
+    },
 
-  guideNumber: {
-    width: 36,
-    height: 36,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: Colors.primarySoft,
-    borderRadius: Radius.md,
-    marginRight: Spacing.md,
-  },
+    guideNumber: {
+      width: 36,
+      height: 36,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.primarySoft,
+      borderRadius: Radius.md,
+      marginRight: Spacing.md,
+    },
 
-  guideNumberText: {
-    color: Colors.primary,
-    fontSize: 11,
-    lineHeight: 14,
-    fontWeight: "800",
-  },
+    guideNumberText: {
+      color: colors.primary,
+      fontSize: 11,
+      lineHeight: 14,
+      fontWeight: "800",
+    },
 
-  guideItemContent: {
-    flex: 1,
-    paddingTop: 1,
-  },
+    guideItemContent: {
+      flex: 1,
+      paddingTop: 1,
+    },
 
-  guideItemTitle: {
-    ...Typography.label,
-    color: Colors.textPrimary,
-    marginBottom: Spacing.xs,
-  },
+    guideItemTitle: {
+      ...Typography.label,
+      color: colors.textPrimary,
+      marginBottom: Spacing.xs,
+    },
 
-  guideItemDescription: {
-    color: Colors.textSecondary,
-    fontSize: 12,
-    lineHeight: 18,
-  },
+    guideItemDescription: {
+      color: colors.textSecondary,
+      fontSize: 12,
+      lineHeight: 18,
+    },
 
-  divider: {
-    height: 1,
-    backgroundColor: Colors.border,
-    marginVertical: Spacing.lg,
-    marginLeft: 48,
-  },
-});
+    divider: {
+      height: 1,
+      backgroundColor: colors.border,
+      marginVertical: Spacing.lg,
+      marginLeft: 48,
+    },
+  });
+}

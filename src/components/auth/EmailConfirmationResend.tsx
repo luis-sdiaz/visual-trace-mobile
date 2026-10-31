@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
-import { Colors } from "@/constants/colors";
+import { type ColorPalette } from "@/constants/colors";
 import { Radius } from "@/constants/radius";
 import { Spacing } from "@/constants/spacing";
 import { Typography } from "@/constants/typography";
+import { useTheme } from "@/context/ThemeContext";
 import {
   getAuthenticationErrorFeedback,
   resendSignupConfirmation,
@@ -19,6 +20,7 @@ type EmailConfirmationResendProps = {
 export function EmailConfirmationResend({
   email,
 }: EmailConfirmationResendProps) {
+  const { colors } = useTheme();
   const [isRequesting, setIsRequesting] = useState(false);
   const [cooldownSeconds, setCooldownSeconds] = useState(0);
   const [feedback, setFeedback] = useState<{
@@ -26,6 +28,8 @@ export function EmailConfirmationResend({
     type: "success" | "error";
   } | null>(null);
   const isRequestingRef = useRef(false);
+
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   useEffect(() => {
     if (cooldownSeconds <= 0) {
@@ -111,46 +115,48 @@ export function EmailConfirmationResend({
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    marginTop: Spacing.md,
-  },
+function createStyles(colors: ColorPalette) {
+  return StyleSheet.create({
+    container: {
+      marginTop: Spacing.md,
+    },
 
-  button: {
-    minHeight: 44,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm,
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.primary,
-    borderRadius: Radius.lg,
-  },
+    button: {
+      minHeight: 44,
+      alignItems: "center",
+      justifyContent: "center",
+      paddingHorizontal: Spacing.lg,
+      paddingVertical: Spacing.sm,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.primary,
+      borderRadius: Radius.lg,
+    },
 
-  buttonPressed: {
-    backgroundColor: Colors.primarySoft,
-  },
+    buttonPressed: {
+      backgroundColor: colors.primarySoft,
+    },
 
-  buttonDisabled: {
-    opacity: 0.6,
-  },
+    buttonDisabled: {
+      opacity: 0.6,
+    },
 
-  buttonText: {
-    ...Typography.label,
-    color: Colors.primary,
-    textAlign: "center",
-  },
+    buttonText: {
+      ...Typography.label,
+      color: colors.primary,
+      textAlign: "center",
+    },
 
-  successText: {
-    ...Typography.label,
-    color: Colors.success,
-    marginTop: Spacing.sm,
-  },
+    successText: {
+      ...Typography.label,
+      color: colors.success,
+      marginTop: Spacing.sm,
+    },
 
-  errorText: {
-    ...Typography.label,
-    color: Colors.danger,
-    marginTop: Spacing.sm,
-  },
-});
+    errorText: {
+      ...Typography.label,
+      color: colors.danger,
+      marginTop: Spacing.sm,
+    },
+  });
+}

@@ -9,10 +9,11 @@ import {
   type ViewStyle,
 } from "react-native";
 
-import { Colors } from "@/constants/colors";
+import { lightColors, type ColorPalette } from "@/constants/colors";
 import { Radius } from "@/constants/radius";
 import { Spacing } from "@/constants/spacing";
 import { Typography } from "@/constants/typography";
+import { useTheme } from "@/context/ThemeContext";
 
 export type ExportReportButtonProps = {
   onPress: (event: GestureResponderEvent) => void;
@@ -35,6 +36,9 @@ export function ExportReportButton({
   variant = "outline",
   style,
 }: ExportReportButtonProps) {
+  const theme = useTheme();
+  const colors = theme?.colors || lightColors;
+  const styles = React.useMemo(() => createStyles(colors), [colors]);
   const isActionDisabled = disabled || isLoading;
 
   return (
@@ -60,7 +64,7 @@ export function ExportReportButton({
         <>
           <ActivityIndicator
             accessibilityElementsHidden
-            color={variant === "primary" ? Colors.white : Colors.primary}
+            color={variant === "primary" ? colors.white : colors.primary}
             importantForAccessibility="no"
             size="small"
             style={styles.spinner}
@@ -93,46 +97,47 @@ export function ExportReportButton({
   );
 }
 
-const styles = StyleSheet.create({
-  buttonBase: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
-    borderRadius: Radius.full,
-    minHeight: 32,
-  },
-  buttonPrimary: {
-    backgroundColor: Colors.primary,
-  },
-  buttonSecondary: {
-    backgroundColor: Colors.primarySoft,
-  },
-  buttonOutline: {
-    backgroundColor: Colors.surfaceSecondary,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  buttonDisabled: {
-    opacity: 0.5,
-  },
-  buttonPressed: {
-    opacity: 0.8,
-  },
-  spinner: {
-    marginRight: Spacing.xs,
-  },
-  buttonText: {
-    ...Typography.label,
-    fontSize: 12,
-    lineHeight: 16,
-  },
-  buttonTextPrimary: {
-    color: Colors.white,
-  },
-  buttonTextOutline: {
-    color: Colors.textPrimary,
-  },
-});
-
+function createStyles(colors: ColorPalette) {
+  return StyleSheet.create({
+    buttonBase: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      paddingHorizontal: Spacing.md,
+      paddingVertical: Spacing.xs,
+      borderRadius: Radius.full,
+      minHeight: 32,
+    },
+    buttonPrimary: {
+      backgroundColor: colors.primary,
+    },
+    buttonSecondary: {
+      backgroundColor: colors.primarySoft,
+    },
+    buttonOutline: {
+      backgroundColor: colors.surfaceSecondary,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    buttonDisabled: {
+      opacity: 0.5,
+    },
+    buttonPressed: {
+      opacity: 0.8,
+    },
+    spinner: {
+      marginRight: Spacing.xs,
+    },
+    buttonText: {
+      ...Typography.label,
+      fontSize: 12,
+      lineHeight: 16,
+    },
+    buttonTextPrimary: {
+      color: colors.white,
+    },
+    buttonTextOutline: {
+      color: colors.textPrimary,
+    },
+  });
+}

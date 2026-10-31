@@ -27,6 +27,14 @@ type ThemeContextValue = {
 
 const THEME_STORAGE_KEY = "@visualtrace/theme";
 
+const defaultThemeValue: ThemeContextValue = {
+  theme: "light",
+  isDark: false,
+  colors: lightColors,
+  toggleTheme: () => {},
+  setTheme: () => {},
+};
+
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
 export function getToggledTheme(theme: Theme): Theme {
@@ -83,8 +91,5 @@ export function ThemeProvider({ children }: PropsWithChildren) {
 
 export function useTheme() {
   const context = useContext(ThemeContext);
-  if (!context) {
-    throw new Error("useTheme must be used within a ThemeProvider");
-  }
-  return context;
+  return context ?? defaultThemeValue;
 }

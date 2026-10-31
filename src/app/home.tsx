@@ -4,6 +4,7 @@ import {
   useCallback,
   useEffect,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -23,7 +24,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Button } from "@/components/ui/Button";
 import { SettingsModal } from "@/components/ui/SettingsModal";
-import { Colors } from "@/constants/colors";
+import { type ColorPalette } from "@/constants/colors";
 import { Radius } from "@/constants/radius";
 import { Spacing } from "@/constants/spacing";
 import { Typography } from "@/constants/typography";
@@ -60,6 +61,7 @@ export default function HomeScreen() {
   const { t, i18n } = useTranslation();
   const { user, isLoading, signOut } = useAuth();
   const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const statusLabels: Record<ComparisonStatus, string> = {
     draft: t("homeFilters.draft"),
     ready: t("homeFilters.ready"),
@@ -389,15 +391,15 @@ export default function HomeScreen() {
         refreshControl={
           <RefreshControl
             accessibilityLabel={t("homeFilters.refresh")}
-            colors={[Colors.primary]}
+            colors={[colors.primary]}
             onRefresh={() =>
               void loadComparisonHistory({ refresh: true })
             }
-            progressBackgroundColor={Colors.surface}
+            progressBackgroundColor={colors.surface}
             refreshing={isRefreshing}
-            tintColor={Colors.primary}
+            tintColor={colors.primary}
             title={t("homeFilters.refreshing")}
-            titleColor={Colors.textSecondary}
+            titleColor={colors.textSecondary}
           />
         }
         showsVerticalScrollIndicator={false}
@@ -419,7 +421,7 @@ export default function HomeScreen() {
               <Ionicons
                 name="settings-outline"
                 size={17}
-                color={Colors.textSecondary}
+                color={colors.textSecondary}
               />
             </Pressable>
 
@@ -435,7 +437,7 @@ export default function HomeScreen() {
               <Ionicons
                 name="log-out-outline"
                 size={17}
-                color={Colors.textSecondary}
+                color={colors.textSecondary}
               />
 
               <Text style={styles.signOutText}>
@@ -475,7 +477,7 @@ export default function HomeScreen() {
             ]}
           >
             <View style={styles.draftIcon}>
-              <Ionicons name="time-outline" size={23} color={Colors.primary} />
+              <Ionicons name="time-outline" size={23} color={colors.primary} />
             </View>
 
             <View style={styles.draftContent}>
@@ -492,7 +494,7 @@ export default function HomeScreen() {
               </Text>
             </View>
 
-            <Ionicons name="chevron-forward" size={20} color={Colors.primary} />
+            <Ionicons name="chevron-forward" size={20} color={colors.primary} />
           </Pressable>
         ) : null}
 
@@ -502,7 +504,7 @@ export default function HomeScreen() {
               <Ionicons
                 name="images-outline"
                 size={24}
-                color={Colors.primary}
+                color={colors.primary}
               />
             </View>
 
@@ -522,14 +524,14 @@ export default function HomeScreen() {
           <Text style={styles.sectionTitle}>{t("home.history")}</Text>
 
           <View style={styles.searchContainer}>
-            <Ionicons name="search-outline" size={20} color={Colors.textMuted} />
+            <Ionicons name="search-outline" size={20} color={colors.textMuted} />
             <TextInput
               accessibilityLabel={t("homeFilters.search")}
               autoCapitalize="none"
               autoCorrect={false}
               onChangeText={setSearchText}
               placeholder={t("homeFilters.search")}
-              placeholderTextColor={Colors.textMuted}
+              placeholderTextColor={colors.textMuted}
               returnKeyType="search"
               style={styles.searchInput}
               value={searchText}
@@ -544,7 +546,7 @@ export default function HomeScreen() {
                 }}
                 style={styles.clearSearchButton}
               >
-                <Ionicons name="close-circle" size={21} color={Colors.textMuted} />
+                <Ionicons name="close-circle" size={21} color={colors.textMuted} />
               </Pressable>
             ) : null}
           </View>
@@ -605,7 +607,7 @@ export default function HomeScreen() {
               <Ionicons
                 name="alert-circle-outline"
                 size={20}
-                color={Colors.danger}
+                color={colors.danger}
               />
               <Text style={styles.openErrorText}>{openError}</Text>
             </View>
@@ -613,7 +615,7 @@ export default function HomeScreen() {
 
           {isLoadingRecent ? (
             <View style={styles.recentFeedbackCard}>
-              <ActivityIndicator color={Colors.primary} />
+              <ActivityIndicator color={colors.primary} />
               <Text style={styles.recentFeedbackText}>
                 {t("homeFilters.loading")}
               </Text>
@@ -623,7 +625,7 @@ export default function HomeScreen() {
               <Ionicons
                 name="cloud-offline-outline"
                 size={28}
-                color={Colors.danger}
+                color={colors.danger}
               />
               <Text style={styles.recentErrorText}>{recentError}</Text>
               <Pressable
@@ -660,7 +662,7 @@ export default function HomeScreen() {
                       <Ionicons
                         name="images-outline"
                         size={22}
-                        color={Colors.primary}
+                        color={colors.primary}
                       />
                     </View>
 
@@ -700,14 +702,14 @@ export default function HomeScreen() {
                     {openingComparisonId === comparison.id ? (
                       <ActivityIndicator
                         size="small"
-                        color={Colors.primary}
+                        color={colors.primary}
                         style={styles.openingIndicator}
                       />
                     ) : (
                       <Ionicons
                         name="chevron-forward"
                         size={18}
-                        color={Colors.textMuted}
+                        color={colors.textMuted}
                         style={styles.recentChevron}
                       />
                     )}
@@ -730,7 +732,7 @@ export default function HomeScreen() {
                   style={styles.loadMoreButton}
                 >
                   {isLoadingMore ? (
-                    <ActivityIndicator color={Colors.primary} />
+                    <ActivityIndicator color={colors.primary} />
                   ) : (
                     <Text style={styles.loadMoreText}>{t("homeFilters.loadMore")}</Text>
                   )}
@@ -747,7 +749,7 @@ export default function HomeScreen() {
                 <Ionicons
                   name="albums-outline"
                   size={28}
-                  color={Colors.primary}
+                  color={colors.primary}
                 />
               </View>
 
@@ -775,7 +777,8 @@ export default function HomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ColorPalette) {
+  return StyleSheet.create({
   container: {
     flex: 1,
   },
@@ -807,7 +810,7 @@ const styles = StyleSheet.create({
   },
 
   brand: {
-    color: Colors.primary,
+    color: colors.primary,
     fontSize: 20,
     lineHeight: 26,
     fontWeight: "800",
@@ -818,19 +821,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
     minHeight: 40,
     paddingHorizontal: Spacing.md,
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: colors.border,
     borderRadius: Radius.full,
   },
 
   signOutButtonPressed: {
-    backgroundColor: Colors.surfaceSecondary,
+    backgroundColor: colors.surfaceSecondary,
   },
 
   signOutText: {
     ...Typography.label,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     marginLeft: Spacing.xs,
   },
 
@@ -839,14 +842,14 @@ const styles = StyleSheet.create({
     height: 40,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: colors.border,
     borderRadius: Radius.full,
   },
 
   devSettingsButtonPressed: {
-    backgroundColor: Colors.surfaceSecondary,
+    backgroundColor: colors.surfaceSecondary,
   },
 
   header: {
@@ -855,47 +858,47 @@ const styles = StyleSheet.create({
 
   greeting: {
     ...Typography.label,
-    color: Colors.primary,
+    color: colors.primary,
     marginBottom: Spacing.sm,
   },
 
   title: {
     ...Typography.heading,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     marginBottom: Spacing.sm,
   },
 
   description: {
     ...Typography.bodyLarge,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     maxWidth: 340,
   },
 
   errorCard: {
     padding: Spacing.md,
-    backgroundColor: Colors.dangerSoft,
+    backgroundColor: colors.dangerSoft,
     borderRadius: Radius.md,
     marginBottom: Spacing.lg,
   },
 
   errorText: {
     ...Typography.label,
-    color: Colors.danger,
+    color: colors.danger,
   },
 
   draftCard: {
     flexDirection: "row",
     alignItems: "center",
     padding: Spacing.lg,
-    backgroundColor: Colors.primarySoft,
+    backgroundColor: colors.primarySoft,
     borderWidth: 1,
-    borderColor: Colors.borderPrimary,
+    borderColor: colors.borderPrimary,
     borderRadius: Radius.xl,
     marginBottom: Spacing.lg,
   },
 
   draftCardPressed: {
-    backgroundColor: Colors.primaryMedium,
+    backgroundColor: colors.primaryMedium,
   },
 
   draftIcon: {
@@ -903,7 +906,7 @@ const styles = StyleSheet.create({
     height: 46,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     borderRadius: Radius.lg,
     marginRight: Spacing.md,
   },
@@ -914,7 +917,7 @@ const styles = StyleSheet.create({
   },
 
   draftLabel: {
-    color: Colors.primaryDark,
+    color: colors.primaryDark,
     fontSize: 10,
     lineHeight: 14,
     fontWeight: "800",
@@ -924,13 +927,13 @@ const styles = StyleSheet.create({
 
   draftName: {
     ...Typography.label,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     fontSize: 16,
     lineHeight: 22,
   },
 
   draftAction: {
-    color: Colors.primary,
+    color: colors.primary,
     fontSize: 13,
     lineHeight: 19,
     fontWeight: "700",
@@ -939,13 +942,13 @@ const styles = StyleSheet.create({
 
   actionCard: {
     padding: Spacing.lg,
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: colors.border,
     borderRadius: Radius.xl,
     marginBottom: Spacing.xxxl,
 
-    shadowColor: Colors.black,
+    shadowColor: colors.black,
     shadowOffset: {
       width: 0,
       height: 6,
@@ -967,7 +970,7 @@ const styles = StyleSheet.create({
     height: 50,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: Colors.primarySoft,
+    backgroundColor: colors.primarySoft,
     borderRadius: Radius.lg,
     marginRight: Spacing.md,
   },
@@ -978,13 +981,13 @@ const styles = StyleSheet.create({
 
   actionTitle: {
     ...Typography.title,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     marginBottom: Spacing.xs,
   },
 
   actionDescription: {
     ...Typography.body,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
   },
 
   section: {
@@ -993,7 +996,7 @@ const styles = StyleSheet.create({
 
   sectionTitle: {
     ...Typography.title,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     marginBottom: Spacing.md,
   },
 
@@ -1003,16 +1006,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: Spacing.md,
     marginBottom: Spacing.md,
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: colors.border,
     borderRadius: Radius.lg,
   },
 
   searchInput: {
     flex: 1,
     ...Typography.body,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.sm,
   },
@@ -1035,24 +1038,24 @@ const styles = StyleSheet.create({
     minHeight: 40,
     justifyContent: "center",
     paddingHorizontal: Spacing.md,
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: colors.border,
     borderRadius: Radius.full,
   },
 
   filterChipSelected: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
 
   filterChipText: {
     ...Typography.label,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
   },
 
   filterChipTextSelected: {
-    color: Colors.textInverse,
+    color: colors.textInverse,
   },
 
   sortSection: {
@@ -1061,14 +1064,14 @@ const styles = StyleSheet.create({
 
   controlLabel: {
     ...Typography.label,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     marginBottom: Spacing.sm,
   },
 
   sortRow: {
     flexDirection: "row",
     padding: Spacing.xs,
-    backgroundColor: Colors.backgroundStrong,
+    backgroundColor: colors.backgroundStrong,
     borderRadius: Radius.lg,
   },
 
@@ -1081,16 +1084,16 @@ const styles = StyleSheet.create({
   },
 
   sortOptionSelected: {
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
   },
 
   sortOptionText: {
     ...Typography.label,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
   },
 
   sortOptionTextSelected: {
-    color: Colors.primary,
+    color: colors.primary,
   },
 
   openErrorCard: {
@@ -1098,35 +1101,35 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     padding: Spacing.md,
     marginBottom: Spacing.md,
-    backgroundColor: Colors.dangerSoft,
+    backgroundColor: colors.dangerSoft,
     borderRadius: Radius.md,
   },
 
   openErrorText: {
     flex: 1,
     ...Typography.label,
-    color: Colors.danger,
+    color: colors.danger,
     marginLeft: Spacing.sm,
   },
 
   recentFeedbackCard: {
     alignItems: "center",
     padding: Spacing.xl,
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: colors.border,
     borderRadius: Radius.xl,
   },
 
   recentFeedbackText: {
     ...Typography.body,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     marginTop: Spacing.md,
   },
 
   recentErrorText: {
     ...Typography.body,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     textAlign: "center",
     marginTop: Spacing.md,
   },
@@ -1135,13 +1138,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.sm,
     marginTop: Spacing.md,
-    backgroundColor: Colors.primarySoft,
+    backgroundColor: colors.primarySoft,
     borderRadius: Radius.full,
   },
 
   retryButtonText: {
     ...Typography.label,
-    color: Colors.primary,
+    color: colors.primary,
   },
 
   recentList: {
@@ -1153,25 +1156,25 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: Colors.borderPrimary,
+    borderColor: colors.borderPrimary,
     borderRadius: Radius.lg,
-    backgroundColor: Colors.primarySoft,
+    backgroundColor: colors.primarySoft,
   },
 
   loadMoreText: {
     ...Typography.label,
-    color: Colors.primary,
+    color: colors.primary,
   },
 
   loadMoreError: {
     ...Typography.body,
-    color: Colors.danger,
+    color: colors.danger,
     textAlign: "center",
   },
 
   historyEndText: {
     ...Typography.label,
-    color: Colors.textMuted,
+    color: colors.textMuted,
     textAlign: "center",
     paddingVertical: Spacing.sm,
   },
@@ -1180,14 +1183,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     padding: Spacing.lg,
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: colors.border,
     borderRadius: Radius.lg,
   },
 
   recentCardPressed: {
-    backgroundColor: Colors.surfaceSecondary,
+    backgroundColor: colors.surfaceSecondary,
   },
 
   recentIcon: {
@@ -1196,7 +1199,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginRight: Spacing.md,
-    backgroundColor: Colors.primarySoft,
+    backgroundColor: colors.primarySoft,
     borderRadius: Radius.md,
   },
 
@@ -1207,12 +1210,12 @@ const styles = StyleSheet.create({
 
   recentName: {
     ...Typography.label,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     fontSize: 15,
   },
 
   recentDate: {
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     fontSize: 12,
     lineHeight: 18,
     marginTop: Spacing.xs,
@@ -1221,31 +1224,31 @@ const styles = StyleSheet.create({
   statusBadge: {
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs,
-    backgroundColor: Colors.warningSoft,
+    backgroundColor: colors.warningSoft,
     borderRadius: Radius.full,
   },
 
   statusText: {
-    color: Colors.warning,
+    color: colors.warning,
     fontSize: 11,
     lineHeight: 15,
     fontWeight: "700",
   },
 
   readyBadge: {
-    backgroundColor: Colors.primarySoft,
+    backgroundColor: colors.primarySoft,
   },
 
   readyText: {
-    color: Colors.primary,
+    color: colors.primary,
   },
 
   analyzedBadge: {
-    backgroundColor: Colors.successSoft,
+    backgroundColor: colors.successSoft,
   },
 
   analyzedText: {
-    color: Colors.success,
+    color: colors.success,
   },
 
   openingIndicator: {
@@ -1260,9 +1263,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: Spacing.xl,
     paddingVertical: Spacing.xxxl,
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: colors.border,
     borderRadius: Radius.xl,
   },
 
@@ -1271,22 +1274,24 @@ const styles = StyleSheet.create({
     height: 56,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: Colors.primarySoft,
+    backgroundColor: colors.primarySoft,
     borderRadius: Radius.lg,
     marginBottom: Spacing.lg,
   },
 
   emptyTitle: {
     ...Typography.title,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     textAlign: "center",
     marginBottom: Spacing.sm,
   },
 
   emptyDescription: {
     ...Typography.body,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     textAlign: "center",
     maxWidth: 280,
   },
 });
+
+}
