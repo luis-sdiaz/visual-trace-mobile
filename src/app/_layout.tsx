@@ -5,6 +5,7 @@ import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { ComparisonProvider } from "@/context/ComparisonContext";
 import { ThemeProvider, useTheme } from "@/context/ThemeContext";
 import { getAuthRouteAccess } from "@/utils/authNavigation";
+import "@/i18n";
 
 export default function RootLayout() {
   return (

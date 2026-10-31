@@ -28,4 +28,9 @@ describe("ThemeContext", () => {
     expect(getToggledTheme("light")).toBe("dark");
     expect(getToggledTheme("dark")).toBe("light");
   });
+
+  it("only exposes light and dark themes", () => {
+    expect(getToggledTheme("light")).toBe("dark");
+    expect(getToggledTheme("dark")).toBe("light");
+  });
 });

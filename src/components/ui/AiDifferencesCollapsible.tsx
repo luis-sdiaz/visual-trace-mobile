@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Pressable,
   StyleSheet,
@@ -15,6 +16,8 @@ import type {
   VisualDifferenceCategory,
 } from "@/contracts/geminiAnalysis";
 import { CATEGORY_LABELS } from "@/utils/reportExport";
+import "@/i18n";
+import { localizeAiReportText } from "@/utils/localizeAiReport";
 
 export type DifferenceGroup = {
   category: VisualDifferenceCategory;
@@ -47,6 +50,12 @@ export function AiDifferencesCollapsible({
   differences,
   initialExpanded = false,
 }: AiDifferencesCollapsibleProps) {
+  const { t, i18n } = useTranslation();
+  const knownTranslations = (i18n.getResource(
+    i18n.language,
+    "common",
+    "aiReport.known",
+  ) ?? {}) as Record<string, string>;
   const groups = useMemo(
     () => groupDifferencesByCategory(differences),
     [differences],
@@ -86,8 +95,8 @@ export function AiDifferencesCollapsible({
   if (differences.length === 0) {
     return (
       <View style={styles.container}>
-        <Text style={styles.sectionTitle}>Diferencias detectadas</Text>
-        <Text style={styles.emptyText}>No se identificaron cambios visibles.</Text>
+        <Text style={styles.sectionTitle}>{t("differences.title")}</Text>
+        <Text style={styles.emptyText}>{t("differences.empty")}</Text>
       </View>
     );
   }
@@ -96,10 +105,10 @@ export function AiDifferencesCollapsible({
     <View style={styles.container}>
       <View style={styles.sectionHeader}>
         <View style={styles.titleWithCount}>
-          <Text style={styles.sectionTitle}>Diferencias detectadas</Text>
+          <Text style={styles.sectionTitle}>{t("differences.title")}</Text>
           <View style={styles.totalBadge}>
             <Text style={styles.totalBadgeText}>
-              {differences.length} {differences.length === 1 ? "cambio" : "cambios"}
+              {differences.length} {differences.length === 1 ? t("differences.change") : t("differences.changes")}
             </Text>
           </View>
         </View>
@@ -107,8 +116,8 @@ export function AiDifferencesCollapsible({
         <Pressable
           accessibilityLabel={
             allExpanded
-              ? "Ocultar todos los detalles de diferencias"
-              : "Ver todos los detalles de diferencias"
+              ? t("differences.hideAll")
+              : t("differences.showAll")
           }
           accessibilityRole="button"
           onPress={toggleAll}
@@ -116,7 +125,7 @@ export function AiDifferencesCollapsible({
           testID="toggle-all-differences-button"
         >
           <Text style={styles.toggleAllButtonText}>
-            {allExpanded ? "Ocultar todo" : "Ver todo"}
+            {allExpanded ? t("differences.hideAll") : t("differences.showAll")}
           </Text>
         </Pressable>
       </View>
@@ -124,6 +133,14 @@ export function AiDifferencesCollapsible({
       <View style={styles.cardsList}>
         {groups.map((group) => {
           const isExpanded = Boolean(expandedCategories[group.category]);
+          const categoryLabel = {
+            added: t("aiReport.categoryAdded"),
+            removed: t("aiReport.categoryRemoved"),
+            modified: t("aiReport.categoryModified"),
+            moved: t("aiReport.categoryMoved"),
+            appearance: t("aiReport.categoryAppearance"),
+            other: t("aiReport.categoryOther"),
+          }[group.category];
           return (
             <View
               key={group.category}
@@ -134,8 +151,8 @@ export function AiDifferencesCollapsible({
               testID={`difference-category-card-${group.category}`}
             >
               <Pressable
-                accessibilityHint={`Alterna la visualización de los detalles para ${group.label}`}
-                accessibilityLabel={`${isExpanded ? "Ocultar detalles" : "Ver detalles"} de ${group.label}`}
+                accessibilityHint={t("differences.toggleHint", { label: categoryLabel })}
+                accessibilityLabel={`${isExpanded ? t("differences.hideDetails") : t("differences.showDetails")} ${categoryLabel}`}
                 accessibilityRole="button"
                 accessibilityState={{ expanded: isExpanded }}
                 onPress={() => toggleCategory(group.category)}
@@ -148,12 +165,12 @@ export function AiDifferencesCollapsible({
                       {group.items.length}
                     </Text>
                   </View>
-                  <Text style={styles.categoryLabel}>{group.label}</Text>
+                  <Text style={styles.categoryLabel}>{categoryLabel}</Text>
                 </View>
 
                 <View style={styles.toggleAction}>
                   <Text style={styles.toggleText}>
-                    {isExpanded ? "Ocultar detalles" : "Ver detalles"}
+                    {isExpanded ? t("differences.hideDetails") : t("differences.showDetails")}
                   </Text>
                   <Text style={styles.toggleIcon}>{isExpanded ? "▴" : "▾"}</Text>
                 </View>
@@ -170,7 +187,9 @@ export function AiDifferencesCollapsible({
                       style={styles.detailItem}
                     >
                       <Text style={styles.bullet}>•</Text>
-                      <Text style={styles.detailText}>{item}</Text>
+                      <Text style={styles.detailText}>
+                        {localizeAiReportText(item, knownTranslations)}
+                      </Text>
                     </View>
                   ))}
                 </View>
@@ -359,4 +378,3 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 });
-

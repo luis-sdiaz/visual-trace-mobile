@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 import {
   Modal,
   Pressable,
@@ -11,6 +12,7 @@ import { Colors } from "@/constants/colors";
 import { Radius } from "@/constants/radius";
 import { Spacing } from "@/constants/spacing";
 import { Typography } from "@/constants/typography";
+import "@/i18n";
 
 export type ImagePickerModalSource = "camera" | "gallery";
 
@@ -29,9 +31,10 @@ export function ImagePickerModal({
   onSelectSource,
   testID = "image-picker-modal",
 }: ImagePickerModalProps) {
+  const { t } = useTranslation();
   return (
     <Modal
-      accessibilityLabel={`Selector de origen de imagen para ${stageLabel}`}
+      accessibilityLabel={t("media.chooseMethod", { stage: stageLabel })}
       accessibilityViewIsModal
       animationType="fade"
       onRequestClose={onClose}
@@ -43,16 +46,16 @@ export function ImagePickerModal({
       <View style={styles.overlay}>
         <View style={styles.container}>
           <View style={styles.header}>
-            <Text style={styles.title}>Seleccionar fotografía</Text>
+            <Text style={styles.title}>{t("media.selectPhoto")}</Text>
             <Text style={styles.subtitle}>
-              Elige el método para registrar el {stageLabel}.
+              {t("media.chooseMethod", { stage: stageLabel })}
             </Text>
           </View>
 
           <View style={styles.buttonsContainer}>
             <Pressable
-              accessibilityHint="Abre la cámara del dispositivo para capturar una nueva foto de inspección"
-              accessibilityLabel="Tomar fotografía con la cámara"
+              accessibilityHint={t("media.cameraHint")}
+              accessibilityLabel={t("media.cameraLabel")}
               accessibilityRole="button"
               onPress={() => {
                 onSelectSource("camera");
@@ -67,16 +70,16 @@ export function ImagePickerModal({
             >
               <Text style={styles.optionIcon}>📷</Text>
               <View style={styles.optionTextContainer}>
-                <Text style={styles.optionTitle}>Tomar con la cámara</Text>
+                <Text style={styles.optionTitle}>{t("media.cameraTitle")}</Text>
                 <Text style={styles.optionDescription}>
-                  Captura una foto directamente en el sitio
+                  {t("media.cameraDescription")}
                 </Text>
               </View>
             </Pressable>
 
             <Pressable
-              accessibilityHint="Abre la galería del dispositivo para elegir una imagen previamente tomada"
-              accessibilityLabel="Seleccionar fotografía de la galería"
+              accessibilityHint={t("media.galleryHint")}
+              accessibilityLabel={t("media.galleryLabel")}
               accessibilityRole="button"
               onPress={() => {
                 onSelectSource("gallery");
@@ -91,16 +94,16 @@ export function ImagePickerModal({
             >
               <Text style={styles.optionIcon}>🖼️</Text>
               <View style={styles.optionTextContainer}>
-                <Text style={styles.optionTitle}>Elegir de la galería</Text>
+                <Text style={styles.optionTitle}>{t("media.galleryTitle")}</Text>
                 <Text style={styles.optionDescription}>
-                  Selecciona una imagen guardada en tu carrete
+                  {t("media.galleryDescription")}
                 </Text>
               </View>
             </Pressable>
 
             <Pressable
-              accessibilityHint="Cierra este diálogo modal sin realizar cambios"
-              accessibilityLabel="Cancelar selección de imagen"
+              accessibilityHint={t("media.cancel")}
+              accessibilityLabel={t("media.cancelSelection")}
               accessibilityRole="button"
               onPress={onClose}
               style={({ pressed }) => [
@@ -109,7 +112,7 @@ export function ImagePickerModal({
               ]}
               testID="image-picker-cancel-button"
             >
-              <Text style={styles.cancelButtonText}>Cancelar</Text>
+              <Text style={styles.cancelButtonText}>{t("media.cancel")}</Text>
             </Pressable>
           </View>
         </View>
@@ -208,4 +211,3 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
   },
 });
-

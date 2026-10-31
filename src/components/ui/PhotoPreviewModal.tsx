@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Image,
@@ -14,6 +15,7 @@ import { Colors } from "@/constants/colors";
 import { Radius } from "@/constants/radius";
 import { Spacing } from "@/constants/spacing";
 import { Typography } from "@/constants/typography";
+import "@/i18n";
 
 type PhotoPreviewModalProps = {
   label: string;
@@ -31,6 +33,7 @@ function PhotoPreviewContent({
   onRefresh,
   uri,
 }: Omit<PhotoPreviewModalProps, "visible">) {
+  const { t } = useTranslation();
   const [status, setStatus] = useState<PreviewStatus>("loading");
   const [refreshRevision, setRefreshRevision] = useState(0);
 
@@ -57,12 +60,12 @@ function PhotoPreviewContent({
           {label}
         </Text>
         <Pressable
-          accessibilityLabel="Cerrar vista de fotografía"
+          accessibilityLabel={t("media.closePreview")}
           accessibilityRole="button"
           onPress={onClose}
           style={styles.closeButton}
         >
-          <Text style={styles.closeText}>Cerrar</Text>
+          <Text style={styles.closeText}>{t("media.close")}</Text>
         </Pressable>
       </View>
 
@@ -84,11 +87,11 @@ function PhotoPreviewContent({
           <View style={styles.feedback}>
             {status === "error" ? (
               <>
-                <Text style={styles.feedbackTitle}>No pudimos mostrarla</Text>
+                <Text style={styles.feedbackTitle}>{t("media.imageError")}</Text>
                 <Text style={styles.feedbackDescription}>
                   {onRefresh
-                    ? "El acceso privado puede haber caducado."
-                    : "La fotografía local ya no está disponible."}
+                    ? t("media.privateExpired")
+                    : t("media.localUnavailable")}
                 </Text>
                 {onRefresh ? (
                   <Pressable
@@ -96,7 +99,7 @@ function PhotoPreviewContent({
                     onPress={() => void handleRefresh()}
                     style={styles.refreshButton}
                   >
-                    <Text style={styles.refreshText}>Recuperar fotografía</Text>
+                    <Text style={styles.refreshText}>{t("media.recover")}</Text>
                   </Pressable>
                 ) : null}
               </>
@@ -105,8 +108,8 @@ function PhotoPreviewContent({
                 <ActivityIndicator color={Colors.surface} />
                 <Text style={styles.loadingText}>
                   {status === "refreshing"
-                    ? "Recuperando fotografía..."
-                    : "Cargando fotografía..."}
+                    ? t("media.recovering")
+                    : t("media.loading")}
                 </Text>
               </>
             )}

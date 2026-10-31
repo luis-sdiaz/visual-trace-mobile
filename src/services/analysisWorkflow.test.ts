@@ -65,16 +65,16 @@ describe("analysisWorkflow", () => {
     "keeps the photographs ready when the report state is %s",
     (status) => {
       expect(getAnalysisPresentation(status, true).statusTitle).toBe(
-        "Fotografías listas",
+        "analysis.photosReady",
       );
     },
   );
 
   it("presents appropriate title and action label for network_offline status", () => {
     const presentation = getAnalysisPresentation("network_offline", true);
-    expect(presentation.statusTitle).toBe("Sin conexión a internet");
-    expect(presentation.actionLabel).toBe("Reintentar conexión");
-    expect(presentation.statusDescription).toContain("conexión de red");
+    expect(presentation.statusTitle).toBe("analysis.offline");
+    expect(presentation.actionLabel).toBe("analysis.retryConnection");
+    expect(presentation.statusDescription).toBe("analysis.offlineDescription");
   });
 
   it("retries only the report query without requesting a Gemini analysis", async () => {
@@ -98,7 +98,7 @@ describe("analysisWorkflow", () => {
       performAnalysisAction("analyze", params, { fetchReport, requestAnalysis }),
     ).resolves.toBe(report);
 
-    expect(requestAnalysis).toHaveBeenCalledWith("comparison-1");
+    expect(requestAnalysis).toHaveBeenCalledWith("comparison-1", "es");
     expect(fetchReport).not.toHaveBeenCalled();
   });
 
@@ -151,7 +151,7 @@ describe("analysisWorkflow", () => {
       });
 
       expect(result).toBe(report);
-      expect(requestAnalysis).toHaveBeenCalledWith("comparison-1");
+      expect(requestAnalysis).toHaveBeenCalledWith("comparison-1", "es");
     });
 
     it("identifies various network failure shapes correctly", () => {
@@ -166,93 +166,4 @@ describe("analysisWorkflow", () => {
     });
   });
 
-  describe("academic demo mode simulation and error injection", () => {
-    it("injects simulated mock report when demo mode is enabled", async () => {
-      const mockRecord = { id: "mock-1", comparison_id: "comparison-1" } as AnalysisReportRecord;
-      const mockResolver = vi.fn().mockResolvedValue(mockRecord);
-      const requestAnalysis = vi.fn();
-      const fetchReport = vi.fn();
-
-      const result = await performAnalysisAction("analyze", params, {
-        fetchReport,
-        requestAnalysis,
-        mockResolver,
-        getDemoConfig: () => ({
-          enabled: true,
-          mockLatencyMs: 0,
-          networkCondition: "normal",
-          injectMockAiAnalysis: true,
-          showArchitectureDetails: true,
-          simulateOfflineFallback: true,
-          selectedScenario: "changes_detected",
-          lastMockUsedAt: null,
-          totalMocksServed: 0,
-        }),
-      });
-
-      expect(result).toBe(mockRecord);
-      expect(mockResolver).toHaveBeenCalledTimes(1);
-      expect(requestAnalysis).not.toHaveBeenCalled();
-    });
-
-    it("injects simulated offline condition when demo mode network is offline", async () => {
-      await expect(
-        performAnalysisAction("analyze", params, {
-          fetchReport: vi.fn(),
-          requestAnalysis: vi.fn(),
-          getDemoConfig: () => ({
-            enabled: true,
-            mockLatencyMs: 0,
-            networkCondition: "offline",
-            injectMockAiAnalysis: true,
-            showArchitectureDetails: true,
-            simulateOfflineFallback: true,
-            selectedScenario: "changes_detected",
-            lastMockUsedAt: null,
-            totalMocksServed: 0,
-          }),
-        }),
-      ).rejects.toThrow(NetworkOfflineError);
-    });
-
-    it("injects simulated HTTP 429 quota error when configured", async () => {
-      await expect(
-        performAnalysisAction("analyze", params, {
-          fetchReport: vi.fn(),
-          requestAnalysis: vi.fn(),
-          getDemoConfig: () => ({
-            enabled: true,
-            mockLatencyMs: 0,
-            networkCondition: "error_429",
-            injectMockAiAnalysis: true,
-            showArchitectureDetails: true,
-            simulateOfflineFallback: true,
-            selectedScenario: "changes_detected",
-            lastMockUsedAt: null,
-            totalMocksServed: 0,
-          }),
-        }),
-      ).rejects.toThrow(/cuota simulado/);
-    });
-
-    it("injects simulated HTTP 500 server error when configured", async () => {
-      await expect(
-        performAnalysisAction("analyze", params, {
-          fetchReport: vi.fn(),
-          requestAnalysis: vi.fn(),
-          getDemoConfig: () => ({
-            enabled: true,
-            mockLatencyMs: 0,
-            networkCondition: "error_500",
-            injectMockAiAnalysis: true,
-            showArchitectureDetails: true,
-            simulateOfflineFallback: true,
-            selectedScenario: "changes_detected",
-            lastMockUsedAt: null,
-            totalMocksServed: 0,
-          }),
-        }),
-      ).rejects.toThrow(/servidor 500 simulado/);
-    });
-  });
 });

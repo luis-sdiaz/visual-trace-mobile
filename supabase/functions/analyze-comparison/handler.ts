@@ -21,7 +21,7 @@ export type AnalyzeDependencies = {
     comparison: AuthorizedComparison,
     authorization: string,
   ) => Promise<{ initial: unknown; final: unknown }>;
-  analyzeImages: (images: { initial: unknown; final: unknown }) => Promise<{
+  analyzeImages: (images: { initial: unknown; final: unknown }, language: "es" | "en") => Promise<{
     model: string;
     report: { contractVersion: string } & Record<string, unknown>;
   }>;
@@ -127,6 +127,11 @@ export function createAnalyzeComparisonHandler(dependencies: AnalyzeDependencies
         typeof body === "object" && body !== null && "comparisonId" in body
           ? (body as { comparisonId?: unknown }).comparisonId
           : undefined;
+      const language =
+        typeof body === "object" && body !== null && "language" in body &&
+        (body as { language?: unknown }).language === "en"
+          ? "en"
+          : "es";
 
       if (typeof comparisonId !== "string" || !UUID_PATTERN.test(comparisonId)) {
         return jsonResponse(400, "invalid_comparison_id", "comparisonId no es válido.");
@@ -220,7 +225,7 @@ export function createAnalyzeComparisonHandler(dependencies: AnalyzeDependencies
       let analysis: Awaited<ReturnType<AnalyzeDependencies["analyzeImages"]>>;
       try {
         console.log("[analyze-comparison] Iniciando inferencia visual con Gemini API...");
-        analysis = await dependencies.analyzeImages(images);
+        analysis = await dependencies.analyzeImages(images, language);
         console.log("[analyze-comparison] Respuesta de Gemini recibida con éxito.");
       } catch (geminiError) {
         console.error("[analyze-comparison] Error durante la llamada a Gemini AI:", geminiError);

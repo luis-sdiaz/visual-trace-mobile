@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { GEMINI_ANALYSIS_CONTRACT_VERSION } from "../../../src/contracts/geminiAnalysis";
-import { createGeminiClient } from "./geminiClient";
+import { createGeminiClient, getGeminiAnalysisPrompt } from "./geminiClient";
 
 const report = {
   contractVersion: GEMINI_ANALYSIS_CONTRACT_VERSION,
@@ -35,9 +35,20 @@ describe("Gemini client", () => {
     const body = JSON.parse(fetcher.mock.calls[0][1].body);
     expect(body.contents[0].parts[1].inlineData.data).toBe("AQ==");
     expect(body.contents[0].parts[2].inlineData.data).toBe("Ag==");
+    expect(body.contents[0].parts[0].text).toContain("estrictamente en español");
     expect(body.generationConfig.responseMimeType).toBe("application/json");
     expect(result.report).toEqual(report);
     expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+
+  it("requests the complete report in the selected language", async () => {
+    const fetcher = vi.fn().mockResolvedValue(response(200, {
+      candidates: [{ content: { parts: [{ text: JSON.stringify(report) }] } }],
+    }));
+    await createGeminiClient({ apiKey: "test-key", fetcher }).analyze(initial, final, "en");
+    const body = JSON.parse(fetcher.mock.calls[0][1].body);
+    expect(body.contents[0].parts[0].text).toContain("strictly in English");
+    expect(getGeminiAnalysisPrompt("en")).toContain("impact evaluation");
   });
 
   it("sanitizes model name by removing duplicate models/ prefix", async () => {

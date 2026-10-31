@@ -1,5 +1,6 @@
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Pressable,
@@ -18,10 +19,13 @@ import { Radius } from "@/constants/radius";
 import { Spacing } from "@/constants/spacing";
 import { Typography } from "@/constants/typography";
 import { useAuth } from "@/context/AuthContext";
+import { useTheme } from "@/context/ThemeContext";
 import { supabase } from "@/lib/supabase";
 import { getAuthenticationErrorFeedback } from "@/services/authService";
 
 export default function LoginScreen() {
+  const { t } = useTranslation();
+  const { colors } = useTheme();
   const { user, isLoading: isAuthLoading } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -91,7 +95,7 @@ export default function LoginScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
@@ -104,49 +108,49 @@ export default function LoginScreen() {
             style={styles.backButton}
           >
             <Text style={styles.backIcon}>←</Text>
-            <Text style={styles.backText}>Volver</Text>
+            <Text style={[styles.backText, { color: colors.textSecondary }]}>{t("auth.back")}</Text>
           </Pressable>
 
           <View style={styles.header}>
             <Text style={styles.brand}>VisualTrace</Text>
 
-            <Text style={styles.title}>Bienvenido de nuevo</Text>
+            <Text style={[styles.title, { color: colors.textPrimary }]}>{t("auth.loginTitle")}</Text>
 
-            <Text style={styles.description}>
-              Inicia sesión para acceder a tus comparaciones guardadas.
+            <Text style={[styles.description, { color: colors.textSecondary }]}>
+              {t("auth.loginDescription")}
             </Text>
           </View>
 
           <View style={styles.form}>
             <View style={styles.field}>
-              <Text style={styles.label}>Correo electrónico</Text>
+              <Text style={[styles.label, { color: colors.textPrimary }]}>{t("auth.email")}</Text>
 
               <TextInput
                 value={email}
                 onChangeText={handleEmailChange}
-                placeholder="correo@ejemplo.com"
-                placeholderTextColor={Colors.textMuted}
+                placeholder={t("auth.emailPlaceholder")}
+                placeholderTextColor={colors.textMuted}
                 autoCapitalize="none"
                 autoCorrect={false}
                 autoComplete="email"
                 keyboardType="email-address"
-                style={styles.input}
+                style={[styles.input, { color: colors.textPrimary, backgroundColor: colors.surface, borderColor: colors.border }]}
               />
             </View>
 
             <View style={styles.field}>
-              <Text style={styles.label}>Contraseña</Text>
+              <Text style={[styles.label, { color: colors.textPrimary }]}>{t("auth.password")}</Text>
 
               <TextInput
                 value={password}
                 onChangeText={setPassword}
-                placeholder="Ingresa tu contraseña"
-                placeholderTextColor={Colors.textMuted}
+                placeholder={t("auth.passwordPlaceholder")}
+                placeholderTextColor={colors.textMuted}
                 autoCapitalize="none"
                 autoCorrect={false}
                 autoComplete="password"
                 secureTextEntry
-                style={styles.input}
+                style={[styles.input, { color: colors.textPrimary, backgroundColor: colors.surface, borderColor: colors.border }]}
               />
             </View>
 
@@ -166,19 +170,19 @@ export default function LoginScreen() {
 
         <View style={styles.footer}>
           <Button
-            label={isLoading ? "Iniciando sesión..." : "Iniciar sesión"}
+            label={isLoading ? t("auth.loggingIn") : t("auth.login")}
             disabled={!isFormValid || isLoading}
             onPress={handleLogin}
           />
 
           <Text style={styles.registerText}>
-            ¿No tienes una cuenta?{" "}
+            {t("auth.noAccount")}{" "}
             <Text
               accessibilityRole="link"
               onPress={() => router.push("/register")}
               style={styles.registerLink}
             >
-              Regístrate
+              {t("auth.registerLink")}
             </Text>
           </Text>
         </View>

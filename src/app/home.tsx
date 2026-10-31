@@ -7,10 +7,10 @@ import {
   useRef,
   useState,
 } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   FlatList,
-  Modal,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -21,14 +21,8 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { DemoModeToggle } from "@/components/ui/DemoModeToggle";
-import { DevErrorInjectionPanel } from "@/components/ui/DevErrorInjectionPanel";
-import { ThemeToggle } from "@/components/ui/ThemeToggle";
-import {
-  getDemoState,
-  subscribeDemoConfig,
-} from "@/config/demoConfig";
 import { Button } from "@/components/ui/Button";
+import { SettingsModal } from "@/components/ui/SettingsModal";
 import { Colors } from "@/constants/colors";
 import { Radius } from "@/constants/radius";
 import { Spacing } from "@/constants/spacing";
@@ -48,32 +42,14 @@ import {
 import { recoverComparison } from "@/services/comparisonRecoveryService";
 import { getAccountGreeting } from "@/utils/accountDisplay";
 
-const STATUS_LABELS: Record<ComparisonStatus, string> = {
-  draft: "En curso",
-  ready: "Lista",
-  analyzed: "Analizada",
-};
-
-const STATUS_FILTERS: { label: string; value: ComparisonStatus | null }[] = [
-  { label: "Todas", value: null },
-  { label: "En curso", value: "draft" },
-  { label: "Listas", value: "ready" },
-  { label: "Analizadas", value: "analyzed" },
-];
-
-const SORT_OPTIONS: { label: string; value: ComparisonSortOrder }[] = [
-  { label: "Más recientes", value: "newest" },
-  { label: "Más antiguas", value: "oldest" },
-];
-
-function formatComparisonDate(value: string): string {
+function formatComparisonDate(value: string, locale: string, unavailable: string): string {
   const date = new Date(value);
 
   if (Number.isNaN(date.getTime())) {
-    return "Fecha no disponible";
+    return unavailable;
   }
 
-  return new Intl.DateTimeFormat("es-CO", {
+  return new Intl.DateTimeFormat(locale === "en" ? "en-US" : "es-CO", {
     day: "numeric",
     month: "short",
     year: "numeric",
@@ -81,8 +57,24 @@ function formatComparisonDate(value: string): string {
 }
 
 export default function HomeScreen() {
+  const { t, i18n } = useTranslation();
   const { user, isLoading, signOut } = useAuth();
   const { colors } = useTheme();
+  const statusLabels: Record<ComparisonStatus, string> = {
+    draft: t("homeFilters.draft"),
+    ready: t("homeFilters.ready"),
+    analyzed: t("homeFilters.analyzed"),
+  };
+  const statusFilters: { label: string; value: ComparisonStatus | null }[] = [
+    { label: t("homeFilters.all"), value: null },
+    { label: t("homeFilters.draft"), value: "draft" },
+    { label: t("homeFilters.ready"), value: "ready" },
+    { label: t("homeFilters.analyzed"), value: "analyzed" },
+  ];
+  const sortOptions: { label: string; value: ComparisonSortOrder }[] = [
+    { label: t("homeFilters.newest"), value: "newest" },
+    { label: t("homeFilters.oldest"), value: "oldest" },
+  ];
 
   const {
     comparisonId,
@@ -94,14 +86,7 @@ export default function HomeScreen() {
   } = useComparison();
 
   const [isSigningOut, setIsSigningOut] = useState(false);
-  const [isDemoActive, setIsDemoActive] = useState(() => getDemoState().enabled);
-  const [showDevModal, setShowDevModal] = useState(false);
-
-  useEffect(() => {
-    return subscribeDemoConfig((state) => {
-      setIsDemoActive(state.enabled);
-    });
-  }, []);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [recentComparisons, setRecentComparisons] = useState<
     ComparisonRecord[]
@@ -236,10 +221,10 @@ export default function HomeScreen() {
           if (!append && !refresh) setRecentComparisons([]);
           setRecentError(
             append
-              ? "No pudimos cargar más comparaciones. Inténtalo nuevamente."
+              ? t("homeFilters.loadMoreError")
               : refresh
-                ? "No pudimos actualizar tus comparaciones. Inténtalo nuevamente."
-              : "No pudimos cargar tus comparaciones. Inténtalo nuevamente.",
+                ? t("homeFilters.refreshError")
+              : t("homeFilters.loadError"),
           );
         }
       } finally {
@@ -283,7 +268,7 @@ export default function HomeScreen() {
       await signOut();
       router.replace("/");
     } catch {
-      setErrorMessage("No pudimos cerrar tu sesión. Inténtalo nuevamente.");
+      setErrorMessage(t("home.signOutError"));
 
       setIsSigningOut(false);
     }
@@ -367,7 +352,7 @@ export default function HomeScreen() {
         setOpenErrorState({
           userId: requestUserId,
           message:
-            "No pudimos abrir esta comparación. Verifica tu conexión y que sus fotografías sigan disponibles.",
+            t("homeFilters.openError"),
         });
       }
     } finally {
@@ -403,7 +388,7 @@ export default function HomeScreen() {
         contentContainerStyle={styles.content}
         refreshControl={
           <RefreshControl
-            accessibilityLabel="Actualizar historial de comparaciones"
+            accessibilityLabel={t("homeFilters.refresh")}
             colors={[Colors.primary]}
             onRefresh={() =>
               void loadComparisonHistory({ refresh: true })
@@ -411,7 +396,7 @@ export default function HomeScreen() {
             progressBackgroundColor={Colors.surface}
             refreshing={isRefreshing}
             tintColor={Colors.primary}
-            title="Actualizando..."
+            title={t("homeFilters.refreshing")}
             titleColor={Colors.textSecondary}
           />
         }
@@ -421,19 +406,15 @@ export default function HomeScreen() {
           <Text style={[styles.brand, { color: colors.primary }]}>VisualTrace</Text>
 
           <View style={styles.topBarActions}>
-            <ThemeToggle />
-
-            <DemoModeToggle compact={true} testID="home-demo-toggle" />
-
             <Pressable
-              accessibilityLabel="Configuración y panel de sustentación"
+              accessibilityLabel={t("settings.title")}
               accessibilityRole="button"
-              onPress={() => setShowDevModal(true)}
+              onPress={() => setShowSettingsModal(true)}
               style={({ pressed }) => [
                 styles.devSettingsButton,
                 pressed && styles.devSettingsButtonPressed,
               ]}
-              testID="open-dev-settings-button"
+              testID="open-settings-button"
             >
               <Ionicons
                 name="settings-outline"
@@ -458,35 +439,21 @@ export default function HomeScreen() {
               />
 
               <Text style={styles.signOutText}>
-                {isSigningOut ? "Saliendo..." : "Salir"}
+                {isSigningOut ? t("home.signingOut") : t("home.signOut")}
               </Text>
             </Pressable>
           </View>
         </View>
 
-        {isDemoActive ? (
-          <View style={styles.demoBanner} testID="home-demo-active-banner">
-            <View style={styles.demoBannerIconContainer}>
-              <Ionicons name="school-outline" size={20} color={Colors.accent} />
-            </View>
-            <View style={styles.demoBannerContent}>
-              <Text style={styles.demoBannerTitle}>
-                MODO DEMOSTRACIÓN ACADÉMICA ACTIVO
-              </Text>
-              <Text style={styles.demoBannerText}>
-                Las solicitudes de análisis usan inferencia simulada instantánea y resiliencia para sustentación.
-              </Text>
-            </View>
-          </View>
-        ) : null}
-
         <View style={styles.header}>
           <Text style={[styles.greeting, { color: colors.textPrimary }]}>{accountGreeting}</Text>
 
-          <Text style={[styles.title, { color: colors.textPrimary }]}>Tus comparaciones</Text>
+          <Text style={[styles.title, { color: colors.textPrimary }]}>
+            {t("home.title")}
+          </Text>
 
           <Text style={[styles.description, { color: colors.textSecondary }]}>
-            Documenta y revisa cambios visuales de forma clara y organizada.
+            {t("home.description")}
           </Text>
         </View>
 
@@ -499,7 +466,7 @@ export default function HomeScreen() {
         {hasDraft ? (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Continuar comparación"
+            accessibilityLabel={t("homeFilters.continue")}
             disabled={openingComparisonId !== null}
             onPress={handleResumeComparison}
             style={({ pressed }) => [
@@ -512,16 +479,16 @@ export default function HomeScreen() {
             </View>
 
             <View style={styles.draftContent}>
-              <Text style={styles.draftLabel}>COMPARACIÓN EN CURSO</Text>
+              <Text style={styles.draftLabel}>{t("homeFilters.inProgress")}</Text>
 
               <Text style={styles.draftName} numberOfLines={1}>
-                {name.trim() || "Comparación sin nombre"}
+                {name.trim() || t("homeFilters.unnamed")}
               </Text>
 
               <Text style={styles.draftAction}>
                 {openingComparisonId === comparisonId
-                  ? "Abriendo..."
-                  : "Continuar comparación"}
+                  ? t("homeFilters.opening")
+                  : t("homeFilters.continue")}
               </Text>
             </View>
 
@@ -540,28 +507,28 @@ export default function HomeScreen() {
             </View>
 
             <View style={styles.actionHeaderText}>
-              <Text style={styles.actionTitle}>Nueva comparación</Text>
+              <Text style={styles.actionTitle}>{t("home.newComparison")}</Text>
 
               <Text style={styles.actionDescription}>
-                Registra un estado inicial y uno final para revisar qué cambió.
+                {t("home.newComparisonDescription")}
               </Text>
             </View>
           </View>
 
-          <Button label="Crear comparación" onPress={handleCreateComparison} />
+          <Button label={t("home.createComparison")} onPress={handleCreateComparison} />
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Historial de comparaciones</Text>
+          <Text style={styles.sectionTitle}>{t("home.history")}</Text>
 
           <View style={styles.searchContainer}>
             <Ionicons name="search-outline" size={20} color={Colors.textMuted} />
             <TextInput
-              accessibilityLabel="Buscar comparaciones por nombre"
+              accessibilityLabel={t("homeFilters.search")}
               autoCapitalize="none"
               autoCorrect={false}
               onChangeText={setSearchText}
-              placeholder="Buscar por nombre"
+              placeholder={t("homeFilters.search")}
               placeholderTextColor={Colors.textMuted}
               returnKeyType="search"
               style={styles.searchInput}
@@ -569,7 +536,7 @@ export default function HomeScreen() {
             />
             {searchText ? (
               <Pressable
-                accessibilityLabel="Limpiar búsqueda"
+                accessibilityLabel={t("homeFilters.clearSearch")}
                 accessibilityRole="button"
                 onPress={() => {
                   setSearchText("");
@@ -583,7 +550,7 @@ export default function HomeScreen() {
           </View>
 
           <View accessibilityRole="radiogroup" style={styles.filterRow}>
-            {STATUS_FILTERS.map((filter) => {
+            {statusFilters.map((filter) => {
               const selected = statusFilter === filter.value;
               return (
                 <Pressable
@@ -607,9 +574,9 @@ export default function HomeScreen() {
           </View>
 
           <View style={styles.sortSection}>
-            <Text style={styles.controlLabel}>Ordenar por</Text>
+            <Text style={styles.controlLabel}>{t("homeFilters.sortBy")}</Text>
             <View accessibilityRole="radiogroup" style={styles.sortRow}>
-              {SORT_OPTIONS.map((option) => {
+              {sortOptions.map((option) => {
                 const selected = sortOrder === option.value;
                 return (
                   <Pressable
@@ -648,7 +615,7 @@ export default function HomeScreen() {
             <View style={styles.recentFeedbackCard}>
               <ActivityIndicator color={Colors.primary} />
               <Text style={styles.recentFeedbackText}>
-                Cargando comparaciones...
+                {t("homeFilters.loading")}
               </Text>
             </View>
           ) : recentError && recentComparisons.length === 0 ? (
@@ -664,7 +631,7 @@ export default function HomeScreen() {
                 onPress={() => void loadComparisonHistory()}
                 style={styles.retryButton}
               >
-                <Text style={styles.retryButtonText}>Reintentar</Text>
+                <Text style={styles.retryButtonText}>{t("homeFilters.retry")}</Text>
               </Pressable>
             </View>
           ) : recentComparisons.length > 0 ? (
@@ -681,7 +648,7 @@ export default function HomeScreen() {
                   <Pressable
                     key={comparison.id}
                     accessibilityRole="button"
-                    accessibilityLabel={`Abrir ${comparison.name}`}
+                    accessibilityLabel={`${t("homeFilters.comparison")}: ${comparison.name}`}
                     disabled={openingComparisonId !== null}
                     onPress={() => void handleOpenComparison(comparison.id, false, "history")}
                     style={({ pressed }) => [
@@ -702,7 +669,11 @@ export default function HomeScreen() {
                         {comparison.name}
                       </Text>
                       <Text style={styles.recentDate}>
-                        {formatComparisonDate(comparison.created_at)}
+                        {formatComparisonDate(
+                          comparison.created_at,
+                          i18n.language,
+                          t("homeFilters.dateUnavailable"),
+                        )}
                       </Text>
                     </View>
 
@@ -722,7 +693,7 @@ export default function HomeScreen() {
                             styles.analyzedText,
                         ]}
                       >
-                        {STATUS_LABELS[comparison.status]}
+                        {statusLabels[comparison.status]}
                       </Text>
                     </View>
 
@@ -761,12 +732,12 @@ export default function HomeScreen() {
                   {isLoadingMore ? (
                     <ActivityIndicator color={Colors.primary} />
                   ) : (
-                    <Text style={styles.loadMoreText}>Cargar más</Text>
+                    <Text style={styles.loadMoreText}>{t("homeFilters.loadMore")}</Text>
                   )}
                 </Pressable>
               ) : (
                 <Text style={styles.historyEndText}>
-                  No hay más comparaciones para mostrar.
+                  {t("homeFilters.historyEnd")}
                 </Text>
               )}
             </View>
@@ -782,58 +753,24 @@ export default function HomeScreen() {
 
               <Text style={styles.emptyTitle}>
                 {searchTerm || statusFilter
-                  ? "No encontramos coincidencias"
-                  : "Aún no tienes comparaciones"}
+                  ? t("homeFilters.noMatches")
+                  : t("homeFilters.noComparisons")}
               </Text>
 
               <Text style={styles.emptyDescription}>
                 {searchTerm || statusFilter
-                  ? "Prueba con otros criterios o selecciona Todas."
-                  : "Tus registros aparecerán aquí después de crear tu primera comparación."}
+                  ? t("homeFilters.noMatchesHint")
+                  : t("homeFilters.empty")}
               </Text>
             </View>
           )}
         </View>
       </ScrollView>
 
-      <Modal
-        accessibilityLabel="Panel de desarrollo y sustentación"
-        accessibilityViewIsModal
-        animationType="slide"
-        onRequestClose={() => setShowDevModal(false)}
-        statusBarTranslucent
-        testID="dev-settings-modal"
-        transparent
-        visible={showDevModal}
-      >
-        <View style={styles.devModalOverlay}>
-          <View style={styles.devModalContainer}>
-            <View style={styles.devModalHeader}>
-              <Text style={styles.devModalTitle}>
-                Panel de Sustentación Académica
-              </Text>
-              <Pressable
-                accessibilityLabel="Cerrar panel de desarrollo"
-                accessibilityRole="button"
-                onPress={() => setShowDevModal(false)}
-                style={styles.devModalCloseButton}
-                testID="close-dev-settings-button"
-              >
-                <Ionicons name="close" size={20} color={Colors.textSecondary} />
-              </Pressable>
-            </View>
-
-            <ScrollView
-              contentContainerStyle={styles.devModalScrollContent}
-              showsVerticalScrollIndicator={false}
-              style={styles.devModalScroll}
-            >
-              <DemoModeToggle testID="modal-demo-toggle" />
-              <DevErrorInjectionPanel testID="modal-dev-error-injection-panel" />
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
+      <SettingsModal
+        onClose={() => setShowSettingsModal(false)}
+        visible={showSettingsModal}
+      />
     </SafeAreaView>
   );
 }
@@ -867,41 +804,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: Spacing.sm,
-  },
-
-  demoBanner: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    backgroundColor: Colors.accentSoft,
-    borderColor: Colors.accent,
-    borderWidth: 1,
-    borderRadius: Radius.lg,
-    padding: Spacing.md,
-    marginBottom: Spacing.xl,
-    gap: Spacing.sm,
-  },
-
-  demoBannerIconContainer: {
-    marginTop: 2,
-  },
-
-  demoBannerContent: {
-    flex: 1,
-  },
-
-  demoBannerTitle: {
-    ...Typography.label,
-    fontSize: 11,
-    lineHeight: 14,
-    color: Colors.accent,
-    marginBottom: 2,
-  },
-
-  demoBannerText: {
-    ...Typography.body,
-    fontSize: 12,
-    lineHeight: 17,
-    color: Colors.textPrimary,
   },
 
   brand: {
@@ -945,63 +847,6 @@ const styles = StyleSheet.create({
 
   devSettingsButtonPressed: {
     backgroundColor: Colors.surfaceSecondary,
-  },
-
-  devModalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(15, 23, 42, 0.65)",
-    justifyContent: "center",
-    alignItems: "center",
-    padding: Spacing.lg,
-  },
-
-  devModalContainer: {
-    width: "100%",
-    maxWidth: 540,
-    maxHeight: "85%",
-    backgroundColor: Colors.background,
-    borderRadius: Radius.xl,
-    overflow: "hidden",
-    shadowColor: Colors.black,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.25,
-    shadowRadius: 16,
-    elevation: 10,
-  },
-
-  devModalHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    backgroundColor: Colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-  },
-
-  devModalTitle: {
-    ...Typography.title,
-    fontSize: 16,
-    lineHeight: 22,
-    color: Colors.textPrimary,
-  },
-
-  devModalCloseButton: {
-    width: 32,
-    height: 32,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: Radius.full,
-    backgroundColor: Colors.surfaceSecondary,
-  },
-
-  devModalScroll: {
-    flexGrow: 1,
-  },
-
-  devModalScrollContent: {
-    padding: Spacing.lg,
   },
 
   header: {

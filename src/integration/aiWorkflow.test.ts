@@ -227,11 +227,11 @@ describe("AI database and mobile integration safeguards", () => {
   it("renders every required structured report section and human-review warning", () => {
     const screen = readFileSync(resolve(process.cwd(), "src/app/comparison-result.tsx"), "utf8");
     for (const label of [
-      "RESUMEN DE IA",
-      "Diferencias detectadas",
-      "Observaciones",
-      "Limitaciones",
-      "revisión humana",
+      't("result.aiSummary")',
+      "AiDifferencesCollapsible",
+      't("result.observations")',
+      't("result.limitations")',
+      't("result.humanReview")',
     ]) {
       expect(screen).toContain(label);
     }
@@ -251,9 +251,9 @@ describe("AI database and mobile integration safeguards", () => {
     expect(screen).toContain("copy-report-button");
     expect(screen).toContain("share-report-button");
     expect(screen).toContain("copied-feedback-badge");
-    expect(screen).toContain("Copiar informe");
-    expect(screen).toContain("Compartir informe");
-    expect(screen).toContain("¡Copiado al portapapeles!");
+    expect(screen).toContain('t("result.copy")');
+    expect(screen).toContain('t("result.share")');
+    expect(screen).toContain('t("result.copiedToClipboard")');
 
     const { formatReportForClipboard, shareReportNative } = await import(
       "@/utils/reportExport"
@@ -333,7 +333,7 @@ describe("AI database and mobile integration safeguards", () => {
     );
     expect(screen).toContain("reanalyze-button");
     expect(screen).toContain("AiReanalyzeConfirmationModal");
-    expect(screen).toContain("Re-analizar comparación");
+    expect(screen).toContain('t("result.reanalyze")');
 
     const modalFile = readFileSync(
       resolve(process.cwd(), "src/components/ui/AiReanalyzeConfirmationModal.tsx"),

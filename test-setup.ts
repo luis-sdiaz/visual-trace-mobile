@@ -20,6 +20,10 @@ vi.mock("expo-clipboard", () => ({
   hasStringAsync: vi.fn().mockResolvedValue(true),
 }));
 
+vi.mock("expo-localization", () => ({
+  getLocales: vi.fn(() => [{ languageCode: "es" }]),
+}));
+
 vi.mock("expo-haptics", () => ({
   notificationAsync: vi.fn().mockResolvedValue(undefined),
   impactAsync: vi.fn().mockResolvedValue(undefined),
@@ -49,5 +53,4 @@ vi.mock("expo-sharing", () => ({
   isAvailableAsync: vi.fn().mockResolvedValue(true),
   shareAsync: vi.fn().mockResolvedValue(undefined),
 }));
-
 

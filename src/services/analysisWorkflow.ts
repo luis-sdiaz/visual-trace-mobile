@@ -1,11 +1,10 @@
-import { getDemoState } from "@/config/demoConfig";
-import { resolveMockReport } from "@/services/aiMockService";
 import {
   AnalysisServiceError,
   type AnalysisReportRecord,
   fetchCurrentAnalysisReport,
   requestComparisonAnalysis,
 } from "@/services/analysisService";
+import type { SupportedLanguage } from "@/i18n/types";
 
 export type AnalysisStatus =
   | "loading_report"
@@ -85,35 +84,35 @@ export function getAnalysisPresentation(
     actionLabel:
       action === "analyze"
         ? status === "analysis_error"
-          ? "Reintentar análisis"
+          ? "analysis.retryAnalysis"
           : status === "network_offline"
-            ? "Reintentar conexión"
-            : "Analizar cambios"
+            ? "analysis.retryConnection"
+            : "analysis.analyzeChanges"
         : action === "retry_report"
           ? status === "reports_unavailable"
-            ? "Comprobar disponibilidad"
-            : "Volver a consultar informe"
+            ? "analysis.checkAvailability"
+            : "analysis.retryReport"
           : null,
     statusTitle:
       status === "analyzing"
-        ? "Analizando imágenes"
+        ? "analysis.analyzing"
         : status === "available"
-          ? "Informe disponible"
+          ? "analysis.reportAvailable"
           : status === "limited"
-            ? "Límite alcanzado"
+            ? "analysis.limitReached"
             : status === "network_offline"
-              ? "Sin conexión a internet"
-              : "Fotografías listas",
+              ? "analysis.offline"
+              : "analysis.photosReady",
     statusDescription:
       status === "analyzing"
-        ? "Gemini está comparando únicamente los cambios visibles."
+        ? "analysis.analyzingDescription"
         : status === "available"
-          ? "El informe corresponde a estas versiones de las fotografías."
+          ? "analysis.reportAvailableDescription"
           : status === "limited"
-            ? "Se ha alcanzado la cuota de análisis disponible para este período."
+            ? "analysis.limitReachedDescription"
             : status === "network_offline"
-              ? "Comprueba tu conexión de red para que Gemini pueda analizar las diferencias."
-              : "Los dos estados están preparados para el análisis visual.",
+              ? "analysis.offlineDescription"
+              : "analysis.photosReadyDescription",
   };
 }
 
@@ -121,14 +120,13 @@ type AnalysisActionParams = {
   comparisonId: string;
   initialImagePath: string;
   finalImagePath: string;
+  language?: SupportedLanguage;
 };
 
 type AnalysisActionDependencies = {
   fetchReport: typeof fetchCurrentAnalysisReport;
   requestAnalysis: typeof requestComparisonAnalysis;
   checkOnline?: NetworkChecker;
-  getDemoConfig?: typeof getDemoState;
-  mockResolver?: typeof resolveMockReport;
 };
 
 const defaultDependencies: AnalysisActionDependencies = {
@@ -141,50 +139,6 @@ export async function performAnalysisAction(
   params: AnalysisActionParams,
   dependencies: AnalysisActionDependencies = defaultDependencies,
 ): Promise<AnalysisReportRecord | null> {
-  const demoConfig = (dependencies.getDemoConfig ?? getDemoState)();
-
-  if (demoConfig.enabled) {
-    if (demoConfig.networkCondition === "offline") {
-      throw new NetworkOfflineError(
-        "Sin conexión a internet simulada para demostración académica.",
-      );
-    }
-
-    if (demoConfig.networkCondition === "error_429") {
-      if (demoConfig.mockLatencyMs > 0) {
-        await new Promise((resolve) => setTimeout(resolve, demoConfig.mockLatencyMs));
-      }
-      throw new AnalysisServiceError(
-        "usage_limit_reached",
-        "Límite de cuota simulado para sustentación académica.",
-        "global_minute",
-      );
-    }
-
-    if (demoConfig.networkCondition === "error_500") {
-      if (demoConfig.mockLatencyMs > 0) {
-        await new Promise((resolve) => setTimeout(resolve, demoConfig.mockLatencyMs));
-      }
-      throw new AnalysisServiceError(
-        "reports_unavailable",
-        "Error de servidor 500 simulado para sustentación académica.",
-      );
-    }
-
-    if (action === "analyze" && demoConfig.injectMockAiAnalysis) {
-      const resolver = dependencies.mockResolver ?? resolveMockReport;
-      return resolver(params.comparisonId, {
-        initialImagePath: params.initialImagePath,
-        finalImagePath: params.finalImagePath,
-        scenario: demoConfig.selectedScenario,
-        latencyMs:
-          demoConfig.networkCondition === "slow"
-            ? Math.max(demoConfig.mockLatencyMs, 1500)
-            : demoConfig.mockLatencyMs,
-      });
-    }
-  }
-
   const isOnline = dependencies.checkOnline
     ? await dependencies.checkOnline()
     : defaultNetworkChecker();
@@ -198,5 +152,5 @@ export async function performAnalysisAction(
   if (action === "retry_report") {
     return dependencies.fetchReport(params);
   }
-  return dependencies.requestAnalysis(params.comparisonId);
+  return dependencies.requestAnalysis(params.comparisonId, params.language ?? "es");
 }

@@ -1,4 +1,6 @@
 import React, { useMemo } from "react";
+import { useTranslation } from "react-i18next";
+import "@/i18n";
 import { StyleSheet, Text, View } from "react-native";
 
 import { Colors } from "@/constants/colors";
@@ -123,6 +125,7 @@ export function AiAnalysisSummaryCard({
   report,
   testID = "ai-analysis-summary-card",
 }: AiAnalysisSummaryCardProps) {
+  const { t } = useTranslation();
   const geminiReport: GeminiAnalysisReport | null = useMemo(() => {
     if (!report) return null;
     if ("result" in report && report.result) {
@@ -152,18 +155,48 @@ export function AiAnalysisSummaryCard({
   }
 
   const totalDifferences = geminiReport.differences?.length ?? 0;
+  const findingLabel =
+    totalDifferences === 1 ? t("aiReport.finding") : t("aiReport.findings");
+  const categoryLabel =
+    uniqueCategoriesCount === 1 ? t("aiReport.category") : t("aiReport.categories");
+  const labels = {
+    none: {
+      badgeText: t("aiReport.noChanges"),
+      title: t("aiReport.noDiscrepancies"),
+      description: t("aiReport.sameVisualState"),
+      statusLabel: t("aiReport.noDiscrepancies"),
+    },
+    minor: {
+      badgeText: t("aiReport.minor"),
+      title: t("aiReport.minorImpact"),
+      description: t("aiReport.minorDescription"),
+      statusLabel: t("aiReport.minorStatus"),
+    },
+    moderate: {
+      badgeText: t("aiReport.moderate"),
+      title: t("aiReport.moderateImpact"),
+      description: t("aiReport.moderateDescription"),
+      statusLabel: t("aiReport.moderateStatus"),
+    },
+    significant: {
+      badgeText: t("aiReport.significant"),
+      title: t("aiReport.significantImpact"),
+      description: t("aiReport.significantDescription"),
+      statusLabel: t("aiReport.significantStatus"),
+    },
+  }[severity.level];
 
   return (
     <View
-      accessibilityLabel={`Resumen de impacto visual: ${severity.badgeText}. ${totalDifferences} diferencias detectadas.`}
+      accessibilityLabel={`${t("aiReport.impactTitle")}: ${labels.badgeText}. ${totalDifferences} ${findingLabel}.`}
       accessibilityRole="summary"
       style={styles.card}
       testID={testID}
     >
       <View style={styles.headerRow}>
         <View style={styles.headerLeft}>
-          <Text style={styles.headerEyebrow}>EVALUACIÓN DE IMPACTO</Text>
-          <Text style={styles.headerTitle}>{severity.title}</Text>
+          <Text style={styles.headerEyebrow}>{t("aiReport.impactTitle")}</Text>
+          <Text style={styles.headerTitle}>{labels.title}</Text>
         </View>
 
         <View
@@ -177,18 +210,18 @@ export function AiAnalysisSummaryCard({
           testID="severity-level-badge"
         >
           <Text style={[styles.severityBadgeText, { color: severity.color }]}>
-            {severity.badgeText}
+            {labels.badgeText}
           </Text>
         </View>
       </View>
 
-      <Text style={styles.description}>{severity.description}</Text>
+      <Text style={styles.description}>{labels.description}</Text>
 
       <View style={styles.metricsRow}>
         <View style={styles.metricItem} testID="total-findings-indicator">
           <Text style={styles.metricValue}>{totalDifferences}</Text>
           <Text style={styles.metricLabel}>
-            {totalDifferences === 1 ? "Hallazgo" : "Hallazgos"}
+            {findingLabel}
           </Text>
         </View>
 
@@ -199,9 +232,9 @@ export function AiAnalysisSummaryCard({
             numberOfLines={1}
             style={[styles.metricValueText, { color: severity.color }]}
           >
-            {severity.statusLabel}
+            {labels.statusLabel}
           </Text>
-          <Text style={styles.metricLabel}>Estado general</Text>
+          <Text style={styles.metricLabel}>{t("aiReport.status")}</Text>
         </View>
 
         <View style={styles.metricDivider} />
@@ -209,7 +242,7 @@ export function AiAnalysisSummaryCard({
         <View style={styles.metricItem} testID="affected-categories-indicator">
           <Text style={styles.metricValue}>{uniqueCategoriesCount}</Text>
           <Text style={styles.metricLabel}>
-            {uniqueCategoriesCount === 1 ? "Categoría" : "Categorías"}
+            {categoryLabel}
           </Text>
         </View>
       </View>
@@ -324,4 +357,3 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 });
-

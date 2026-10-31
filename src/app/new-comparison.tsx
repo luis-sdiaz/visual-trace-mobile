@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
+import { useTranslation } from "react-i18next";
 import { useRef, useState } from "react";
 import {
   Pressable,
@@ -17,12 +18,15 @@ import { Radius } from "@/constants/radius";
 import { Spacing } from "@/constants/spacing";
 import { Typography } from "@/constants/typography";
 import { useComparison } from "@/context/ComparisonContext";
+import { useTheme } from "@/context/ThemeContext";
 import {
   createComparisonDraft,
   updateComparisonName,
 } from "@/services/comparisonService";
 
 export default function NewComparisonScreen() {
+  const { t } = useTranslation();
+  const { colors } = useTheme();
   const { comparisonId, name, setComparisonId, setName } = useComparison();
 
   const [isSaving, setIsSaving] = useState(false);
@@ -58,7 +62,7 @@ export default function NewComparisonScreen() {
       router.push("/initial-state");
     } catch {
       setErrorMessage(
-        "No pudimos guardar la comparación. Revisa tu conexión e inténtalo nuevamente.",
+        t("newComparison.saveError"),
       );
     } finally {
       savingRef.current = false;
@@ -67,7 +71,7 @@ export default function NewComparisonScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
@@ -84,14 +88,14 @@ export default function NewComparisonScreen() {
         >
           <Ionicons name="arrow-back" size={20} color={Colors.textPrimary} />
 
-          <Text style={styles.backText}>Volver</Text>
+          <Text style={[styles.backText, { color: colors.textSecondary }]}>{t("flow.back")}</Text>
         </Pressable>
 
         <View style={styles.progressSection}>
           <View style={styles.progressHeader}>
-            <Text style={styles.progressText}>PASO 1 DE 3</Text>
+            <Text style={[styles.progressText, { color: colors.primary }]}>{t("flow.step1")}</Text>
 
-            <Text style={styles.progressLabel}>Información básica</Text>
+            <Text style={[styles.progressLabel, { color: colors.textSecondary }]}>{t("newComparison.info")}</Text>
           </View>
 
           <View style={styles.progressTrack}>
@@ -100,15 +104,15 @@ export default function NewComparisonScreen() {
         </View>
 
         <View style={styles.header}>
-          <Text style={styles.title}>Nueva comparación</Text>
+          <Text style={[styles.title, { color: colors.textPrimary }]}>{t("newComparison.title")}</Text>
 
-          <Text style={styles.description}>
-            Asigna un nombre para identificar fácilmente este registro.
+          <Text style={[styles.description, { color: colors.textSecondary }]}>
+            {t("newComparison.description")}
           </Text>
         </View>
 
         <View style={styles.formCard}>
-          <Text style={styles.label}>Nombre de la comparación</Text>
+          <Text style={[styles.label, { color: colors.textPrimary }]}>{t("newComparison.nameLabel")}</Text>
 
           <View style={styles.inputContainer}>
             <Ionicons
@@ -122,13 +126,12 @@ export default function NewComparisonScreen() {
               value={name}
               onChangeText={handleNameChange}
               editable={!isSaving}
-              placeholder="Ej. Portátil"
-              placeholderTextColor={Colors.textMuted}
+              placeholder={t("newComparison.placeholder")}
               autoCapitalize="sentences"
               autoCorrect
               maxLength={50}
               returnKeyType="done"
-              style={styles.input}
+              style={[styles.input, { color: colors.textPrimary, backgroundColor: colors.surface, borderColor: colors.border }]}
             />
           </View>
 
@@ -139,8 +142,8 @@ export default function NewComparisonScreen() {
               color={Colors.textMuted}
             />
 
-            <Text style={styles.helperText}>
-              Usa un nombre breve y claro para reconocerla fácilmente.
+            <Text style={[styles.helperText, { color: colors.textSecondary }]}>
+              {t("newComparison.helper")}
             </Text>
           </View>
         </View>
@@ -159,7 +162,7 @@ export default function NewComparisonScreen() {
 
         <View style={styles.footer}>
           <Button
-            label={isSaving ? "Guardando..." : "Continuar"}
+            label={isSaving ? t("flow.saving") : t("flow.continue")}
             disabled={!isNameValid || isSaving}
             onPress={handleContinue}
           />
@@ -167,7 +170,7 @@ export default function NewComparisonScreen() {
 
         <View style={styles.guideCard}>
           <View style={styles.guideTop}>
-            <Text style={styles.guideEyebrow}>ANTES DE EMPEZAR</Text>
+            <Text style={styles.guideEyebrow}>{t("newComparison.guideEyebrow")}</Text>
 
             <Ionicons
               name="sparkles-outline"
@@ -177,12 +180,11 @@ export default function NewComparisonScreen() {
           </View>
 
           <Text style={styles.guideTitle}>
-            Mejora la calidad de la comparación
+            {t("newComparison.guideTitle")}
           </Text>
 
           <Text style={styles.guideDescription}>
-            Dos detalles simples ayudan a obtener resultados visuales más
-            consistentes.
+            {t("newComparison.guideDescription")}
           </Text>
 
           <View style={styles.guideContent}>
@@ -193,12 +195,11 @@ export default function NewComparisonScreen() {
 
               <View style={styles.guideItemContent}>
                 <Text style={styles.guideItemTitle}>
-                  Mantén el mismo encuadre
+                  {t("newComparison.framingTitle")}
                 </Text>
 
                 <Text style={styles.guideItemDescription}>
-                  Conserva una distancia y un ángulo similares en ambas
-                  fotografías.
+                  {t("newComparison.framingDescription")}
                 </Text>
               </View>
             </View>
@@ -212,11 +213,11 @@ export default function NewComparisonScreen() {
 
               <View style={styles.guideItemContent}>
                 <Text style={styles.guideItemTitle}>
-                  Busca una iluminación estable
+                  {t("newComparison.lightingTitle")}
                 </Text>
 
                 <Text style={styles.guideItemDescription}>
-                  Evita cambios bruscos de luz entre el estado inicial y final.
+                  {t("newComparison.lightingDescription")}
                 </Text>
               </View>
             </View>

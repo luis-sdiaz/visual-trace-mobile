@@ -1,5 +1,6 @@
 import { router } from "expo-router";
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Pressable,
@@ -18,6 +19,7 @@ import { Radius } from "@/constants/radius";
 import { Spacing } from "@/constants/spacing";
 import { Typography } from "@/constants/typography";
 import { useAuth } from "@/context/AuthContext";
+import { useTheme } from "@/context/ThemeContext";
 import { supabase } from "@/lib/supabase";
 import { getAuthenticationErrorFeedback } from "@/services/authService";
 import {
@@ -28,6 +30,8 @@ import {
 } from "@/utils/authValidation";
 
 export default function RegisterScreen() {
+  const { t } = useTranslation();
+  const { colors } = useTheme();
   const { user, isLoading: isAuthLoading } = useAuth();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -116,7 +120,7 @@ export default function RegisterScreen() {
       }
 
       setSuccessMessage(
-        "Cuenta creada. Confirma tu correo electrónico antes de iniciar sesión.",
+        t("auth.accountCreated"),
       );
       setConfirmationEmail(normalizeEmail(email));
 
@@ -143,7 +147,7 @@ export default function RegisterScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
@@ -156,22 +160,22 @@ export default function RegisterScreen() {
             style={styles.backButton}
           >
             <Text style={styles.backIcon}>←</Text>
-            <Text style={styles.backText}>Volver</Text>
+            <Text style={[styles.backText, { color: colors.textSecondary }]}>{t("auth.back")}</Text>
           </Pressable>
 
           <View style={styles.header}>
             <Text style={styles.brand}>VisualTrace</Text>
 
-            <Text style={styles.title}>Crea tu cuenta</Text>
+            <Text style={[styles.title, { color: colors.textPrimary }]}>{t("auth.registerTitle")}</Text>
 
-            <Text style={styles.description}>
-              Guarda tus comparaciones y accede a ellas desde tu cuenta.
+            <Text style={[styles.description, { color: colors.textSecondary }]}>
+              {t("auth.registerDescription")}
             </Text>
           </View>
 
           <View style={styles.form}>
             <View style={styles.field}>
-              <Text style={styles.label}>Nombre completo</Text>
+              <Text style={[styles.label, { color: colors.textPrimary }]}>{t("auth.fullName")}</Text>
 
               <TextInput
                 value={fullName}
@@ -180,15 +184,16 @@ export default function RegisterScreen() {
                   clearRequestFeedback();
                 }}
                 onBlur={() => markFieldTouched("fullName")}
-                placeholder="Ej. Luis Sebastián Díaz"
-                placeholderTextColor={Colors.textMuted}
+                placeholder={t("auth.fullNamePlaceholder")}
+                placeholderTextColor={colors.textMuted}
                 autoCapitalize="words"
                 autoComplete="name"
                 editable={!isLoading}
                 maxLength={80}
-                accessibilityLabel="Nombre completo"
+                accessibilityLabel={t("auth.fullName")}
                 style={[
                   styles.input,
+                  { color: colors.textPrimary, backgroundColor: colors.surface, borderColor: colors.border },
                   shouldShowFieldError("fullName") && styles.inputError,
                 ]}
               />
@@ -201,7 +206,7 @@ export default function RegisterScreen() {
             </View>
 
             <View style={styles.field}>
-              <Text style={styles.label}>Correo electrónico</Text>
+              <Text style={[styles.label, { color: colors.textPrimary }]}>{t("auth.email")}</Text>
 
               <TextInput
                 value={email}
@@ -210,17 +215,18 @@ export default function RegisterScreen() {
                   clearRequestFeedback();
                 }}
                 onBlur={() => markFieldTouched("email")}
-                placeholder="correo@ejemplo.com"
-                placeholderTextColor={Colors.textMuted}
+                placeholder={t("auth.emailPlaceholder")}
+                placeholderTextColor={colors.textMuted}
                 autoCapitalize="none"
                 autoCorrect={false}
                 autoComplete="email"
                 keyboardType="email-address"
                 editable={!isLoading}
                 maxLength={254}
-                accessibilityLabel="Correo electrónico"
+                accessibilityLabel={t("auth.email")}
                 style={[
                   styles.input,
+                  { color: colors.textPrimary, backgroundColor: colors.surface, borderColor: colors.border },
                   shouldShowFieldError("email") && styles.inputError,
                 ]}
               />
@@ -233,7 +239,7 @@ export default function RegisterScreen() {
             </View>
 
             <View style={styles.field}>
-              <Text style={styles.label}>Contraseña</Text>
+              <Text style={[styles.label, { color: colors.textPrimary }]}>{t("auth.password")}</Text>
 
               <TextInput
                 value={password}
@@ -242,17 +248,18 @@ export default function RegisterScreen() {
                   clearRequestFeedback();
                 }}
                 onBlur={() => markFieldTouched("password")}
-                placeholder="Mínimo 8 caracteres"
-                placeholderTextColor={Colors.textMuted}
+                placeholder="••••••••"
+                placeholderTextColor={colors.textMuted}
                 autoCapitalize="none"
                 autoCorrect={false}
                 autoComplete="new-password"
                 secureTextEntry
                 editable={!isLoading}
                 maxLength={72}
-                accessibilityLabel="Contraseña"
+                accessibilityLabel={t("auth.password")}
                 style={[
                   styles.input,
+                  { color: colors.textPrimary, backgroundColor: colors.surface, borderColor: colors.border },
                   shouldShowFieldError("password") && styles.inputError,
                 ]}
               />
@@ -270,7 +277,7 @@ export default function RegisterScreen() {
             </View>
 
             <View style={styles.field}>
-              <Text style={styles.label}>Confirmar contraseña</Text>
+              <Text style={[styles.label, { color: colors.textPrimary }]}>{t("auth.confirmPassword")}</Text>
 
               <TextInput
                 value={confirmPassword}
@@ -279,17 +286,18 @@ export default function RegisterScreen() {
                   clearRequestFeedback();
                 }}
                 onBlur={() => markFieldTouched("confirmPassword")}
-                placeholder="Repite tu contraseña"
-                placeholderTextColor={Colors.textMuted}
+                placeholder={t("auth.confirmPasswordPlaceholder")}
+                placeholderTextColor={colors.textMuted}
                 autoCapitalize="none"
                 autoCorrect={false}
                 autoComplete="new-password"
                 secureTextEntry
                 editable={!isLoading}
                 maxLength={72}
-                accessibilityLabel="Confirmar contraseña"
+                accessibilityLabel={t("auth.confirmPassword")}
                 style={[
                   styles.input,
+                  { color: colors.textPrimary, backgroundColor: colors.surface, borderColor: colors.border },
                   shouldShowFieldError("confirmPassword") && styles.inputError,
                 ]}
               />

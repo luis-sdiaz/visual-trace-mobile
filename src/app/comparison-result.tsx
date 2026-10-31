@@ -5,6 +5,7 @@ import {
   useLocalSearchParams,
 } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   AppState,
@@ -20,11 +21,6 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { ArchitectureInfoCard } from "@/components/ui/ArchitectureInfoCard";
-import {
-  getDemoState,
-  subscribeDemoConfig,
-} from "@/config/demoConfig";
 import { Button } from "@/components/ui/Button";
 import { AiAnalysisLoadingSkeleton } from "@/components/ui/AiAnalysisLoadingSkeleton";
 import { AiAnalysisSummaryCard } from "@/components/ui/AiAnalysisSummaryCard";
@@ -44,6 +40,7 @@ import { Spacing } from "@/constants/spacing";
 import { Typography } from "@/constants/typography";
 import { useAuth } from "@/context/AuthContext";
 import { useComparison } from "@/context/ComparisonContext";
+import { useTheme } from "@/context/ThemeContext";
 import {
   AnalysisServiceError,
   type AnalysisReportRecord,
@@ -67,6 +64,7 @@ import {
   shareReportNative,
 } from "@/utils/reportExport";
 import { createSingleFlight } from "@/utils/singleFlight";
+import { localizeAiReportList, localizeAiReportText } from "@/utils/localizeAiReport";
 
 type PrivateImageStatus = "loading" | "available" | "error" | "retrying";
 
@@ -83,6 +81,7 @@ function PrivateComparisonImage({
   onRetry,
   onOpen,
 }: PrivateComparisonImageProps) {
+  const { t, i18n } = useTranslation();
   const [status, setStatus] = useState<PrivateImageStatus>("loading");
 
   async function handleRetry() {
@@ -124,16 +123,16 @@ function PrivateComparisonImage({
         <View style={styles.imageFeedback}>
           {status === "error" ? (
             <>
-              <Text style={styles.imageErrorTitle}>No pudimos cargarla</Text>
+              <Text style={styles.imageErrorTitle}>{t("result.imageError")}</Text>
               <Text style={styles.imageErrorDescription}>
-                El acceso privado puede haber caducado.
+                {t("result.imageExpired")}
               </Text>
               <Pressable
                 accessibilityRole="button"
                 onPress={() => void handleRetry()}
                 style={styles.retryButton}
               >
-                <Text style={styles.retryButtonText}>Reintentar</Text>
+                <Text style={styles.retryButtonText}>{t("result.retry")}</Text>
               </Pressable>
             </>
           ) : (
@@ -141,8 +140,8 @@ function PrivateComparisonImage({
               <ActivityIndicator color={Colors.primary} />
               <Text style={styles.loadingText}>
                 {status === "retrying"
-                  ? "Recuperando fotografía..."
-                  : "Cargando fotografía..."}
+                  ? t("result.recoveringPhoto")
+                    : t("result.loadingPhoto")}
               </Text>
             </>
           )}
@@ -153,6 +152,8 @@ function PrivateComparisonImage({
 }
 
 export default function ComparisonResultScreen() {
+  const { t, i18n } = useTranslation();
+  const { colors } = useTheme();
   const { source } = useLocalSearchParams<{ source?: string }>();
   const { user } = useAuth();
   const {
@@ -222,13 +223,6 @@ export default function ComparisonResultScreen() {
   const [analysisQuotaScope, setAnalysisQuotaScope] = useState<string | undefined>(undefined);
   const [copiedReport, setCopiedReport] = useState(false);
   const [isSharingReport, setIsSharingReport] = useState(false);
-  const [isDemoActive, setIsDemoActive] = useState(() => getDemoState().enabled);
-
-  useEffect(() => {
-    return subscribeDemoConfig((state) => {
-      setIsDemoActive(state.enabled);
-    });
-  }, []);
   const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [previewStage, setPreviewStage] = useState<ImageStage | null>(null);
   const [isEditingName, setIsEditingName] = useState(false);
@@ -377,8 +371,8 @@ export default function ComparisonResultScreen() {
       setAnalysisStatus(unavailable ? "reports_unavailable" : "report_error");
       setAnalysisMessage(
         unavailable
-          ? "El análisis con IA todavía no está disponible. Tus fotografías están guardadas y podrás analizarlas cuando el servicio esté habilitado."
-          : "No pudimos consultar el informe guardado. Tus fotografías siguen disponibles.",
+          ? t("analysis.reportUnavailable")
+          : t("analysis.reportError"),
       );
     } finally {
       if (analysisInFlightRef.current === operationKey) {
@@ -488,6 +482,7 @@ export default function ComparisonResultScreen() {
         comparisonId,
         initialImagePath,
         finalImagePath,
+        language: i18n.language.startsWith("en") ? "en" : "es",
       });
       if (
         !analysisMountedRef.current ||
@@ -511,7 +506,7 @@ export default function ComparisonResultScreen() {
         setAnalysisStatus("network_offline");
         setAnalysisQuotaScope(undefined);
         setAnalysisMessage(
-          "Sin conexión a internet. Comprueba tu conectividad y vuelve a intentar.",
+          t("analysis.networkError"),
         );
       } else if (isQuota) {
         setAnalysisStatus("limited");
@@ -524,7 +519,7 @@ export default function ComparisonResultScreen() {
         setAnalysisMessage(
           error instanceof Error
             ? error.message
-            : "No fue posible completar el análisis.",
+            : t("analysis.reportError"),
         );
       }
     } finally {
@@ -575,7 +570,7 @@ export default function ComparisonResultScreen() {
       setName(normalizedName);
       setIsEditingName(false);
     } catch {
-      setRenameError("No pudimos cambiar el nombre. Inténtalo nuevamente.");
+      setRenameError(t("analysis.renameError"));
     } finally {
       renamingRef.current = false;
       setIsRenaming(false);
@@ -588,21 +583,36 @@ export default function ComparisonResultScreen() {
     analysisStatus,
     Boolean(comparisonId && initialImagePath && finalImagePath),
   );
+  const localizedAnalysisPresentation = {
+    ...analysisPresentation,
+    actionLabel: analysisPresentation.actionLabel
+      ? t(analysisPresentation.actionLabel as "analysis.analyzeChanges")
+      : null,
+    statusTitle: t(analysisPresentation.statusTitle as "analysis.photosReady"),
+    statusDescription: t(
+      analysisPresentation.statusDescription as "analysis.photosReadyDescription",
+    ),
+  };
+  const knownAiTranslations = (i18n.getResource(
+    i18n.language,
+    "common",
+    "aiReport.known",
+  ) ?? {}) as Record<string, string>;
 
   if (!hasComparisonData) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
         <Stack.Screen
           options={{
             headerLeft: () => (
               <Pressable
-                accessibilityLabel="Volver"
+                accessibilityLabel={t("result.back")}
                 accessibilityRole="button"
                 onPress={handleBack}
                 style={styles.backButton}
               >
                 <Text style={styles.backIcon}>←</Text>
-                <Text style={styles.backText}>Volver</Text>
+                <Text style={styles.backText}>{t("result.back")}</Text>
               </Pressable>
             ),
           }}
@@ -612,15 +622,14 @@ export default function ComparisonResultScreen() {
             <Text style={styles.missingIconText}>!</Text>
           </View>
 
-          <Text style={styles.missingTitle}>Comparación incompleta</Text>
+          <Text style={styles.missingTitle}>{t("result.incomplete")}</Text>
 
           <Text style={styles.missingDescription}>
-            Necesitas completar el nombre, el estado inicial y el estado final
-            antes de visualizar la comparación.
+            {t("result.incompleteDescription")}
           </Text>
 
           <Button
-            label="Volver al inicio"
+            label={t("result.home")}
             onPress={() => router.replace("/home")}
           />
         </View>
@@ -629,19 +638,19 @@ export default function ComparisonResultScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <Stack.Screen
         options={{
           headerLeft: () => (
             <Pressable
-              accessibilityLabel="Volver"
+              accessibilityLabel={t("result.back")}
               accessibilityRole="button"
               disabled={isAnalyzing}
               onPress={handleBack}
               style={[styles.backButton, isAnalyzing && styles.disabledButton]}
             >
               <Text style={styles.backIcon}>←</Text>
-              <Text style={styles.backText}>Volver</Text>
+              <Text style={styles.backText}>{t("result.back")}</Text>
             </Pressable>
           ),
         }}
@@ -657,16 +666,16 @@ export default function ComparisonResultScreen() {
           style={[styles.backButton, isAnalyzing && styles.disabledButton]}
         >
           <Text style={styles.backIcon}>←</Text>
-          <Text style={styles.backText}>Volver</Text>
+          <Text style={styles.backText}>{t("result.back")}</Text>
         </Pressable>
 
         <View style={styles.header}>
-          <Text style={styles.eyebrow}>COMPARACIÓN</Text>
+          <Text style={styles.eyebrow}>{t("result.eyebrow")}</Text>
 
           {isEditingName ? (
             <View style={styles.renameCard}>
               <TextInput
-                accessibilityLabel="Nuevo nombre de la comparación"
+                accessibilityLabel={t("result.newName")}
                 autoCapitalize="sentences"
                 autoCorrect
                 editable={!isRenaming}
@@ -692,7 +701,7 @@ export default function ComparisonResultScreen() {
                   }}
                   style={styles.renameCancel}
                 >
-                  <Text style={styles.renameCancelText}>Cancelar</Text>
+                  <Text style={styles.renameCancelText}>{t("result.cancel")}</Text>
                 </Pressable>
                 <Pressable
                   accessibilityRole="button"
@@ -701,7 +710,7 @@ export default function ComparisonResultScreen() {
                   style={styles.renameSave}
                 >
                   <Text style={styles.renameSaveText}>
-                    {isRenaming ? "Guardando..." : "Guardar nombre"}
+                    {isRenaming ? t("flow.saving") : t("result.save")}
                   </Text>
                 </Pressable>
               </View>
@@ -710,19 +719,19 @@ export default function ComparisonResultScreen() {
             <View style={styles.titleRow}>
               <Text style={[styles.title, styles.titleInRow]}>{name}</Text>
               <Pressable
-                accessibilityLabel="Editar nombre de la comparación"
+                accessibilityLabel={t("result.editName")}
                 accessibilityRole="button"
                 disabled={isAnalyzing}
                 onPress={beginRenaming}
                 style={[styles.editNameButton, isAnalyzing && styles.disabledButton]}
               >
-                <Text style={styles.editNameText}>Editar</Text>
+                <Text style={styles.editNameText}>{t("result.edit")}</Text>
               </Pressable>
             </View>
           )}
 
           <Text style={styles.description}>
-            Revisa ambas fotografías antes de iniciar el análisis visual.
+            {t("result.description")}
           </Text>
         </View>
 
@@ -730,14 +739,14 @@ export default function ComparisonResultScreen() {
           <View style={styles.imageCard}>
             <View style={styles.imageHeader}>
               <View style={styles.initialBadge}>
-                <Text style={styles.initialBadgeText}>Inicial</Text>
+                <Text style={styles.initialBadgeText}>{t("result.initial")}</Text>
               </View>
 
-              <Text style={styles.imageLabel}>Antes</Text>
+              <Text style={styles.imageLabel}>{t("result.before")}</Text>
             </View>
 
             <PrivateComparisonImage
-              accessibilityLabel="Fotografía del estado inicial"
+              accessibilityLabel={t("result.initialPhoto")}
               key={initialImageUri}
               onRetry={refreshPrivateImages}
               onOpen={() => setPreviewStage("initial")}
@@ -756,14 +765,14 @@ export default function ComparisonResultScreen() {
           <View style={styles.imageCard}>
             <View style={styles.imageHeader}>
               <View style={styles.finalBadge}>
-                <Text style={styles.finalBadgeText}>Final</Text>
+                <Text style={styles.finalBadgeText}>{t("result.final")}</Text>
               </View>
 
-              <Text style={styles.imageLabel}>Después</Text>
+              <Text style={styles.imageLabel}>{t("result.after")}</Text>
             </View>
 
             <PrivateComparisonImage
-              accessibilityLabel="Fotografía del estado final"
+              accessibilityLabel={t("result.finalPhoto")}
               key={finalImageUri}
               onRetry={refreshPrivateImages}
               onOpen={() => setPreviewStage("final")}
@@ -772,20 +781,6 @@ export default function ComparisonResultScreen() {
           </View>
         </View>
 
-        {isDemoActive ? (
-          <View style={styles.demoResultBadge} testID="demo-mode-badge">
-            <Text style={styles.demoResultBadgeIcon}>🎓</Text>
-            <View style={styles.demoResultBadgeTextContainer}>
-              <Text style={styles.demoResultBadgeTitle}>
-                MODO DEMOSTRACIÓN ACADÉMICA ACTIVO
-              </Text>
-              <Text style={styles.demoResultBadgeSubtitle}>
-                Inferencia de Gemini simulada y resiliencia para sustentación activa
-              </Text>
-            </View>
-          </View>
-        ) : null}
-
         <View style={styles.statusCard}>
           <View style={styles.statusIcon}>
             <Text style={styles.statusIconText}>✓</Text>
@@ -793,11 +788,11 @@ export default function ComparisonResultScreen() {
 
           <View style={styles.statusTextContainer}>
             <Text style={styles.statusTitle}>
-              {analysisPresentation.statusTitle}
+              {localizedAnalysisPresentation.statusTitle}
             </Text>
 
             <Text style={styles.statusDescription}>
-              {analysisPresentation.statusDescription}
+              {localizedAnalysisPresentation.statusDescription}
             </Text>
           </View>
         </View>
@@ -805,18 +800,18 @@ export default function ComparisonResultScreen() {
         {analysisStatus === "loading_report" ? (
           <View style={styles.analysisLoading}>
             <ActivityIndicator color={Colors.primary} />
-            <Text style={styles.loadingText}>Buscando informe guardado...</Text>
+            <Text style={styles.loadingText}>{t("result.loadingReport")}</Text>
           </View>
         ) : null}
 
         {analysisReport ? (
           <View style={styles.reportCard}>
             <View style={styles.reportHeaderRow}>
-              <Text style={styles.reportEyebrow}>RESUMEN DE IA</Text>
+              <Text style={styles.reportEyebrow}>{t("result.aiSummary")}</Text>
               <View style={styles.reportHeaderActions}>
                 <Pressable
-                  accessibilityHint="Copia el resumen, diferencias y observaciones al portapapeles"
-                  accessibilityLabel="Copiar informe"
+                  accessibilityHint={t("result.copyHint")}
+                  accessibilityLabel={t("result.copy")}
                   accessibilityRole="button"
                   onPress={() => void handleCopyReport()}
                   style={[
@@ -831,13 +826,13 @@ export default function ComparisonResultScreen() {
                       copiedReport && styles.copyReportButtonTextActive,
                     ]}
                   >
-                    {copiedReport ? "✓ Copiado" : "📋 Copiar informe"}
+                    {copiedReport ? `✓ ${t("result.copied")}` : `📋 ${t("result.copy")}`}
                   </Text>
                 </Pressable>
 
                 <Pressable
-                  accessibilityHint="Comparte el informe completo de IA con otras aplicaciones"
-                  accessibilityLabel="Compartir informe"
+                  accessibilityHint={t("result.shareHint")}
+                  accessibilityLabel={t("result.share")}
                   accessibilityRole="button"
                   disabled={isSharingReport}
                   onPress={() => void handleShareReport()}
@@ -848,7 +843,7 @@ export default function ComparisonResultScreen() {
                   testID="share-report-button"
                 >
                   <Text style={styles.shareReportButtonText}>
-                    ↗ Compartir
+                    ↗ {t("result.share")}
                   </Text>
                 </Pressable>
                 <ExportReportButton
@@ -868,13 +863,15 @@ export default function ComparisonResultScreen() {
               >
                 <Text style={styles.copiedFeedbackIcon}>✓</Text>
                 <Text style={styles.copiedFeedbackText}>
-                  ¡Copiado al portapapeles!
+                  {t("result.copiedToClipboard")}
                 </Text>
               </View>
             ) : null}
 
             <AiAnalysisSummaryCard report={analysisReport} />
-            <Text style={styles.reportSummary}>{analysisReport.result.summary}</Text>
+            <Text style={styles.reportSummary}>
+              {localizeAiReportText(analysisReport.result.summary, knownAiTranslations)}
+            </Text>
 
             {/* Sección: Diferencias detectadas con tarjetas desplegables por categoría */}
             <AiDifferencesCollapsible
@@ -883,8 +880,11 @@ export default function ComparisonResultScreen() {
 
             {analysisReport.result.observations.length > 0 ? (
               <>
-                <Text style={styles.reportSectionTitle}>Observaciones</Text>
-                {analysisReport.result.observations.map((item, index) => (
+                <Text style={styles.reportSectionTitle}>{t("result.observations")}</Text>
+                {localizeAiReportList(
+                  analysisReport.result.observations,
+                  knownAiTranslations,
+                ).map((item, index) => (
                   <Text key={`observation-${index}`} style={styles.reportBullet}>• {item}</Text>
                 ))}
               </>
@@ -892,8 +892,11 @@ export default function ComparisonResultScreen() {
 
             {analysisReport.result.uncertainties.length > 0 ? (
               <>
-                <Text style={styles.reportSectionTitle}>Limitaciones</Text>
-                {analysisReport.result.uncertainties.map((item, index) => (
+                <Text style={styles.reportSectionTitle}>{t("result.limitations")}</Text>
+                {localizeAiReportList(
+                  analysisReport.result.uncertainties,
+                  knownAiTranslations,
+                ).map((item, index) => (
                   <Text key={`uncertainty-${index}`} style={styles.reportBullet}>• {item}</Text>
                 ))}
               </>
@@ -901,7 +904,7 @@ export default function ComparisonResultScreen() {
 
             <View style={styles.reviewNotice}>
               <Text style={styles.reviewNoticeText}>
-                Este informe es una ayuda automática. Verifica los hallazgos mediante revisión humana.
+                {t("result.humanReview")}
               </Text>
             </View>
 
@@ -925,19 +928,17 @@ export default function ComparisonResultScreen() {
           />
         ) : null}
 
-        <ArchitectureInfoCard testID="result-architecture-info-card" />
-
         <View style={styles.footer}>
-          {analysisPresentation.action && analysisPresentation.actionLabel ? (
+          {localizedAnalysisPresentation.action && localizedAnalysisPresentation.actionLabel ? (
             <Button
               disabled={isAnalyzing || analysisStatus === "loading_report"}
-              label={analysisPresentation.actionLabel}
+              label={localizedAnalysisPresentation.actionLabel}
               onPress={() => void handleAnalysisAction()}
             />
           ) : analysisReport ? (
             <Pressable
-              accessibilityHint="Abre el diálogo de advertencia para volver a evaluar la comparación con IA"
-              accessibilityLabel="Re-analizar comparación"
+              accessibilityHint={t("result.reanalyzeHint")}
+              accessibilityLabel={t("result.reanalyze")}
               accessibilityRole="button"
               disabled={isAnalyzing}
               onPress={handleRequestReanalysis}
@@ -948,19 +949,18 @@ export default function ComparisonResultScreen() {
               testID="reanalyze-button"
             >
               <Text style={styles.reanalyzeButtonText}>
-                🔄 Re-analizar comparación
+                🔄 {t("result.reanalyze")}
               </Text>
             </Pressable>
           ) : null}
 
           <Text style={styles.disclaimer}>
-            VisualTrace identificará posibles diferencias visibles. La revisión
-            final siempre corresponde al usuario.
+            {t("result.disclaimer")}
           </Text>
         </View>
       </ScrollView>
             <Modal
-        accessibilityLabel="Análisis de IA en curso"
+        accessibilityLabel={t("result.analysisInProgress")}
         accessibilityViewIsModal
         animationType="fade"
         onRequestClose={() => {
@@ -1585,38 +1585,4 @@ const styles = StyleSheet.create({
     elevation: 10,
   },
 
-  demoResultBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: Colors.accentSoft,
-    borderColor: Colors.accent,
-    borderWidth: 1,
-    borderRadius: Radius.lg,
-    padding: Spacing.md,
-    marginBottom: Spacing.lg,
-    gap: Spacing.sm,
-  },
-
-  demoResultBadgeIcon: {
-    fontSize: 20,
-  },
-
-  demoResultBadgeTextContainer: {
-    flex: 1,
-  },
-
-  demoResultBadgeTitle: {
-    ...Typography.label,
-    fontSize: 11,
-    lineHeight: 14,
-    color: Colors.accent,
-    marginBottom: 2,
-  },
-
-  demoResultBadgeSubtitle: {
-    ...Typography.body,
-    fontSize: 12,
-    lineHeight: 16,
-    color: Colors.textPrimary,
-  },
 });

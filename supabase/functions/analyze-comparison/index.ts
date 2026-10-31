@@ -161,7 +161,7 @@ function getHandler(): (req: Request) => Promise<Response> {
       });
     },
 
-    async analyzeImages(images) {
+    async analyzeImages(images, language) {
       return gemini.analyze(
         images.initial as Awaited<
           ReturnType<typeof loadAuthorizedComparisonImages>
@@ -169,6 +169,7 @@ function getHandler(): (req: Request) => Promise<Response> {
         images.final as Awaited<
           ReturnType<typeof loadAuthorizedComparisonImages>
         >["final"],
+        language,
       );
     },
 

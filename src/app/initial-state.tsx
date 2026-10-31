@@ -1,6 +1,7 @@
 import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
 import { useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Alert,
   Image,
@@ -19,6 +20,7 @@ import { Radius } from "@/constants/radius";
 import { Spacing } from "@/constants/spacing";
 import { Typography } from "@/constants/typography";
 import { useComparison } from "@/context/ComparisonContext";
+import { useTheme } from "@/context/ThemeContext";
 import {
   getComparisonImageSaveErrorMessage,
   restoreSavedComparisonImage,
@@ -31,6 +33,8 @@ import {
 } from "@/utils/imageSelection";
 
 export default function InitialStateScreen() {
+  const { t } = useTranslation();
+  const { colors } = useTheme();
   const {
     comparisonId,
     initialImageUri,
@@ -57,12 +61,12 @@ export default function InitialStateScreen() {
     }
 
     Alert.alert(
-      "Reemplazar fotografía inicial",
-      "La fotografía guardada se conservará hasta que el reemplazo termine correctamente.",
+      t("flow.replaceInitialTitle"),
+      t("flow.replaceDescription"),
       [
-        { text: "Cancelar", style: "cancel" },
+        { text: t("flow.cancel"), style: "cancel" },
         {
-          text: "Reemplazar",
+          text: t("flow.replace"),
           onPress: () => {
             setInitialImageUri(uri);
             setErrorMessage(null);
@@ -81,17 +85,17 @@ export default function InitialStateScreen() {
       const outcome = await selectComparisonPhoto(source, ImagePicker);
       if (outcome.status === "permission_denied") {
         Alert.alert(
-          "Permiso necesario",
+          t("flow.permissionRequired"),
           source === "camera"
-            ? "VisualTrace necesita acceso a la cámara para registrar el estado inicial."
-            : "VisualTrace necesita acceso a tus fotos para seleccionar una imagen.",
+            ? t("flow.cameraPermissionInitial")
+            : t("flow.galleryPermission"),
         );
       } else if (outcome.status === "selected") {
         acceptSelectedImage(outcome.uri);
       }
     } catch {
       setErrorMessage(
-        "No pudimos abrir el selector de fotografías. Inténtalo nuevamente.",
+        t("flow.pickerError"),
       );
     }
   }
@@ -103,7 +107,7 @@ export default function InitialStateScreen() {
 
     if (!comparisonId) {
       setErrorMessage(
-        "No encontramos la comparación. Regresa al primer paso y guarda su nombre.",
+        t("flow.comparisonNotFound"),
       );
 
       return;
@@ -164,7 +168,7 @@ export default function InitialStateScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
@@ -177,34 +181,33 @@ export default function InitialStateScreen() {
             style={styles.backButton}
           >
             <Text style={styles.backIcon}>←</Text>
-            <Text style={styles.backText}>Volver</Text>
+            <Text style={[styles.backText, { color: colors.textSecondary }]}>{t("flow.back")}</Text>
           </Pressable>
 
           <View style={styles.progressContainer}>
-            <Text style={styles.progressText}>PASO 2 DE 3</Text>
+            <Text style={[styles.progressText, { color: colors.primary }]}>{t("flow.step2")}</Text>
 
             <View style={styles.progressTrack}>
               <View style={styles.progressValue} />
             </View>
           </View>
 
-          <Text style={styles.title}>Estado inicial</Text>
+          <Text style={[styles.title, { color: colors.textPrimary }]}>{t("flow.initialTitle")}</Text>
 
-          <Text style={styles.description}>
-            Registra una fotografía clara de cómo se encuentra actualmente el
-            espacio u objeto.
+          <Text style={[styles.description, { color: colors.textSecondary }]}>
+            {t("flow.initialDescription")}
           </Text>
 
-          <View style={styles.photoCard}>
+          <View style={[styles.photoCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             {initialImageUri ? (
               <Pressable
-                accessibilityLabel="Ampliar fotografía del estado inicial"
+                accessibilityLabel={t("flow.expandInitialPhoto")}
                 accessibilityRole="button"
                 onPress={() => setIsPreviewVisible(true)}
                 style={styles.image}
               >
                 <Image
-                  accessibilityLabel="Fotografía del estado inicial"
+                  accessibilityLabel={t("flow.initialPhotoLabel")}
                   source={{ uri: initialImageUri }}
                   style={styles.image}
                 />
@@ -215,13 +218,12 @@ export default function InitialStateScreen() {
                   <Text style={styles.placeholderIconText}>＋</Text>
                 </View>
 
-                <Text style={styles.placeholderTitle}>
-                  Agrega una fotografía
+                <Text style={[styles.placeholderTitle, { color: colors.textPrimary }]}>
+                  {t("flow.addPhoto")}
                 </Text>
 
-                <Text style={styles.placeholderDescription}>
-                  Procura utilizar buena iluminación y mantener visible toda el
-                  área que deseas comparar.
+                <Text style={[styles.placeholderDescription, { color: colors.textSecondary }]}>
+                  {t("flow.choosePhotoDescription")}
                 </Text>
               </View>
             )}
@@ -235,7 +237,7 @@ export default function InitialStateScreen() {
               style={styles.primaryAction}
             >
               <Text style={styles.primaryActionText}>
-                {initialImagePath ? "Tomar nueva foto" : "Tomar foto"}
+                {initialImagePath ? t("flow.takeNewPhoto") : t("flow.takePhoto")}
               </Text>
             </Pressable>
 
@@ -247,8 +249,8 @@ export default function InitialStateScreen() {
             >
               <Text style={styles.secondaryActionText}>
                 {initialImagePath
-                  ? "Elegir reemplazo de galería"
-                  : "Elegir de galería"}
+                  ? t("flow.chooseReplacement")
+                  : t("flow.chooseFromGallery")}
               </Text>
             </Pressable>
           </View>
@@ -261,7 +263,7 @@ export default function InitialStateScreen() {
               style={styles.discardAction}
             >
               <Text style={styles.discardActionText}>
-                {isDiscarding ? "Recuperando fotografía..." : "Descartar reemplazo"}
+                {isDiscarding ? t("flow.restoringPhoto") : t("flow.discardReplacement")}
               </Text>
             </Pressable>
           ) : null}
@@ -273,14 +275,14 @@ export default function InitialStateScreen() {
 
         <View style={styles.footer}>
           <Button
-            label={isUploading ? "Guardando fotografía..." : "Continuar"}
+            label={isUploading ? t("flow.savingPhoto") : t("flow.continue")}
             disabled={!initialImageUri || isUploading || isDiscarding}
             onPress={handleContinue}
           />
         </View>
       </ScrollView>
       <PhotoPreviewModal
-        label="Estado inicial"
+        label={t("flow.initialTitle")}
         onClose={() => setIsPreviewVisible(false)}
         uri={initialImageUri}
         visible={isPreviewVisible}

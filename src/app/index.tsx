@@ -1,5 +1,6 @@
 import { router } from "expo-router";
 import { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Pressable,
@@ -21,6 +22,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
 
 export default function WelcomeScreen() {
+  const { t } = useTranslation();
   const { user, isLoading } = useAuth();
   const { colors } = useTheme();
 
@@ -51,11 +53,10 @@ export default function WelcomeScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.introContent}>
-          <Text style={[styles.title, { color: colors.textPrimary }]}>Detecta lo que cambió</Text>
+          <Text style={[styles.title, { color: colors.textPrimary }]}>{t("welcome.title")}</Text>
 
           <Text style={[styles.description, { color: colors.textSecondary }]}>
-            Compara el estado inicial y final de tus espacios y objetos con
-            ayuda de inteligencia artificial.
+            {t("welcome.description")}
           </Text>
         </View>
 
@@ -65,7 +66,7 @@ export default function WelcomeScreen() {
 
         <View style={styles.actions}>
           <Button
-            label="Iniciar sesión"
+            label={t("welcome.login")}
             onPress={() => router.push("/login")}
           />
 
@@ -78,7 +79,7 @@ export default function WelcomeScreen() {
               pressed && styles.secondaryButtonPressed,
             ]}
           >
-            <Text style={[styles.secondaryButtonText, { color: colors.primary }]}>Crear cuenta</Text>
+            <Text style={[styles.secondaryButtonText, { color: colors.primary }]}>{t("welcome.register")}</Text>
           </Pressable>
         </View>
       </ScrollView>

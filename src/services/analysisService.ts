@@ -3,6 +3,7 @@ import {
   type GeminiAnalysisReport,
 } from "@/contracts/geminiAnalysis";
 import { supabase } from "@/lib/supabase";
+import type { SupportedLanguage } from "@/i18n/types";
 
 export type AnalysisReportRecord = {
   id: string;
@@ -112,53 +113,15 @@ export async function fetchCurrentAnalysisReport(params: {
 
 export async function requestComparisonAnalysis(
   comparisonId: string,
+  language: SupportedLanguage = "es",
 ): Promise<AnalysisReportRecord> {
-  if (process.env.EXPO_PUBLIC_USE_MOCK_AI === "true") {
-    await new Promise((resolve) => setTimeout(resolve, 3500));
-    return {
-      id: `mock-report-${comparisonId}`,
-      comparison_id: comparisonId,
-      user_id: "demo-user",
-      model: "gemini-mock",
-      contract_version: "1.0",
-      result: {
-        contractVersion: "1.0",
-        hasVisibleChanges: true,
-        summary:
-          "Se detectan cambios visibles de impacto moderado, principalmente en el acabado y la apariencia del área evaluada.",
-        differences: [
-          {
-            category: "modified",
-            description:
-              "El acabado superficial presenta una variación visible entre las fotografías.",
-          },
-          {
-            category: "appearance",
-            description:
-              "Se observa una diferencia moderada de coloración y textura en la zona central.",
-          },
-        ],
-        observations: [
-          "El cambio observado no permite concluir por sí solo la existencia de un daño estructural.",
-          "Se recomienda realizar una inspección visual presencial y documentar el estado actual con iluminación uniforme.",
-        ],
-        uncertainties: [
-          "La causa y la profundidad del cambio no pueden determinarse únicamente con estas fotografías.",
-        ],
-      },
-      initial_image_path: `mock/${comparisonId}/initial.jpg`,
-      final_image_path: `mock/${comparisonId}/final.jpg`,
-      created_at: new Date().toISOString(),
-    };
-  }
-
   const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
   const token = sessionData.session?.access_token;
   if (sessionError || !token) {
     throw new AnalysisServiceError("unauthorized", "Tu sesión ya no está disponible.");
   }
 
-  const requestBody = { comparisonId };
+  const requestBody = { comparisonId, language };
   const serializedRequestBody = JSON.stringify(requestBody);
   console.log("[analysisService] Enviando solicitud de análisis:", {
     comparisonId,

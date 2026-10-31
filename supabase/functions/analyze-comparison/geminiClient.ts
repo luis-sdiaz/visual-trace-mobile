@@ -7,8 +7,17 @@ import {
 
 import type { PreparedComparisonImage } from "./imageLoader.ts";
 
-export const GEMINI_ANALYSIS_PROMPT =
-  "Compara estas dos fotografías. La primera corresponde al estado inicial y la segunda al estado final. Describe únicamente las diferencias que puedes observar. No inventes medidas, materiales, causas ni información que no pueda verificarse visualmente. Si no hay cambios apreciables, indícalo. Considera limitaciones por iluminación, perspectiva o encuadre. Responde en español utilizando exclusivamente la estructura solicitada.";
+export type AnalysisLanguage = "es" | "en";
+
+export function getGeminiAnalysisPrompt(language: AnalysisLanguage): string {
+  const languageInstruction =
+    language === "en"
+      ? "CRITICAL: You must write the entire analysis report (summary, differences, observations, impact evaluation, and category details) STRICTLY in English if language is 'en', or STRICTLY in Spanish if language is 'es'. Do not mix languages. Generate the complete report strictly in English."
+      : "CRITICAL: You must write the entire analysis report (summary, differences, observations, impact evaluation, and category details) STRICTLY in Spanish if language is 'es', or STRICTLY in English if language is 'en'. Do not mix languages. Genera el informe completo estrictamente en español.";
+  return `Compare these two photographs. The first is the initial state and the second is the final state. Describe only differences you can observe. Do not invent measurements, materials, causes, or information that cannot be visually verified. If there are no appreciable changes, state that. Consider limitations from lighting, perspective, or framing. ${languageInstruction} Return only the requested JSON structure.`;
+}
+
+export const GEMINI_ANALYSIS_PROMPT = getGeminiAnalysisPrompt("es");
 
 export const DEFAULT_GEMINI_MODEL = "gemini-3.5-flash";
 export const DEFAULT_TIMEOUT_MS = 55_000;
@@ -171,6 +180,7 @@ export function createGeminiClient({
     async analyze(
       initial: PreparedComparisonImage,
       final: PreparedComparisonImage,
+      language: AnalysisLanguage = "es",
     ): Promise<GeminiAnalysisResult> {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
@@ -184,7 +194,7 @@ export function createGeminiClient({
         contents: [{
           role: "user",
           parts: [
-            { text: GEMINI_ANALYSIS_PROMPT },
+            { text: getGeminiAnalysisPrompt(language) },
             { inlineData: { mimeType: initialMimeType, data: initialBase64 } },
             { inlineData: { mimeType: finalMimeType, data: finalBase64 } },
           ],

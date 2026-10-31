@@ -9,7 +9,7 @@ import type { SupportedLanguage } from "./types";
 export const FALLBACK_LANGUAGE: SupportedLanguage = "es";
 
 export function getDeviceLanguage(): SupportedLanguage {
-  const languageCode = getLocales()[0]?.languageCode?.toLowerCase();
+  const languageCode = getLocales()?.[0]?.languageCode?.toLowerCase();
 
   return languageCode?.startsWith("en") ? "en" : FALLBACK_LANGUAGE;
 }

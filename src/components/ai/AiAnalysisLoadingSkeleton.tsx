@@ -11,6 +11,8 @@ import { Colors } from "@/constants/colors";
 import { Radius } from "@/constants/radius";
 import { Spacing } from "@/constants/spacing";
 import { Typography } from "@/constants/typography";
+import { useTranslation } from "react-i18next";
+import "@/i18n";
 
 export type LoadingStage = {
   title: string;
@@ -18,22 +20,10 @@ export type LoadingStage = {
 };
 
 export const DEFAULT_AI_LOADING_STAGES: readonly LoadingStage[] = [
-  {
-    title: "Preparando imágenes y sesión...",
-    description: "Validando la integridad de las capturas del estado inicial y final.",
-  },
-  {
-    title: "Conectando con Supabase...",
-    description: "Verificando cuota de análisis y sincronización segura en la nube.",
-  },
-  {
-    title: "Invocando Gemini AI...",
-    description: "Detectando discrepancias físicas y anomalías visuales con IA.",
-  },
-  {
-    title: "Estructurando reporte comparativo...",
-    description: "Consolidando diferencias, observaciones y limitaciones del análisis.",
-  },
+  { title: "Preparando imágenes y sesión...", description: "Validando la integridad de las capturas del estado inicial y final." },
+  { title: "Conectando con Supabase...", description: "Verificando cuota de análisis y sincronización segura en la nube." },
+  { title: "Invocando Gemini AI...", description: "Detectando discrepancias físicas y anomalías visuales con IA." },
+  { title: "Estructurando reporte comparativo...", description: "Consolidando diferencias, observaciones y limitaciones del análisis." },
 ] as const;
 
 export interface AiLoadingSchedulerOptions {
@@ -176,7 +166,7 @@ export type AiAnalysisLoadingSkeletonProps = {
 };
 
 export function AiAnalysisLoadingSkeleton({
-  stages = DEFAULT_AI_LOADING_STAGES,
+  stages,
   intervalMs = 2500,
   initialStageIndex = 0,
   currentStageIndex,
@@ -184,8 +174,15 @@ export function AiAnalysisLoadingSkeleton({
   onStageChange,
   testID = "ai-analysis-loading-skeleton",
 }: AiAnalysisLoadingSkeletonProps) {
+  const { t } = useTranslation();
+  const localizedStages = stages ?? [
+    { title: t("analysis.stages.preparingTitle"), description: t("analysis.stages.preparingDescription") },
+    { title: t("analysis.stages.connectingTitle"), description: t("analysis.stages.connectingDescription") },
+    { title: t("analysis.stages.invokingTitle"), description: t("analysis.stages.invokingDescription") },
+    { title: t("analysis.stages.structuringTitle"), description: t("analysis.stages.structuringDescription") },
+  ];
   const { stageIndex, currentStage, totalStages } = useAiLoadingStages({
-    stages,
+    stages: localizedStages,
     intervalMs,
     initialIndex: initialStageIndex,
     currentStageIndex,
@@ -220,7 +217,7 @@ export function AiAnalysisLoadingSkeleton({
 
   return (
     <View
-      accessibilityLabel={`Análisis de IA en curso: ${currentStage.title}`}
+      accessibilityLabel={`${t("analysis.badge")}: ${currentStage.title}`}
       accessibilityLiveRegion="polite"
       accessibilityRole="progressbar"
       style={styles.card}
@@ -228,10 +225,10 @@ export function AiAnalysisLoadingSkeleton({
     >
       <View style={styles.header}>
         <View style={styles.badge}>
-          <Text style={styles.badgeText}>ANÁLISIS DE IA</Text>
+          <Text style={styles.badgeText}>{t("analysis.badge")}</Text>
         </View>
         <Text style={styles.stepCounter} testID="ai-loading-step-counter">
-          Etapa {stageIndex + 1} de {totalStages}
+          {t("analysis.stageCounter", { current: stageIndex + 1, total: totalStages })}
         </Text>
       </View>
 
@@ -250,11 +247,11 @@ export function AiAnalysisLoadingSkeleton({
       </View>
 
       <View
-        accessibilityLabel={`Progreso de etapas: etapa ${stageIndex + 1} de ${totalStages}`}
+        accessibilityLabel={t("analysis.progressLabel", { current: stageIndex + 1, total: totalStages })}
         style={styles.progressRow}
         testID="ai-loading-progress-row"
       >
-        {stages.map((_, index) => {
+        {localizedStages.map((_, index) => {
           const isActive = index === stageIndex;
           const isCompleted = index < stageIndex;
 
@@ -287,7 +284,7 @@ export function AiAnalysisLoadingSkeleton({
       </Animated.View>
 
       <Text style={styles.helperNotice}>
-        El análisis visual detallado con Gemini Flash toma normalmente de 3 a 6 segundos.
+        {t("analysis.helperNotice")}
       </Text>
     </View>
   );
