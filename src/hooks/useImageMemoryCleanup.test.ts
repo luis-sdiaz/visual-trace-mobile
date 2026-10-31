@@ -2,11 +2,11 @@ import React from "react";
 // @ts-expect-error react-dom/server type declarations are not in devDependencies
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import * as FileSystem from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 
 import { useImageMemoryCleanup } from "./useImageMemoryCleanup";
 
-vi.mock("expo-file-system", () => ({
+vi.mock("expo-file-system/legacy", () => ({
   deleteAsync: vi.fn().mockResolvedValue(undefined),
 }));
 
@@ -118,4 +118,3 @@ describe("useImageMemoryCleanup", () => {
     }
   });
 });
-

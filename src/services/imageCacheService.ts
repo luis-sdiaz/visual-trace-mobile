@@ -1,4 +1,4 @@
-import * as FileSystem from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 import { Paths } from "expo-file-system";
 
 export const CACHE_DIRECTORY_NAME = "vt-image-cache";

@@ -1,6 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -55,16 +56,16 @@ export function ThemeProvider({ children }: PropsWithChildren) {
     };
   }, []);
 
-  function setTheme(nextTheme: Theme) {
+  const setTheme = useCallback((nextTheme: Theme) => {
     setThemeState(nextTheme);
     void AsyncStorage.setItem(THEME_STORAGE_KEY, nextTheme).catch((error) => {
       console.error("[ThemeContext] No se pudo guardar el tema:", error);
     });
-  }
+  }, []);
 
-  function toggleTheme() {
+  const toggleTheme = useCallback(() => {
     setTheme(getToggledTheme(theme));
-  }
+  }, [setTheme, theme]);
 
   const value = useMemo(
     () => ({
@@ -74,7 +75,7 @@ export function ThemeProvider({ children }: PropsWithChildren) {
       toggleTheme,
       setTheme,
     }),
-    [theme],
+    [setTheme, theme, toggleTheme],
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import * as FileSystem from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
 
@@ -22,7 +22,7 @@ vi.mock("expo-sharing", () => ({
   shareAsync: vi.fn(),
 }));
 
-vi.mock("expo-file-system", () => ({
+vi.mock("expo-file-system/legacy", () => ({
   readAsStringAsync: vi.fn(),
   EncodingType: {
     Base64: "base64",
@@ -293,4 +293,3 @@ describe("reportExportService", () => {
     });
   });
 });
-

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import * as FileSystem from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 
 import {
   clearAllImageCache,
@@ -16,6 +16,9 @@ vi.mock("expo-file-system", () => ({
       uri: "file:///mock/cache/",
     },
   },
+}));
+
+vi.mock("expo-file-system/legacy", () => ({
   cacheDirectory: "file:///mock/cache/",
   getInfoAsync: vi.fn(),
   readDirectoryAsync: vi.fn(),
@@ -275,4 +278,3 @@ describe("imageCacheService", () => {
     });
   });
 });
-

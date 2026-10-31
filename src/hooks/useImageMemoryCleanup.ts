@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import * as FileSystem from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 
 export type MemoryCleanupOptions = {
   autoCleanOnUnmount?: boolean;
@@ -121,4 +121,3 @@ export function useImageMemoryCleanup(
     cleanupNow,
   };
 }
-
