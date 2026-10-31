@@ -240,7 +240,7 @@ export default function HomeScreen() {
         }
       }
     },
-    [searchTerm, sortOrder, statusFilter, user],
+    [searchTerm, sortOrder, statusFilter, t, user],
   );
 
   useFocusEffect(

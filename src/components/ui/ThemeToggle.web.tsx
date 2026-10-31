@@ -1,17 +1,16 @@
 import { Moon, Sun } from "lucide-react-native";
-import { useEffect, useRef } from "react";
+import { useEffect, useState } from "react";
 import {
   Animated,
   StyleSheet,
   TouchableOpacity,
-  View,
 } from "react-native";
 
 import { useTheme } from "@/context/ThemeContext";
 
 export function ThemeToggle() {
   const { isDark, toggleTheme } = useTheme();
-  const transition = useRef(new Animated.Value(isDark ? 1 : 0)).current;
+  const [transition] = useState(() => new Animated.Value(isDark ? 1 : 0));
   const nextThemeLabel = isDark ? "Activar modo claro" : "Activar modo oscuro";
 
   useEffect(() => {

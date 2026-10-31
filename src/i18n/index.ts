@@ -16,7 +16,9 @@ export function getDeviceLanguage(): SupportedLanguage {
 
 export const defaultLanguage = getDeviceLanguage();
 
-void i18next.use(initReactI18next).init({
+const i18n = i18next;
+
+void i18n.use(initReactI18next).init({
   defaultNS: "common",
   fallbackLng: FALLBACK_LANGUAGE,
   lng: defaultLanguage,
@@ -26,4 +28,4 @@ void i18next.use(initReactI18next).init({
   },
 });
 
-export default i18next;
+export default i18n;

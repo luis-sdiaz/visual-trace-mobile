@@ -13,12 +13,12 @@ export interface LanguageSelectorModalProps {
   onClose: () => void;
 }
 
-const LANGUAGE_OPTIONS: Array<{
+const LANGUAGE_OPTIONS: {
   code: SupportedLanguage;
   flag: string;
   translationKey: "spanish" | "english";
   codeTranslationKey: "spanishCode" | "englishCode";
-}> = [
+}[] = [
   {
     code: "es",
     flag: "🇪🇸",

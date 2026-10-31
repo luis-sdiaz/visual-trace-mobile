@@ -9,7 +9,7 @@ import {
   View,
   type LayoutChangeEvent,
 } from "react-native";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { Radius } from "@/constants/radius";
 import { Spacing } from "@/constants/spacing";
@@ -25,10 +25,10 @@ export function ComparisonVisualScanner() {
   const { colors, isDark } = useTheme();
   const { t } = useTranslation();
   const [viewportWidth, setViewportWidth] = useState(0);
-  const sweepAnim = useRef(new Animated.Value(0)).current;
-  const radarAnim = useRef(new Animated.Value(0)).current;
-  const cursorAnim = useRef(new Animated.Value(0)).current;
-  const statusAnim = useRef(new Animated.Value(0)).current;
+  const [sweepAnim] = useState(() => new Animated.Value(0));
+  const [radarAnim] = useState(() => new Animated.Value(0));
+  const [cursorAnim] = useState(() => new Animated.Value(0));
+  const [statusAnim] = useState(() => new Animated.Value(0));
   const styles = useMemo(() => createStyles(colors, isDark), [colors, isDark]);
 
   useEffect(() => {

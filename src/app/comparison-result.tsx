@@ -87,7 +87,7 @@ function PrivateComparisonImage({
   onRetry,
   onOpen,
 }: PrivateComparisonImageProps) {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [status, setStatus] = useState<PrivateImageStatus>("loading");
@@ -388,7 +388,7 @@ export default function ComparisonResultScreen() {
         analysisInFlightRef.current = null;
       }
     }
-  }, [analysisContext, comparisonId, finalImagePath, initialImagePath]);
+  }, [analysisContext, comparisonId, finalImagePath, initialImagePath, t]);
 
   useEffect(() => {
     void Promise.resolve().then(loadReport);

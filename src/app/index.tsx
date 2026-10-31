@@ -32,7 +32,7 @@ export default function WelcomeScreen() {
     if (!isLoading && user) {
       router.replace("/home");
     }
-  }, [isLoading, user]);
+  }, [isLoading, router, user]);
 
   if (isLoading || user) {
     return (
