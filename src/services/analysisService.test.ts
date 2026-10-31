@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({ getSession: vi.fn(), invoke: vi.fn(), from: vi.fn() }));
 vi.mock("@/lib/supabase", () => ({
@@ -42,6 +42,40 @@ describe("analysisService", () => {
       data: { session: { access_token: "session-token" } },
       error: null,
     });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllEnvs();
+  });
+
+  it("returns the mock report without invoking Supabase when demo mode is enabled", async () => {
+    vi.stubEnv("EXPO_PUBLIC_USE_MOCK_AI", "true");
+    vi.useFakeTimers();
+
+    const resultPromise = requestComparisonAnalysis("comparison-demo");
+    await vi.advanceTimersByTimeAsync(3500);
+    const result = await resultPromise;
+
+    expect(result).toMatchObject({
+      id: "mock-report-comparison-demo",
+      comparison_id: "comparison-demo",
+      model: "gemini-mock",
+      contract_version: "1.0",
+      result: {
+        contractVersion: "1.0",
+        hasVisibleChanges: true,
+        summary: expect.stringContaining("impacto moderado"),
+        differences: expect.arrayContaining([
+          expect.objectContaining({ category: "modified" }),
+        ]),
+        observations: expect.arrayContaining([
+          expect.stringContaining("recomienda"),
+        ]),
+      },
+    });
+    expect(mocks.getSession).not.toHaveBeenCalled();
+    expect(mocks.invoke).not.toHaveBeenCalled();
   });
 
   it("invokes the Edge Function with the existing session", async () => {

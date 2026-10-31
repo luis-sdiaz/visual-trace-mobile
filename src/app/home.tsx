@@ -23,6 +23,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { DemoModeToggle } from "@/components/ui/DemoModeToggle";
 import { DevErrorInjectionPanel } from "@/components/ui/DevErrorInjectionPanel";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import {
   getDemoState,
   subscribeDemoConfig,
@@ -34,6 +35,7 @@ import { Spacing } from "@/constants/spacing";
 import { Typography } from "@/constants/typography";
 import { useAuth } from "@/context/AuthContext";
 import { useComparison } from "@/context/ComparisonContext";
+import { useTheme } from "@/context/ThemeContext";
 import {
   fetchComparisonPage,
   isComparisonComplete,
@@ -80,6 +82,7 @@ function formatComparisonDate(value: string): string {
 
 export default function HomeScreen() {
   const { user, isLoading, signOut } = useAuth();
+  const { colors } = useTheme();
 
   const {
     comparisonId,
@@ -388,14 +391,14 @@ export default function HomeScreen() {
 
   if (isLoading || !user) {
     return (
-      <SafeAreaView style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={Colors.primary} />
+      <SafeAreaView style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView
         contentContainerStyle={styles.content}
         refreshControl={
@@ -415,9 +418,11 @@ export default function HomeScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.topBar}>
-          <Text style={styles.brand}>VisualTrace</Text>
+          <Text style={[styles.brand, { color: colors.primary }]}>VisualTrace</Text>
 
           <View style={styles.topBarActions}>
+            <ThemeToggle />
+
             <DemoModeToggle compact={true} testID="home-demo-toggle" />
 
             <Pressable
@@ -476,11 +481,11 @@ export default function HomeScreen() {
         ) : null}
 
         <View style={styles.header}>
-          <Text style={styles.greeting}>{accountGreeting}</Text>
+          <Text style={[styles.greeting, { color: colors.textPrimary }]}>{accountGreeting}</Text>
 
-          <Text style={styles.title}>Tus comparaciones</Text>
+          <Text style={[styles.title, { color: colors.textPrimary }]}>Tus comparaciones</Text>
 
-          <Text style={styles.description}>
+          <Text style={[styles.description, { color: colors.textSecondary }]}>
             Documenta y revisa cambios visuales de forma clara y organizada.
           </Text>
         </View>
@@ -836,14 +841,12 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
   },
 
   loadingContainer: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: Colors.background,
   },
 
   content: {

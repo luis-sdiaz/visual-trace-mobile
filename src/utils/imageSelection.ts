@@ -19,7 +19,7 @@ export type PhotoSelectionOutcome =
   | { status: "canceled" }
   | { status: "selected"; uri: string };
 
-export const DEFAULT_IMAGE_COMPRESSION_QUALITY = 0.8;
+export const DEFAULT_IMAGE_COMPRESSION_QUALITY = 0.7;
 export const MIN_IMAGE_COMPRESSION_QUALITY = 0.3;
 export const MAX_IMAGE_COMPRESSION_QUALITY = 0.95;
 

@@ -11,7 +11,7 @@ export const GEMINI_ANALYSIS_PROMPT =
   "Compara estas dos fotografías. La primera corresponde al estado inicial y la segunda al estado final. Describe únicamente las diferencias que puedes observar. No inventes medidas, materiales, causas ni información que no pueda verificarse visualmente. Si no hay cambios apreciables, indícalo. Considera limitaciones por iluminación, perspectiva o encuadre. Responde en español utilizando exclusivamente la estructura solicitada.";
 
 export const DEFAULT_GEMINI_MODEL = "gemini-3.5-flash";
-export const DEFAULT_TIMEOUT_MS = 15_000;
+export const DEFAULT_TIMEOUT_MS = 55_000;
 const MAX_OUTPUT_TOKENS = 1_200;
 
 export type GeminiAnalysisResult = {

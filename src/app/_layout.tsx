@@ -1,26 +1,29 @@
 import { Stack } from "expo-router";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 
-import { Colors } from "@/constants/colors";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { ComparisonProvider } from "@/context/ComparisonContext";
+import { ThemeProvider, useTheme } from "@/context/ThemeContext";
 import { getAuthRouteAccess } from "@/utils/authNavigation";
 
 export default function RootLayout() {
   return (
-    <AuthProvider>
-      <AppNavigator />
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <AppNavigator />
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 
 function AppNavigator() {
   const { user, isLoading } = useAuth();
+  const { colors } = useTheme();
 
   if (isLoading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={Colors.primary} />
+      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
@@ -32,6 +35,7 @@ function AppNavigator() {
       <Stack
         screenOptions={{
           headerShown: false,
+          contentStyle: { backgroundColor: colors.background },
         }}
       >
         <Stack.Protected guard={routeAccess.canAccessGuestRoutes}>
@@ -57,6 +61,5 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: Colors.background,
   },
 });

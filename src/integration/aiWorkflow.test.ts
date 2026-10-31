@@ -86,7 +86,7 @@ describe("end-to-end AI analysis orchestration", () => {
   it.each([
     ["model_unavailable", 500],
     ["provider_quota_exceeded", 429],
-    ["gemini_timeout", 504],
+    ["gemini_timeout", 500],
     ["gemini_network_error", 500],
     ["invalid_gemini_request", 500],
     ["invalid_gemini_response", 500],
@@ -170,7 +170,7 @@ describe("end-to-end AI analysis orchestration", () => {
       completeUsage: vi.fn().mockRejectedValue(new Error("bookkeeping unavailable")),
     });
     const response = await createAnalyzeComparisonHandler(deps)(post());
-    expect(response.status).toBe(504);
+    expect(response.status).toBe(500);
     await expect(response.json()).resolves.toMatchObject({ code: "gemini_timeout" });
   });
 
@@ -269,7 +269,7 @@ describe("AI database and mobile integration safeguards", () => {
     const { Share } = await import("react-native");
     const shareSpy = vi.spyOn(Share, "share").mockResolvedValueOnce({
       action: Share.sharedAction,
-      activityType: null,
+      activityType: undefined,
     });
 
     const shareResult = await shareReportNative(analysis.report, {

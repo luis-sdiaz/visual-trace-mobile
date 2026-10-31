@@ -234,7 +234,7 @@ export function createAnalyzeComparisonHandler(dependencies: AnalyzeDependencies
           return jsonResponse(429, code, "Gemini no tiene cuota disponible.");
         }
         if (code === "gemini_timeout") {
-          return jsonResponse(504, code, "Gemini excedió el tiempo de espera.");
+          return jsonResponse(500, code, "Gemini excedió el tiempo de espera.");
         }
 
         return errorResponse(geminiError, 500, {

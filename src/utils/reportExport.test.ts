@@ -138,6 +138,7 @@ describe("reportExport", () => {
     it("handles user dismissal without throwing and returns dismissedAction", async () => {
       const shareSpy = vi.spyOn(Share, "share").mockResolvedValueOnce({
         action: Share.dismissedAction,
+        activityType: undefined,
       });
 
       const result = await shareReportNative(sampleReport);

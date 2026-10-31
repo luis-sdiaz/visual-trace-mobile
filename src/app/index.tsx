@@ -12,14 +12,17 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Button } from "@/components/ui/Button";
 import { ComparisonPreview } from "@/components/ui/ComparisonPreview";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { Colors } from "@/constants/colors";
 import { Radius } from "@/constants/radius";
 import { Spacing } from "@/constants/spacing";
 import { Typography } from "@/constants/typography";
 import { useAuth } from "@/context/AuthContext";
+import { useTheme } from "@/context/ThemeContext";
 
 export default function WelcomeScreen() {
   const { user, isLoading } = useAuth();
+  const { colors } = useTheme();
 
   useEffect(() => {
     if (!isLoading && user) {
@@ -29,25 +32,28 @@ export default function WelcomeScreen() {
 
   if (isLoading || user) {
     return (
-      <SafeAreaView style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={Colors.primary} />
+      <SafeAreaView style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={styles.topBar}>
+        <Text style={[styles.brand, { color: colors.primary }]}>VisualTrace</Text>
+        <ThemeToggle />
+      </View>
+
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.introContent}>
-          <Text style={styles.brand}>VisualTrace</Text>
+          <Text style={[styles.title, { color: colors.textPrimary }]}>Detecta lo que cambió</Text>
 
-          <Text style={styles.title}>Detecta lo que cambió</Text>
-
-          <Text style={styles.description}>
+          <Text style={[styles.description, { color: colors.textSecondary }]}>
             Compara el estado inicial y final de tus espacios y objetos con
             ayuda de inteligencia artificial.
           </Text>
@@ -68,10 +74,11 @@ export default function WelcomeScreen() {
             onPress={() => router.push("/register")}
             style={({ pressed }) => [
               styles.secondaryButton,
+              { backgroundColor: colors.surface, borderColor: colors.primary },
               pressed && styles.secondaryButtonPressed,
             ]}
           >
-            <Text style={styles.secondaryButtonText}>Crear cuenta</Text>
+            <Text style={[styles.secondaryButtonText, { color: colors.primary }]}>Crear cuenta</Text>
           </Pressable>
         </View>
       </ScrollView>
@@ -101,6 +108,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xl,
     paddingTop: Spacing.xl,
     paddingBottom: Spacing.lg,
+  },
+
+  topBar: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingHorizontal: Spacing.xl,
+    paddingTop: Spacing.md,
   },
 
   introContent: {

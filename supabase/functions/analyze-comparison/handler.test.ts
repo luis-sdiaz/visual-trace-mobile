@@ -231,6 +231,29 @@ describe("analyze-comparison authorization", () => {
     });
   });
 
+  it("returns a structured 500 when Gemini exceeds its timeout", async () => {
+    const handler = createAnalyzeComparisonHandler({
+      authenticate: vi.fn().mockResolvedValue(user),
+      findComparison: vi.fn().mockResolvedValue(completeComparison),
+      loadImages,
+      analyzeImages: vi.fn().mockRejectedValue({
+        code: "gemini_timeout",
+        message: "Gemini excedió el tiempo de espera.",
+      }),
+      persistReport,
+      reserveUsage,
+      completeUsage,
+    });
+
+    const response = await handler(request({ comparisonId }));
+
+    expect(response.status).toBe(500);
+    await expect(response.json()).resolves.toEqual({
+      code: "gemini_timeout",
+      message: "Gemini excedió el tiempo de espera.",
+    });
+  });
+
   it("catches unhandled exceptions and returns 500 with CORS headers and structured error", async () => {
     const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     const handler = createAnalyzeComparisonHandler({

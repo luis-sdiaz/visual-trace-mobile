@@ -12,6 +12,15 @@ vi.mock("expo-file-system", () => ({
   File: class {},
 }));
 
+const imageManipulatorMock = vi.hoisted(() => ({
+  manipulateAsync: vi.fn().mockResolvedValue({ uri: "file:///prepared.jpg" }),
+}));
+
+vi.mock("expo-image-manipulator", () => ({
+  SaveFormat: { JPEG: "jpeg" },
+  manipulateAsync: imageManipulatorMock.manipulateAsync,
+}));
+
 vi.mock("react-native", () => ({
   Platform: { OS: "web" },
 }));
@@ -50,7 +59,7 @@ describe("resolveComparisonImageUrl", () => {
       "fetch",
       vi.fn().mockResolvedValue({
         arrayBuffer: async () => new Uint8Array([1, 2, 3]).buffer,
-        headers: { get: () => "image/png" },
+        headers: { get: () => "image/jpeg" },
         ok: true,
       }),
     );
@@ -122,12 +131,17 @@ describe("resolveComparisonImageUrl", () => {
     });
 
     expect(imagePath).toMatch(
-      /^user-1\/comparison-1\/initial-[a-z0-9]+-[a-z0-9]+\.png$/,
+      /^user-1\/comparison-1\/initial-[a-z0-9]+-[a-z0-9]+\.jpg$/,
     );
     expect(storageMock.upload).toHaveBeenCalledWith(
       imagePath,
       expect.any(ArrayBuffer),
-      { contentType: "image/png", upsert: false },
+      { contentType: "image/jpeg", upsert: false },
+    );
+    expect(imageManipulatorMock.manipulateAsync).toHaveBeenCalledWith(
+      "file:///replacement.png",
+      [{ resize: { width: 1080 } }],
+      { compress: 0.7, format: "jpeg" },
     );
   });
 
@@ -165,6 +179,7 @@ describe("resolveComparisonImageUrl", () => {
   });
 
   it("returns stable codes for unsupported, empty, and inaccessible files", async () => {
+    vi.mocked(fetch).mockReset();
     vi.mocked(fetch)
       .mockResolvedValueOnce(
         new Response(new Uint8Array([1]), {

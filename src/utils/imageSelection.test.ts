@@ -72,7 +72,7 @@ describe("selectComparisonPhoto", () => {
     });
     expect(picker.launchCameraAsync).toHaveBeenCalledWith({
       mediaTypes: ["images"],
-      quality: 0.8,
+      quality: 0.7,
     });
     expect(picker.requestMediaLibraryPermissionsAsync).not.toHaveBeenCalled();
     expect(picker.launchImageLibraryAsync).not.toHaveBeenCalled();
@@ -87,7 +87,7 @@ describe("selectComparisonPhoto", () => {
     });
     expect(picker.launchImageLibraryAsync).toHaveBeenCalledWith({
       mediaTypes: ["images"],
-      quality: 0.8,
+      quality: 0.7,
     });
     expect(picker.requestCameraPermissionsAsync).not.toHaveBeenCalled();
     expect(picker.launchCameraAsync).not.toHaveBeenCalled();

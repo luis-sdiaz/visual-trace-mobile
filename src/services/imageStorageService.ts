@@ -1,4 +1,5 @@
 import { File } from "expo-file-system";
+import * as ImageManipulator from "expo-image-manipulator";
 import { Platform } from "react-native";
 
 import { COMPARISON_IMAGE_LIMITS } from "@/contracts/comparisonImages";
@@ -9,6 +10,8 @@ const STORAGE_BUCKET = "comparison-images";
 const DEFAULT_SIGNED_URL_LIFETIME_SECONDS = 5 * 60;
 const MIN_SIGNED_URL_LIFETIME_SECONDS = 60;
 const MAX_SIGNED_URL_LIFETIME_SECONDS = 60 * 60;
+const MAX_ANALYSIS_IMAGE_WIDTH = 1080;
+const ANALYSIS_IMAGE_COMPRESSION_QUALITY = 0.7;
 
 export type ImageStage = "initial" | "final";
 
@@ -63,8 +66,11 @@ function getImageContentType(
 ): string {
   const normalizedType = detectedType?.split(";")[0].trim().toLowerCase();
 
-  if (normalizedType && IMAGE_EXTENSIONS[normalizedType]) {
-    return normalizedType;
+  if (normalizedType) {
+    if (IMAGE_EXTENSIONS[normalizedType]) {
+      return normalizedType;
+    }
+    throw new ImageStorageError("unsupported_format", "Unsupported image format.");
   }
 
   const normalizedUri = imageUri.toLowerCase().split(/[?#]/)[0];
@@ -140,6 +146,28 @@ async function readImage(imageUri: string): Promise<{
   }
 }
 
+async function prepareImageForAnalysis(imageUri: string): Promise<string> {
+  try {
+    const result = await ImageManipulator.manipulateAsync(
+      imageUri,
+      [{ resize: { width: MAX_ANALYSIS_IMAGE_WIDTH } }],
+      {
+        compress: ANALYSIS_IMAGE_COMPRESSION_QUALITY,
+        format: ImageManipulator.SaveFormat.JPEG,
+      },
+    );
+    if (!result.uri) {
+      throw new Error("Image manipulator returned an empty URI.");
+    }
+    return result.uri;
+  } catch {
+    throw new ImageStorageError(
+      "invalid_file",
+      "Could not prepare image for upload.",
+    );
+  }
+}
+
 function classifyStorageUploadError(error: unknown): ImageStorageError {
   if (error instanceof TypeError) {
     return new ImageStorageError("network_error", "Storage request failed.");
@@ -179,10 +207,28 @@ export async function uploadComparisonImage({
     throw new ImageStorageError("session_unavailable", "User must be authenticated.");
   }
 
-  const { buffer, contentType } = await readImage(imageUri);
-
+  const preparedImageUri = await prepareImageForAnalysis(imageUri);
+  const { buffer, contentType } = await readImage(preparedImageUri);
+  const preparedExtension =
+    preparedImageUri.toLowerCase().split(/[?#]/)[0].split(".").pop() ?? "";
+  console.log("[imageStorageService] Imagen preparada para subida:", {
+    comparisonId,
+    imageStage,
+    originalUriLength: imageUri.length,
+    preparedUriLength: preparedImageUri.length,
+    preparedExtension,
+    contentType,
+    payloadSizeBytes: buffer.byteLength,
+  });
   if (buffer.byteLength === 0) {
     throw new ImageStorageError("invalid_file", "Image file is empty.");
+  }
+
+  if (contentType !== "image/jpeg") {
+    throw new ImageStorageError(
+      "unsupported_format",
+      "Prepared image must use JPEG format.",
+    );
   }
 
   if (buffer.byteLength > COMPARISON_IMAGE_LIMITS.maxBytesPerImage) {
