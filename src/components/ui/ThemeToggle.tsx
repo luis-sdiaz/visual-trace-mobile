@@ -1,47 +1,98 @@
-import { Ionicons } from "@expo/vector-icons";
-import { Pressable, StyleSheet } from "react-native";
+import LottieView from "lottie-react-native";
+import { useCallback, useEffect, useRef } from "react";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
 
-import { Radius } from "@/constants/radius";
-import { Spacing } from "@/constants/spacing";
 import { useTheme } from "@/context/ThemeContext";
 
+const DAY_FRAME = 0;
+const NIGHT_FRAME = 30;
+
 export function ThemeToggle() {
-  const { colors, isDark, toggleTheme } = useTheme();
+  const { isDark, toggleTheme } = useTheme();
+  const animationRef = useRef<LottieView>(null);
+  const isFirstRender = useRef(true);
+  const isInitialized = useRef(false);
+  const currentTheme = useRef(isDark);
   const nextThemeLabel = isDark ? "Activar modo claro" : "Activar modo oscuro";
 
+  useEffect(() => {
+    currentTheme.current = isDark;
+  }, [isDark]);
+
+  const setInitialFrame = useCallback(() => {
+    if (isInitialized.current) {
+      return;
+    }
+
+    const initialFrame = currentTheme.current ? NIGHT_FRAME : DAY_FRAME;
+    animationRef.current?.play(initialFrame, initialFrame);
+    animationRef.current?.pause();
+    isInitialized.current = true;
+  }, []);
+
+  const stopAtThemeFrame = useCallback(() => {
+    const targetFrame = currentTheme.current ? NIGHT_FRAME : DAY_FRAME;
+
+    animationRef.current?.play(targetFrame, targetFrame);
+    animationRef.current?.pause();
+  }, []);
+
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      setInitialFrame();
+      return;
+    }
+
+    animationRef.current?.play(DAY_FRAME, NIGHT_FRAME);
+  }, [isDark, setInitialFrame]);
+
   return (
-    <Pressable
+    <TouchableOpacity
       accessibilityLabel={nextThemeLabel}
-      accessibilityRole="button"
+      accessibilityRole="switch"
       accessibilityState={{ checked: isDark }}
+      activeOpacity={0.8}
       onPress={toggleTheme}
-      style={({ pressed }) => [
-        styles.button,
-        {
-          backgroundColor: colors.surface,
-          borderColor: colors.border,
-        },
-        pressed && { backgroundColor: colors.primarySoft },
-      ]}
+      style={styles.container}
       testID="theme-toggle"
     >
-      <Ionicons
-        color={colors.textPrimary}
-        name={isDark ? "sunny-outline" : "moon-outline"}
-        size={20}
-      />
-    </Pressable>
+      <View pointerEvents="none" style={styles.animationWrapper}>
+        <LottieView
+          autoPlay={false}
+          direction={isDark ? 1 : -1}
+          loop={false}
+          onAnimationFinish={stopAtThemeFrame}
+          onAnimationLoaded={setInitialFrame}
+          ref={animationRef}
+          source={require("../../../assets/animations/theme-switch.json")}
+          style={styles.lottie}
+        />
+      </View>
+    </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
-  button: {
-    alignItems: "center",
-    borderRadius: Radius.md,
-    borderWidth: 1,
-    height: 40,
+  container: {
+    width: 56,
+    height: 32,
+    borderRadius: 9999,
     justifyContent: "center",
-    paddingHorizontal: Spacing.sm,
-    width: 40,
+    alignItems: "center",
+    backgroundColor: "transparent",
+    borderWidth: 0,
+    borderColor: "transparent",
+    overflow: "hidden",
+  },
+  animationWrapper: {
+    width: "100%",
+    height: "100%",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  lottie: {
+    width: "100%",
+    height: "100%",
   },
 });

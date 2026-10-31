@@ -14,7 +14,6 @@ describe("ComparisonPreview", () => {
     expect(html).toContain("Antes y después");
     expect(html).toContain("Inicial");
     expect(html).toContain("Final");
-    expect(html).toContain("Comparación asistida por IA");
   });
 
   it("is wrapped in React.memo for rendering performance", () => {
@@ -23,4 +22,3 @@ describe("ComparisonPreview", () => {
     );
   });
 });
-

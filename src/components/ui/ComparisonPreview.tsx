@@ -6,6 +6,7 @@ import {
   type StyleProp,
   type ViewStyle,
 } from "react-native";
+import type { ReactNode } from "react";
 
 import { type ColorPalette } from "@/constants/colors";
 import { Radius } from "@/constants/radius";
@@ -16,11 +17,13 @@ import { useTheme } from "@/context/ThemeContext";
 export type ComparisonPreviewProps = {
   style?: StyleProp<ViewStyle>;
   testID?: string;
+  visualContent?: ReactNode;
 };
 
 export const ComparisonPreview = memo(function ComparisonPreview({
   style,
   testID = "comparison-preview-card",
+  visualContent,
 }: ComparisonPreviewProps = {}) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -42,55 +45,44 @@ export const ComparisonPreview = memo(function ComparisonPreview({
         Registra dos momentos y revisa fácilmente qué cambió.
       </Text>
 
-      <View style={styles.comparisonRow}>
-        <View style={[styles.stateCard, styles.initialCard]}>
-          <View style={[styles.stateBadge, styles.initialBadge]}>
-            <Text style={styles.initialBadgeText}>Inicial</Text>
-          </View>
-
-          <View style={styles.previewArea}>
-            <View style={styles.initialObject} />
-            <View style={styles.initialMarker} />
-          </View>
-
-          <Text style={styles.stateTitle}>Antes</Text>
-          <Text style={styles.stateDescription}>Estado registrado</Text>
-        </View>
-
-        <View style={styles.connector}>
-          <Text style={styles.connectorArrow}>→</Text>
-        </View>
-
-        <View style={[styles.stateCard, styles.finalCard]}>
-          <View style={[styles.stateBadge, styles.finalBadge]}>
-            <Text style={styles.finalBadgeText}>Final</Text>
-          </View>
-
-          <View style={styles.previewArea}>
-            <View style={styles.finalObject} />
-            <View style={styles.changeIndicator}>
-              <View style={styles.changeDot} />
+      {visualContent ?? (
+        <View style={styles.comparisonRow}>
+          <View style={[styles.stateCard, styles.initialCard]}>
+            <View style={[styles.stateBadge, styles.initialBadge]}>
+              <Text style={styles.initialBadgeText}>Inicial</Text>
             </View>
+
+            <View style={styles.previewArea}>
+              <View style={styles.initialObject} />
+              <View style={styles.initialMarker} />
+            </View>
+
+            <Text style={styles.stateTitle}>Antes</Text>
+            <Text style={styles.stateDescription}>Estado registrado</Text>
           </View>
 
-          <Text style={styles.stateTitle}>Después</Text>
-          <Text style={styles.stateDescription}>Estado comparado</Text>
-        </View>
-      </View>
+          <View style={styles.connector}>
+            <Text style={styles.connectorArrow}>→</Text>
+          </View>
 
-      <View style={styles.footer}>
-        <View style={styles.footerIcon}>
-          <Text style={styles.footerIconText}>✓</Text>
-        </View>
+          <View style={[styles.stateCard, styles.finalCard]}>
+            <View style={[styles.stateBadge, styles.finalBadge]}>
+              <Text style={styles.finalBadgeText}>Final</Text>
+            </View>
 
-        <View style={styles.footerContent}>
-          <Text style={styles.footerTitle}>Comparación asistida por IA</Text>
-          <Text style={styles.footerDescription}>
-            VisualTrace identifica posibles diferencias para que puedas
-            revisarlas.
-          </Text>
+            <View style={styles.previewArea}>
+              <View style={styles.finalObject} />
+              <View style={styles.changeIndicator}>
+                <View style={styles.changeDot} />
+              </View>
+            </View>
+
+            <Text style={styles.stateTitle}>Después</Text>
+            <Text style={styles.stateDescription}>Estado comparado</Text>
+          </View>
         </View>
-      </View>
+      )}
+
     </View>
   );
 });

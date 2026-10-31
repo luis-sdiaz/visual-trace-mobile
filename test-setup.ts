@@ -54,3 +54,6 @@ vi.mock("expo-sharing", () => ({
   shareAsync: vi.fn().mockResolvedValue(undefined),
 }));
 
+vi.mock("lottie-react-native", () => ({
+  default: "LottieView",
+}));

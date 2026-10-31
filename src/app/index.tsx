@@ -1,18 +1,18 @@
-import { router } from "expo-router";
+import { useRouter } from "expo-router";
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Button } from "@/components/ui/Button";
-import { ComparisonPreview } from "@/components/ui/ComparisonPreview";
+import { HeroVisualAnimation } from "@/components/ui/HeroVisualAnimation";
+import { LanguageToggle } from "@/components/ui/LanguageToggle";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { Colors } from "@/constants/colors";
 import { Radius } from "@/constants/radius";
@@ -25,6 +25,8 @@ export default function WelcomeScreen() {
   const { t } = useTranslation();
   const { user, isLoading } = useAuth();
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
+  const router = useRouter();
 
   useEffect(() => {
     if (!isLoading && user) {
@@ -41,17 +43,28 @@ export default function WelcomeScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={styles.topBar}>
-        <Text style={[styles.brand, { color: colors.primary }]}>VisualTrace</Text>
-        <ThemeToggle />
+    <SafeAreaView
+      style={[
+        styles.container,
+        {
+          backgroundColor: colors.background,
+          height: "100%",
+          paddingBottom: Math.max(insets.bottom, Spacing.xl - Spacing.xs),
+          paddingHorizontal: Spacing.xl,
+          paddingTop: Math.max(insets.top, Spacing.md),
+        },
+      ]}
+      edges={["left", "right"]}
+    >
+      <View style={styles.header}>
+        <Text style={[styles.brandTitle, { color: colors.primary }]}>VisualTrace</Text>
+        <View style={styles.headerControls}>
+          <LanguageToggle />
+          <ThemeToggle />
+        </View>
       </View>
 
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-      >
+      <View style={styles.hero}>
         <View style={styles.introContent}>
           <Text style={[styles.title, { color: colors.textPrimary }]}>{t("welcome.title")}</Text>
 
@@ -61,28 +74,28 @@ export default function WelcomeScreen() {
         </View>
 
         <View style={styles.previewSection}>
-          <ComparisonPreview />
+          <HeroVisualAnimation />
         </View>
+      </View>
 
-        <View style={styles.actions}>
-          <Button
-            label={t("welcome.login")}
-            onPress={() => router.push("/login")}
-          />
+      <View style={styles.actions}>
+        <Button
+          label={t("welcome.login")}
+          onPress={() => router.push("/login")}
+        />
 
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => router.push("/register")}
-            style={({ pressed }) => [
-              styles.secondaryButton,
-              { backgroundColor: colors.surface, borderColor: colors.primary },
-              pressed && styles.secondaryButtonPressed,
-            ]}
-          >
-            <Text style={[styles.secondaryButtonText, { color: colors.primary }]}>{t("welcome.register")}</Text>
-          </Pressable>
-        </View>
-      </ScrollView>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => router.push("/register")}
+          style={({ pressed }) => [
+            styles.secondaryButton,
+            { backgroundColor: colors.surface, borderColor: colors.primary },
+            pressed && styles.secondaryButtonPressed,
+          ]}
+        >
+          <Text style={[styles.secondaryButtonText, { color: colors.primary }]}>{t("welcome.register")}</Text>
+        </Pressable>
+      </View>
     </SafeAreaView>
   );
 }
@@ -91,6 +104,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.background,
+    justifyContent: "space-between",
+    overflow: "hidden",
   },
 
   loadingContainer: {
@@ -100,36 +115,31 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
   },
 
-  scrollView: {
-    flex: 1,
-  },
-
-  content: {
-    flexGrow: 1,
-    paddingHorizontal: Spacing.xl,
-    paddingTop: Spacing.xl,
-    paddingBottom: Spacing.lg,
-  },
-
-  topBar: {
+  header: {
     alignItems: "center",
     flexDirection: "row",
     justifyContent: "space-between",
-    paddingHorizontal: Spacing.xl,
-    paddingTop: Spacing.md,
+    width: "100%",
+  },
+
+  headerControls: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 10,
+  },
+
+  hero: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 1,
+    width: "100%",
   },
 
   introContent: {
+    maxWidth: 320,
     width: "100%",
-    marginBottom: Spacing.lg,
-  },
-
-  brand: {
-    color: Colors.primary,
-    fontSize: 18,
-    lineHeight: 24,
-    fontWeight: "700",
-    marginBottom: Spacing.sm,
+    marginVertical: Spacing.xs,
   },
 
   title: {
@@ -138,22 +148,34 @@ const styles = StyleSheet.create({
     lineHeight: 36,
     fontWeight: "800",
     textAlign: "center",
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.xs,
   },
 
   description: {
     ...Typography.body,
     color: Colors.textSecondary,
-    textAlign: "left",
+    textAlign: "center",
+    marginBottom: Spacing.sm,
   },
 
   previewSection: {
+    maxWidth: 300,
     width: "100%",
+    alignItems: "center",
+    flexShrink: 1,
+    justifyContent: "center",
   },
 
   actions: {
-    gap: Spacing.md,
-    marginTop: Spacing.lg,
+    width: "100%",
+    gap: 10,
+  },
+
+  brandTitle: {
+    color: Colors.primary,
+    fontSize: 18,
+    lineHeight: 24,
+    fontWeight: "700",
   },
 
   secondaryButton: {
