@@ -1,4 +1,6 @@
+import "@/i18n";
 import React from "react";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Pressable,
@@ -21,6 +23,7 @@ export type ExportReportButtonProps = {
   disabled?: boolean;
   label?: string;
   loadingLabel?: string;
+  accessibilityHint?: string;
   testID?: string;
   variant?: "primary" | "secondary" | "outline";
   style?: StyleProp<ViewStyle>;
@@ -30,21 +33,33 @@ export function ExportReportButton({
   onPress,
   isLoading = false,
   disabled = false,
-  label = "📄 Exportar PDF",
-  loadingLabel = "Generando PDF...",
+  label,
+  loadingLabel,
+  accessibilityHint,
   testID = "export-report-button",
   variant = "outline",
   style,
 }: ExportReportButtonProps) {
+  const { t } = useTranslation();
   const theme = useTheme();
   const colors = theme?.colors || lightColors;
   const styles = React.useMemo(() => createStyles(colors), [colors]);
   const isActionDisabled = disabled || isLoading;
 
+  const displayLabel = label ?? `📄 ${t("result.exportPdf", "Exportar PDF")}`;
+  const displayLoadingLabel =
+    loadingLabel ?? t("result.generatingPdf", "Generando PDF...");
+  const displayHint =
+    accessibilityHint ??
+    t(
+      "result.exportPdfHint",
+      "Genera y exporta el informe completo de análisis en formato PDF profesional",
+    );
+
   return (
     <Pressable
-      accessibilityHint="Genera y exporta el informe completo de análisis en formato PDF profesional"
-      accessibilityLabel={isLoading ? loadingLabel : label}
+      accessibilityHint={displayHint}
+      accessibilityLabel={isLoading ? displayLoadingLabel : displayLabel}
       accessibilityRole="button"
       accessibilityState={{ disabled: isActionDisabled, busy: isLoading }}
       disabled={isActionDisabled}
@@ -78,7 +93,7 @@ export function ExportReportButton({
                 : styles.buttonTextOutline,
             ]}
           >
-            {loadingLabel}
+            {displayLoadingLabel}
           </Text>
         </>
       ) : (
@@ -90,7 +105,7 @@ export function ExportReportButton({
               : styles.buttonTextOutline,
           ]}
         >
-          {label}
+          {displayLabel}
         </Text>
       )}
     </Pressable>

@@ -222,6 +222,47 @@ describe("analysisService", () => {
     });
   });
 
+  it("maps provider unavailable 503 to provider_unavailable", async () => {
+    mocks.invoke.mockResolvedValue({
+      data: null,
+      error: {
+        context: new Response(
+          JSON.stringify({
+            code: "provider_unavailable",
+            message: "Gemini está recibiendo muchas solicitudes en este momento.",
+          }),
+          {
+            status: 503,
+            headers: { "Content-Type": "application/json" },
+          },
+        ),
+      },
+    });
+    await expect(requestComparisonAnalysis("comparison-1")).rejects.toMatchObject({
+      code: "provider_unavailable",
+    });
+  });
+
+  it("maps 500 response containing high demand text to provider_unavailable", async () => {
+    mocks.invoke.mockResolvedValue({
+      data: null,
+      error: {
+        context: new Response(
+          JSON.stringify({
+            error: "This model is currently experiencing high demand.",
+          }),
+          {
+            status: 500,
+            headers: { "Content-Type": "application/json" },
+          },
+        ),
+      },
+    });
+    await expect(requestComparisonAnalysis("comparison-1")).rejects.toMatchObject({
+      code: "provider_unavailable",
+    });
+  });
+
   it("maps analysis in progress to analysis_in_progress", async () => {
     mocks.invoke.mockResolvedValue({
       data: null,

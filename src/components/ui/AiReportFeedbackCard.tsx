@@ -1,15 +1,13 @@
-import React, { useState } from "react";
-import {
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import "@/i18n";
+import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
-import { Colors } from "@/constants/colors";
+import { lightColors, type ColorPalette } from "@/constants/colors";
 import { Radius } from "@/constants/radius";
 import { Spacing } from "@/constants/spacing";
 import { Typography } from "@/constants/typography";
+import { useTheme } from "@/context/ThemeContext";
 
 export type FeedbackRating = "useful" | "not_useful";
 
@@ -22,7 +20,9 @@ export type AiReportFeedbackCardProps = {
 // Almacén en memoria por sesión indexado por ID de comparación
 const sessionFeedbackStore = new Map<string, FeedbackRating>();
 
-export function getSessionFeedback(comparisonId: string): FeedbackRating | null {
+export function getSessionFeedback(
+  comparisonId: string,
+): FeedbackRating | null {
   return sessionFeedbackStore.get(comparisonId) ?? null;
 }
 
@@ -42,6 +42,11 @@ export function AiReportFeedbackCard({
   initialFeedback = null,
   onFeedbackSelected,
 }: AiReportFeedbackCardProps) {
+  const { t } = useTranslation();
+  const theme = useTheme();
+  const colors = theme?.colors || lightColors;
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const [feedback, setFeedback] = useState<FeedbackRating | null>(() => {
     if (initialFeedback) return initialFeedback;
     if (comparisonId) {
@@ -64,16 +69,24 @@ export function AiReportFeedbackCard({
   return (
     <View style={styles.card} testID="ai-report-feedback-card">
       <View style={styles.header}>
-        <Text style={styles.title}>¿Te resultó útil este análisis?</Text>
+        <Text style={styles.title}>
+          {t("feedback.title", "¿Te resultó útil este análisis?")}
+        </Text>
         <Text style={styles.subtitle}>
-          Tu retroalimentación nos ayuda a seguir mejorando la precisión del modelo.
+          {t(
+            "feedback.subtitle",
+            "Tu retroalimentación nos ayuda a seguir mejorando la precisión del modelo.",
+          )}
         </Text>
       </View>
 
       <View style={styles.actionsRow}>
         <Pressable
-          accessibilityHint="Indica que el análisis comparativo fue útil y preciso"
-          accessibilityLabel="Útil"
+          accessibilityHint={t(
+            "feedback.usefulHint",
+            "Indica que el análisis comparativo fue útil y preciso",
+          )}
+          accessibilityLabel={t("feedback.useful", "Útil")}
           accessibilityRole="button"
           accessibilityState={{ selected: isUsefulSelected }}
           onPress={() => handleSelect("useful")}
@@ -90,13 +103,16 @@ export function AiReportFeedbackCard({
               isUsefulSelected && styles.buttonTextActiveUseful,
             ]}
           >
-            Útil
+            {t("feedback.useful", "Útil")}
           </Text>
         </Pressable>
 
         <Pressable
-          accessibilityHint="Indica que el análisis comparativo necesita mejoras"
-          accessibilityLabel="No útil"
+          accessibilityHint={t(
+            "feedback.notUsefulHint",
+            "Indica que el análisis comparativo necesita mejoras",
+          )}
+          accessibilityLabel={t("feedback.notUseful", "No útil")}
           accessibilityRole="button"
           accessibilityState={{ selected: isNotUsefulSelected }}
           onPress={() => handleSelect("not_useful")}
@@ -113,7 +129,7 @@ export function AiReportFeedbackCard({
               isNotUsefulSelected && styles.buttonTextActiveNotUseful,
             ]}
           >
-            No útil
+            {t("feedback.notUseful", "No útil")}
           </Text>
         </Pressable>
       </View>
@@ -126,7 +142,7 @@ export function AiReportFeedbackCard({
         >
           <Text style={styles.thankYouIcon}>🎉</Text>
           <Text style={styles.thankYouText}>
-            ¡Gracias por tu retroalimentación!
+            {t("feedback.thankYou", "¡Gracias por tu retroalimentación!")}
           </Text>
         </View>
       ) : null}
@@ -134,115 +150,116 @@ export function AiReportFeedbackCard({
   );
 }
 
-const styles = StyleSheet.create({
-  card: {
-    marginTop: Spacing.xl,
-    padding: Spacing.lg,
-    backgroundColor: Colors.surfaceBlue,
-    borderRadius: Radius.lg,
-    borderWidth: 1,
-    borderColor: Colors.borderPrimary,
-  },
+function createStyles(colors: ColorPalette) {
+  return StyleSheet.create({
+    card: {
+      marginTop: Spacing.xl,
+      padding: Spacing.lg,
+      backgroundColor: colors.surfaceBlue,
+      borderRadius: Radius.lg,
+      borderWidth: 1,
+      borderColor: colors.borderPrimary,
+    },
 
-  header: {
-    alignItems: "center",
-    marginBottom: Spacing.md,
-  },
+    header: {
+      alignItems: "center",
+      marginBottom: Spacing.md,
+    },
 
-  title: {
-    ...Typography.label,
-    fontSize: 15,
-    lineHeight: 22,
-    fontWeight: "600",
-    color: Colors.textPrimary,
-    textAlign: "center",
-    marginBottom: Spacing.xs,
-  },
+    title: {
+      ...Typography.label,
+      fontSize: 15,
+      lineHeight: 22,
+      fontWeight: "600",
+      color: colors.textPrimary,
+      textAlign: "center",
+      marginBottom: Spacing.xs,
+    },
 
-  subtitle: {
-    ...Typography.body,
-    fontSize: 13,
-    lineHeight: 18,
-    color: Colors.textSecondary,
-    textAlign: "center",
-  },
+    subtitle: {
+      ...Typography.body,
+      fontSize: 13,
+      lineHeight: 18,
+      color: colors.textSecondary,
+      textAlign: "center",
+    },
 
-  actionsRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: Spacing.md,
-  },
+    actionsRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: Spacing.md,
+    },
 
-  feedbackButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    minWidth: 110,
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.lg,
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.full,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    gap: Spacing.xs,
-  },
+    feedbackButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      minWidth: 110,
+      paddingVertical: Spacing.sm,
+      paddingHorizontal: Spacing.lg,
+      backgroundColor: colors.surface,
+      borderRadius: Radius.full,
+      borderWidth: 1,
+      borderColor: colors.border,
+      gap: Spacing.xs,
+    },
 
-  feedbackButtonActiveUseful: {
-    backgroundColor: Colors.successSoft,
-    borderColor: Colors.success,
-  },
+    feedbackButtonActiveUseful: {
+      backgroundColor: colors.successSoft,
+      borderColor: colors.success,
+    },
 
-  feedbackButtonActiveNotUseful: {
-    backgroundColor: Colors.surfaceSecondary,
-    borderColor: Colors.borderStrong,
-  },
+    feedbackButtonActiveNotUseful: {
+      backgroundColor: colors.surfaceSecondary,
+      borderColor: colors.borderStrong,
+    },
 
-  buttonIcon: {
-    fontSize: 16,
-  },
+    buttonIcon: {
+      fontSize: 16,
+    },
 
-  buttonText: {
-    ...Typography.label,
-    fontSize: 14,
-    color: Colors.textPrimary,
-  },
+    buttonText: {
+      ...Typography.label,
+      fontSize: 14,
+      color: colors.textPrimary,
+    },
 
-  buttonTextActiveUseful: {
-    color: Colors.successDark,
-    fontWeight: "700",
-  },
+    buttonTextActiveUseful: {
+      color: colors.successDark,
+      fontWeight: "700",
+    },
 
-  buttonTextActiveNotUseful: {
-    color: Colors.textPrimary,
-    fontWeight: "700",
-  },
+    buttonTextActiveNotUseful: {
+      color: colors.textPrimary,
+      fontWeight: "700",
+    },
 
-  thankYouBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: Spacing.md,
-    paddingVertical: Spacing.xs,
-    paddingHorizontal: Spacing.md,
-    backgroundColor: Colors.successSoft,
-    borderRadius: Radius.md,
-    gap: Spacing.xs,
-    borderWidth: 1,
-    borderColor: Colors.success,
-  },
+    thankYouBadge: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      marginTop: Spacing.md,
+      paddingVertical: Spacing.xs,
+      paddingHorizontal: Spacing.md,
+      backgroundColor: colors.successSoft,
+      borderRadius: Radius.md,
+      gap: Spacing.xs,
+      borderWidth: 1,
+      borderColor: colors.success,
+    },
 
-  thankYouIcon: {
-    fontSize: 14,
-    color: Colors.successDark,
-  },
+    thankYouIcon: {
+      fontSize: 14,
+      color: colors.successDark,
+    },
 
-  thankYouText: {
-    ...Typography.label,
-    fontSize: 13,
-    lineHeight: 18,
-    color: Colors.successDark,
-    fontWeight: "600",
-  },
-});
-
+    thankYouText: {
+      ...Typography.label,
+      fontSize: 13,
+      lineHeight: 18,
+      color: colors.successDark,
+      fontWeight: "600",
+    },
+  });
+}

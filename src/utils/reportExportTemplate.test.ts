@@ -62,6 +62,13 @@ describe("reportExportTemplate", () => {
       expect(formatted).toMatch(/octubre/i);
     });
 
+    it("formats valid ISO date string to English readable format with AM/PM when locale is en", () => {
+      const formatted = formatReportDate("2026-10-26T15:30:00.000Z", "en");
+      expect(formatted).toContain("2026");
+      expect(formatted).toMatch(/october/i);
+      expect(formatted).toMatch(/AM|PM/i);
+    });
+
     it("falls back gracefully for invalid date strings", () => {
       expect(formatReportDate("fecha-invalida")).toBe("fecha-invalida");
     });

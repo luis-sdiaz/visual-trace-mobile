@@ -102,20 +102,20 @@ El contrato de respuesta `1.0` exige:
 
 La respuesta del proveedor se valida antes de persistirse. Los informes quedan ligados a las rutas exactas de las fotografías; si éstas cambian durante el análisis, el resultado obsoleto se rechaza. Las reservas concurrentes se deduplican y los intentos inciertos se conservan para contabilizar cuota de forma conservadora.
 
-El modelo predeterminado en código es `gemini-2.5-flash`; debe confirmarse su disponibilidad para el proyecto de Google antes de la primera prueba real.
+El modelo predeterminado en código es `gemini-3.5-flash`; debe confirmarse su disponibilidad para el proyecto de Google antes de la primera prueba real.
 
 ## Límites de consumo
 
-La Edge Function falla de forma cerrada si las cuatro cuotas no están configuradas con enteros seguros. Los máximos admitidos por el código son:
+La Edge Function implementa control defensivo de cuotas mediante procedimientos almacenados en PostgreSQL (`reserve_ai_analysis_usage`). Si las variables de entorno de cuota no se encuentran configuradas en los secretos de Supabase o contienen valores no numéricos, el sistema aplica valores predeterminados seguros (tier gratuito: 3/minuto, 10/día global, 6/día por usuario, 3/día por comparación) para prevenir caídas críticas del runtime (`usageLimits.ts`). Los topes máximos admitidos son:
 
-| Variable | Máximo |
-| --- | ---: |
-| `AI_GLOBAL_PER_MINUTE` | 3 |
-| `AI_GLOBAL_PER_DAY` | 10 |
-| `AI_USER_PER_DAY` | 6 |
-| `AI_COMPARISON_PER_DAY` | 3 |
+| Variable | Máximo | Por defecto (Free Tier) |
+| --- | ---: | ---: |
+| `AI_GLOBAL_PER_MINUTE` | 3 | 3 |
+| `AI_GLOBAL_PER_DAY` | 10 | 10 |
+| `AI_USER_PER_DAY` | 6 | 6 |
+| `AI_COMPARISON_PER_DAY` | 3 | 3 |
 
-Se puede elegir un valor menor, pero nunca cero, un valor no entero o uno superior al máximo.
+Se puede elegir un valor menor o igual al máximo configurando la variable correspondiente. Si se especifica un valor que supere el máximo o sea menor a 1, el lector de cuotas recurre de forma segura al valor por defecto.
 
 ## Configuración
 
@@ -189,11 +189,13 @@ Antes de modificar Supabase remoto:
 Orden de las migraciones incluidas:
 
 ```text
+202610140000_create_comparisons_table.sql
 202610140001_create_ai_analysis_reports.sql
 202610140002_create_ai_usage_limits.sql
 202610140003_allow_safe_ai_analysis_retries.sql
 202610140004_fix_ai_analysis_reports_rls.sql
 202610150001_version_private_comparison_storage.sql
+202610250001_ensure_ai_analysis_rpcs_and_tables.sql
 ```
 
 Después de validar las migraciones:

@@ -38,4 +38,9 @@ describe("i18n", () => {
     localizationMock.getLocales.mockReturnValue([]);
     expect(getDeviceLanguage()).toBe(FALLBACK_LANGUAGE);
   });
+
+  it("provides passwordHelper in both Spanish and English", () => {
+    expect(i18n.t("auth.passwordHelper", { lng: "es" })).toContain("8 y 72 caracteres");
+    expect(i18n.t("auth.passwordHelper", { lng: "en" })).toContain("8 and 72 characters");
+  });
 });

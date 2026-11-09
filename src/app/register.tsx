@@ -267,8 +267,7 @@ export default function RegisterScreen() {
               />
 
               <Text style={[styles.helperText, { color: colors.textSecondary }]}>
-                Utiliza entre 8 y 72 caracteres, con al menos una letra y un
-                número.
+                {t("auth.passwordHelper")}
               </Text>
 
               {shouldShowFieldError("password") ? (
@@ -333,19 +332,19 @@ export default function RegisterScreen() {
 
         <View style={styles.footer}>
           <Button
-            label={isLoading ? "Creando cuenta..." : "Crear cuenta"}
+            label={isLoading ? t("auth.registering") : t("auth.register")}
             disabled={isLoading}
             onPress={handleRegister}
           />
 
           <Text style={[styles.loginText, { color: colors.textSecondary }]}>
-            ¿Ya tienes una cuenta?{" "}
+            {t("auth.hasAccount")}{" "}
             <Text
               accessibilityRole="link"
               onPress={() => router.push("/login")}
               style={[styles.loginLink, { color: colors.primary }]}
             >
-              Inicia sesión
+              {t("auth.loginLink")}
             </Text>
           </Text>
         </View>

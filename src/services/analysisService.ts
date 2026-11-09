@@ -22,6 +22,7 @@ export type AnalysisErrorCode =
   | "usage_limit_reached"
   | "analysis_in_progress"
   | "reports_unavailable"
+  | "provider_unavailable"
   | "retryable"
   | "invalid_response";
 
@@ -140,28 +141,30 @@ export async function requestComparisonAnalysis(
     let status: number | undefined;
     let serverMessage: string | undefined;
     let scope: string | undefined;
+    let rawBodyText = "";
     const context = (error as { context?: unknown }).context;
     if (context instanceof Response) {
       status = context.status;
       try {
-        const bodyText = await context.clone().text();
-        if (status === 500 || status === 504) {
-          console.error("[analysisService] Cuerpo completo del error HTTP:", {
-            status,
-            bodyText,
-          });
-        } else {
-          console.error("[analysisService] Error devuelto por Edge Function:", {
-            status,
-            bodyText,
-          });
-        }
-        const body = JSON.parse(bodyText);
+        rawBodyText = await context.clone().text();
+        const body = JSON.parse(rawBodyText);
         code = body?.code;
         scope = typeof body?.scope === "string" ? body.scope : undefined;
         serverMessage = body?.error || body?.message;
       } catch {
         code = undefined;
+      }
+      if (status === 500) {
+        console.warn("[analysisService] Error 500 recibido de Edge Function:", {
+          status,
+          code,
+          serverMessage,
+        });
+      } else {
+        console.info("[analysisService] Respuesta no exitosa de Edge Function:", {
+          status,
+          code,
+        });
       }
     } else if (typeof context === "object" && context !== null) {
       const obj = context as Record<string, unknown>;
@@ -174,11 +177,24 @@ export async function requestComparisonAnalysis(
           : typeof obj.message === "string"
             ? obj.message
             : undefined;
-      console.error("[analysisService] Error devuelto por Edge Function:", {
+      console.warn("[analysisService] Diagnóstico devuelto por Edge Function:", {
         status,
         code,
-        obj,
       });
+    }
+
+    const isHighDemand =
+      code === "provider_unavailable" ||
+      (status === 503 && code !== "usage_limits_unavailable") ||
+      rawBodyText.includes("high demand") ||
+      rawBodyText.includes("UNAVAILABLE") ||
+      (typeof serverMessage === "string" && serverMessage.toLowerCase().includes("high demand"));
+
+    if (isHighDemand) {
+      throw new AnalysisServiceError(
+        "provider_unavailable",
+        "Gemini está recibiendo muchas solicitudes en este momento. Tus fotografías están guardadas. Puedes intentarlo nuevamente en unos momentos.",
+      );
     }
 
     if (

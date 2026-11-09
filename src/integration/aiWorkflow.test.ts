@@ -84,6 +84,7 @@ describe("end-to-end AI analysis orchestration", () => {
   });
 
   it.each([
+    ["provider_unavailable", 503],
     ["model_unavailable", 500],
     ["provider_quota_exceeded", 429],
     ["gemini_timeout", 500],

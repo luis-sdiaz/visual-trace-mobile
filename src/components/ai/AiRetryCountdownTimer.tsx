@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+import "@/i18n";
 import { StyleSheet, Text, View } from "react-native";
 
 import { Colors } from "@/constants/colors";
@@ -56,14 +58,17 @@ export function AiRetryCountdownTimer({
     return () => clearInterval(interval);
   }, [onTimerComplete, secondsRemaining]);
 
+  const { t } = useTranslation();
   const isCompleted = secondsRemaining === 0;
 
   return (
     <View
       accessibilityLabel={
         isCompleted
-          ? "Tiempo de espera finalizado, reintento disponible"
-          : `Tiempo de espera para reintento: ${secondsRemaining} segundos`
+          ? t("analysis.timerAccessibilityCompleted", "Tiempo de espera finalizado, reintento disponible")
+          : t("analysis.timerAccessibilityWaiting", `Tiempo de espera para reintento: ${secondsRemaining} segundos`, {
+              seconds: secondsRemaining,
+            })
       }
       accessibilityLiveRegion="polite"
       accessibilityRole="timer"
@@ -76,14 +81,16 @@ export function AiRetryCountdownTimer({
 
       <View style={styles.textContainer}>
         <Text style={styles.label}>
-          {isCompleted ? "¡Tiempo de espera completado!" : "Tiempo de espera para reintento:"}
+          {isCompleted
+            ? t("analysis.timerCompleted", "¡Tiempo de espera completado!")
+            : t("analysis.timerWaiting", "Tiempo de espera para reintento:")}
         </Text>
         <Text
           style={[styles.timerValue, isCompleted && styles.timerValueReady]}
           testID="countdown-time-value"
         >
           {isCompleted
-            ? "Listo para reintentar"
+            ? t("analysis.readyToRetry", "Listo para reintentar")
             : `${formatSecondsToTime(secondsRemaining)} (${secondsRemaining}s)`}
         </Text>
       </View>

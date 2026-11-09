@@ -72,8 +72,8 @@
       "refreshError": "No pudimos actualizar tus comparaciones. Inténtalo nuevamente.",
       "loadError": "No pudimos cargar tus comparaciones. Inténtalo nuevamente.",
       "empty": "Tus registros aparecerán aquí después de crear tu primera comparación.",
-      "comparison": "Abrir comparación"
-      ,"noMatches": "No encontramos coincidencias",
+      "comparison": "Abrir comparación",
+      "noMatches": "No encontramos coincidencias",
       "noComparisons": "Aún no tienes comparaciones",
       "noMatchesHint": "Prueba con otros criterios o selecciona Todas.",
       "historyEnd": "No hay más comparaciones para mostrar."
@@ -100,7 +100,8 @@
       "registering": "Creando cuenta...",
       "hasAccount": "¿Ya tienes una cuenta?",
       "loginLink": "Inicia sesión",
-      "accountCreated": "Cuenta creada. Confirma tu correo electrónico antes de iniciar sesión."
+      "accountCreated": "Cuenta creada. Confirma tu correo electrónico antes de iniciar sesión.",
+      "passwordHelper": "Utiliza entre 8 y 72 caracteres, con al menos una letra y un número."
     },
     "flow": {
       "step1": "PASO 1 DE 3",
@@ -212,7 +213,20 @@
       "reportUnavailable": "El análisis con IA todavía no está disponible. Tus fotografías están guardadas y podrás analizarlas cuando el servicio esté habilitado.",
       "reportError": "No pudimos consultar el informe guardado. Tus fotografías siguen disponibles.",
       "networkError": "Sin conexión a internet. Comprueba tu conectividad y vuelve a intentar.",
-      "renameError": "No pudimos cambiar el nombre. Inténtalo nuevamente."
+      "renameError": "No pudimos cambiar el nombre. Inténtalo nuevamente.",
+      "providerUnavailableTitle": "Servicio de IA temporalmente ocupado",
+      "providerUnavailable": "Gemini está recibiendo muchas solicitudes en este momento. Tus fotografías están guardadas. Puedes intentarlo nuevamente en unos momentos.",
+      "providerUnavailableSuggestions": [
+        "Espera unos segundos y reintenta la solicitud.",
+        "Tus fotografías inicial y final están guardadas de forma segura.",
+        "El servicio de Gemini suele restablecerse rápidamente tras picos de demanda."
+      ],
+      "summaryTitle": "Resumen de la comparación",
+      "timerCompleted": "¡Tiempo de espera completado!",
+      "timerWaiting": "Tiempo de espera para reintento:",
+      "readyToRetry": "Listo para reintentar",
+      "timerAccessibilityCompleted": "Tiempo de espera finalizado, reintento disponible",
+      "timerAccessibilityWaiting": "Tiempo de espera para reintento: {{seconds}} segundos"
     },
     "aiReport": {
       "impactTitle": "EVALUACIÓN DE IMPACTO",
@@ -285,7 +299,55 @@
       "cancel": "Cancelar",
       "save": "Guardar",
       "reanalyze": "Re-analizar comparación",
-      "disclaimer": "VisualTrace identificará posibles diferencias visibles. La revisión final siempre corresponde al usuario."
+      "disclaimer": "VisualTrace identificará posibles diferencias visibles. La revisión final siempre corresponde al usuario.",
+      "exportPdf": "Exportar PDF",
+      "generatingPdf": "Generando PDF...",
+      "exportPdfHint": "Genera y exporta el informe completo de análisis en formato PDF profesional",
+      "shareError": "No fue posible compartir el reporte.",
+      "sharePdfError": "No fue posible generar o compartir el reporte PDF."
+    },
+    "feedback": {
+      "title": "¿Te resultó útil este análisis?",
+      "subtitle": "Tu retroalimentación nos ayuda a seguir mejorando la precisión del modelo.",
+      "useful": "Útil",
+      "notUseful": "No útil",
+      "usefulHint": "Indica que el análisis comparativo fue útil y preciso",
+      "notUsefulHint": "Indica que el análisis comparativo necesita mejoras",
+      "thankYou": "¡Gracias por tu retroalimentación!"
+    },
+    "reportPreview": {
+      "title": "Vista previa del informe",
+      "defaultComparisonName": "Informe Comparativo",
+      "close": "Cerrar vista previa",
+      "closeHint": "Cierra la ventana de vista previa",
+      "initialState": "Estado Inicial",
+      "finalState": "Estado Final",
+      "initialThumbnail": "Miniatura estado inicial",
+      "finalThumbnail": "Miniatura estado final",
+      "noImage": "Sin imagen",
+      "executiveSummary": "📌 Resumen Ejecutivo",
+      "findingIdentified": "hallazgo identificado",
+      "findingsIdentified": "hallazgos identificados",
+      "findingsNotice": "El documento incluirá el desglose detallado con observaciones y advertencias de IA.",
+      "cancel": "Cancelar",
+      "cancelHint": "Cancela y cierra el diálogo",
+      "sharePdf": "↗ Compartir PDF",
+      "sharePdfLabel": "Compartir PDF",
+      "sharePdfHint": "Exporta y comparte el informe completo en PDF",
+      "generating": "Generando..."
+    },
+    "reanalyze": {
+      "title": "¿Re-analizar comparación?",
+      "badge": "Consume 1 intento de cuota",
+      "description": "Esta acción enviará nuevamente tus fotografías a Gemini Flash para generar un nuevo análisis comparativo.",
+      "warningQuota": "Consumirá 1 intento de tu cuota diaria disponible de IA.",
+      "warningInternet": "Requiere una conexión a internet activa y estable.",
+      "warningSafePhotos": "Tus fotografías guardadas permanecen intactas y seguras.",
+      "cancel": "Cancelar",
+      "cancelHint": "Cierra este diálogo sin realizar ninguna acción",
+      "confirm": "Confirmar re-análisis",
+      "confirmHint": "Inicia la solicitud de re-análisis en la nube",
+      "modalLabel": "Confirmar re-análisis de IA"
     }
   }
 }

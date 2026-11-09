@@ -254,6 +254,28 @@ describe("analyze-comparison authorization", () => {
     });
   });
 
+  it("returns a structured 503 when Gemini is experiencing high demand (provider_unavailable)", async () => {
+    const handler = createAnalyzeComparisonHandler({
+      authenticate: vi.fn().mockResolvedValue(user),
+      findComparison: vi.fn().mockResolvedValue(completeComparison),
+      loadImages,
+      analyzeImages: vi.fn().mockRejectedValue({
+        code: "provider_unavailable",
+        message: "Gemini está experimentando alta demanda.",
+      }),
+      persistReport,
+      reserveUsage,
+      completeUsage,
+    });
+
+    const response = await handler(request({ comparisonId }));
+
+    expect(response.status).toBe(503);
+    await expect(response.json()).resolves.toMatchObject({
+      code: "provider_unavailable",
+    });
+  });
+
   it("catches unhandled exceptions and returns 500 with CORS headers and structured error", async () => {
     const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     const handler = createAnalyzeComparisonHandler({
@@ -287,7 +309,7 @@ describe("analyze-comparison authorization", () => {
       error: "Simulated unexpected runtime crash",
       code: "internal_error",
     });
-    expect(body.stack).toBeDefined();
+    expect(body.stack).toBeUndefined();
     expect(consoleErrorSpy).toHaveBeenCalledWith(
       "[analyze-comparison] Unhandled error:",
       expect.any(Error),

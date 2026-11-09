@@ -34,6 +34,7 @@ export class GeminiRequestError extends Error {
       | "gemini_not_configured"
       | "model_unavailable"
       | "provider_quota_exceeded"
+      | "provider_unavailable"
       | "gemini_timeout"
       | "gemini_network_error"
       | "invalid_gemini_request"
@@ -135,6 +136,17 @@ async function throwProviderError(response: Response): Promise<never> {
     throw new GeminiRequestError(
       "invalid_gemini_request",
       providerMessage || "Gemini rechazó la solicitud de análisis.",
+    );
+  }
+  if (
+    response.status === 503 ||
+    providerStatus === "UNAVAILABLE" ||
+    rawText.includes("high demand") ||
+    rawText.includes("overloaded")
+  ) {
+    throw new GeminiRequestError(
+      "provider_unavailable",
+      providerMessage || "El servicio de Gemini está experimentando alta demanda.",
     );
   }
 

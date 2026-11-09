@@ -19,6 +19,7 @@ vi.mock("react-native", async () => {
   };
 });
 
+import i18n from "@/i18n";
 import { AiReanalyzeConfirmationModal } from "./AiReanalyzeConfirmationModal";
 
 describe("AiReanalyzeConfirmationModal", () => {
@@ -57,6 +58,26 @@ describe("AiReanalyzeConfirmationModal", () => {
 
     expect(html).not.toContain("¿Re-analizar comparación?");
     expect(html).not.toContain("Confirmar re-análisis");
+  });
+
+  it("renders localized text in English when active language is en", async () => {
+    await i18n.changeLanguage("en");
+    try {
+      const html = renderToStaticMarkup(
+        React.createElement(AiReanalyzeConfirmationModal, {
+          visible: true,
+          onCancel: vi.fn(),
+          onConfirm: vi.fn(),
+        }),
+      );
+
+      expect(html).toContain("Re-analyze comparison?");
+      expect(html).toContain("Consumes 1 quota attempt");
+      expect(html).toContain("Cancel");
+      expect(html).toContain("Confirm re-analysis");
+    } finally {
+      await i18n.changeLanguage("es");
+    }
   });
 });
 

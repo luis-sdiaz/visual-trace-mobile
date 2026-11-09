@@ -3,6 +3,7 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it } from "vitest";
 
+import i18n from "@/i18n";
 import {
   AiReportFeedbackCard,
   clearSessionFeedback,
@@ -117,6 +118,46 @@ describe("AiReportFeedbackCard", () => {
       expect(html).toContain('aria-label="Útil"');
       expect(html).toContain('aria-label="No útil"');
       expect(html).toContain("ai-report-feedback-card");
+    });
+  });
+
+  describe("internationalization in English", () => {
+    it("renders all feedback text in English when language is en", async () => {
+      await i18n.changeLanguage("en");
+      try {
+        const html = renderToStaticMarkup(
+          React.createElement(AiReportFeedbackCard, {
+            comparisonId: "cmp-en",
+            initialFeedback: "useful",
+          }),
+        );
+
+        expect(html).toContain("Was this analysis helpful?");
+        expect(html).toContain("Helpful");
+        expect(html).toContain("Not helpful");
+        expect(html).toContain("Thank you for your feedback!");
+        expect(html).toContain('aria-label="Helpful"');
+        expect(html).toContain('aria-label="Not helpful"');
+      } finally {
+        await i18n.changeLanguage("es");
+      }
+    });
+
+    it("renders negative feedback in English when initialFeedback is not_useful", async () => {
+      await i18n.changeLanguage("en");
+      try {
+        const html = renderToStaticMarkup(
+          React.createElement(AiReportFeedbackCard, {
+            comparisonId: "cmp-en-not-useful",
+            initialFeedback: "not_useful",
+          }),
+        );
+
+        expect(html).toContain("Was this analysis helpful?");
+        expect(html).toContain("Thank you for your feedback!");
+      } finally {
+        await i18n.changeLanguage("es");
+      }
     });
   });
 });

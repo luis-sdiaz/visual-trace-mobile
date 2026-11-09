@@ -1,3 +1,4 @@
+import { calculateVisualSeverity } from "@/components/ui/AiAnalysisSummaryCard";
 import { Colors } from "@/constants/colors";
 import { Radius } from "@/constants/radius";
 import { Spacing } from "@/constants/spacing";
@@ -6,7 +7,6 @@ import type {
   ExportReportOptions,
 } from "@/contracts/reportExport";
 import { validateExportOptions } from "@/contracts/reportExport";
-import { calculateVisualSeverity } from "@/components/ui/AiAnalysisSummaryCard";
 import { CATEGORY_LABELS } from "./reportExport";
 
 /**
@@ -23,11 +23,16 @@ export function escapeHtml(str?: string | null): string {
 }
 
 /**
- * Formatea una fecha ISO o string a formato legible en español.
+ * Formatea una fecha ISO o string a formato legible en la configuración regional activa.
  */
-export function formatReportDate(dateString?: string | null): string {
+export function formatReportDate(
+  dateString?: string | null,
+  locale = "es-ES",
+): string {
+  const resolvedLocale =
+    locale && locale.toLowerCase().startsWith("en") ? "en-US" : "es-ES";
   if (!dateString) {
-    return new Date().toLocaleDateString("es-ES", {
+    return new Date().toLocaleDateString(resolvedLocale, {
       year: "numeric",
       month: "long",
       day: "numeric",
@@ -41,7 +46,7 @@ export function formatReportDate(dateString?: string | null): string {
     if (isNaN(date.getTime())) {
       return dateString;
     }
-    return date.toLocaleDateString("es-ES", {
+    return date.toLocaleDateString(resolvedLocale, {
       year: "numeric",
       month: "long",
       day: "numeric",
@@ -85,16 +90,31 @@ export function generateReportHtml(
   const opts = validateExportOptions(options);
   const { report, metadata, images } = data;
 
-  const title = metadata?.comparisonName?.trim() || "Informe de Análisis Comparativo";
+  const title =
+    metadata?.comparisonName?.trim() || "Informe de Análisis Comparativo";
   const dateFormatted = formatReportDate(metadata?.createdAt);
-  const severity = calculateVisualSeverity(report.differences, report.hasVisibleChanges);
+  const severity = calculateVisualSeverity(
+    report.differences,
+    report.hasVisibleChanges,
+  );
 
-  const initialImgSrc = normalizeImageSource(images?.initialImageBase64 || images?.initialImageUri);
-  const finalImgSrc = normalizeImageSource(images?.finalImageBase64 || images?.finalImageUri);
-  const shouldRenderImages = opts.includeImages && (initialImgSrc || finalImgSrc);
+  const initialImgSrc = normalizeImageSource(
+    images?.initialImageBase64 || images?.initialImageUri,
+  );
+  const finalImgSrc = normalizeImageSource(
+    images?.finalImageBase64 || images?.finalImageUri,
+  );
+  const shouldRenderImages =
+    opts.includeImages && (initialImgSrc || finalImgSrc);
 
-  const hasObservations = opts.includeObservations && report.observations && report.observations.length > 0;
-  const hasUncertainties = opts.includeUncertainties && report.uncertainties && report.uncertainties.length > 0;
+  const hasObservations =
+    opts.includeObservations &&
+    report.observations &&
+    report.observations.length > 0;
+  const hasUncertainties =
+    opts.includeUncertainties &&
+    report.uncertainties &&
+    report.uncertainties.length > 0;
 
   return `<!DOCTYPE html>
 <html lang="es">

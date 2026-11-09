@@ -14,11 +14,9 @@ const JSON_HEADERS = {
 function errorResponse(error: unknown, status = 500): Response {
   const errorMessage =
     error instanceof Error ? error.message : "Internal server error";
-  const errorStack = error instanceof Error ? error.stack : undefined;
   return new Response(
     JSON.stringify({
       error: errorMessage,
-      stack: errorStack,
       code: "internal_error",
     }),
     {

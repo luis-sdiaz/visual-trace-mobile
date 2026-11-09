@@ -105,6 +105,7 @@ export interface AppTranslations {
     hasAccount: string;
     loginLink: string;
     accountCreated: string;
+    passwordHelper: string;
   };
   flow: {
     step1: string;
@@ -247,6 +248,15 @@ export interface AppTranslations {
     reportError: string;
     networkError: string;
     renameError: string;
+    providerUnavailableTitle: string;
+    providerUnavailable: string;
+    providerUnavailableSuggestions: string[];
+    summaryTitle: string;
+    timerCompleted: string;
+    timerWaiting: string;
+    readyToRetry: string;
+    timerAccessibilityCompleted: string;
+    timerAccessibilityWaiting: string;
   };
   aiReport: {
     impactTitle: string;
@@ -316,6 +326,54 @@ export interface AppTranslations {
     cancel: string;
     save: string;
     reanalyze: string;
+    exportPdf: string;
+    generatingPdf: string;
+    exportPdfHint: string;
+    shareError: string;
+    sharePdfError: string;
+  };
+  feedback: {
+    title: string;
+    subtitle: string;
+    useful: string;
+    notUseful: string;
+    usefulHint: string;
+    notUsefulHint: string;
+    thankYou: string;
+  };
+  reportPreview: {
+    title: string;
+    defaultComparisonName: string;
+    close: string;
+    closeHint: string;
+    initialState: string;
+    finalState: string;
+    initialThumbnail: string;
+    finalThumbnail: string;
+    noImage: string;
+    executiveSummary: string;
+    findingIdentified: string;
+    findingsIdentified: string;
+    findingsNotice: string;
+    cancel: string;
+    cancelHint: string;
+    sharePdf: string;
+    sharePdfLabel: string;
+    sharePdfHint: string;
+    generating: string;
+  };
+  reanalyze: {
+    title: string;
+    badge: string;
+    description: string;
+    warningQuota: string;
+    warningInternet: string;
+    warningSafePhotos: string;
+    cancel: string;
+    cancelHint: string;
+    confirm: string;
+    confirmHint: string;
+    modalLabel: string;
   };
 }
 

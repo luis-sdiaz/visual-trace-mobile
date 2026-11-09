@@ -70,6 +70,8 @@ describe("Gemini client", () => {
 
   it.each([
     [429, {}, "provider_quota_exceeded"],
+    [503, {}, "provider_unavailable"],
+    [503, { error: { status: "UNAVAILABLE", message: "This model is currently experiencing high demand." } }, "provider_unavailable"],
     [404, {}, "model_unavailable"],
     [401, {}, "gemini_not_configured"],
     [403, {}, "gemini_not_configured"],

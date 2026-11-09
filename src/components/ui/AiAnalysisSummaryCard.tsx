@@ -233,9 +233,12 @@ export function AiAnalysisSummaryCard({
 
         <View style={styles.metricDivider} />
 
-        <View style={styles.metricItem} testID="comparison-status-indicator">
+        <View
+          style={[styles.metricItem, styles.metricItemCenter]}
+          testID="comparison-status-indicator"
+        >
           <Text
-            numberOfLines={1}
+            numberOfLines={2}
             style={[styles.metricValueText, { color: severity.color }]}
           >
             {labels.statusLabel}
@@ -327,18 +330,24 @@ function createStyles(colors: ColorPalette) {
       borderWidth: 1,
       borderColor: colors.border,
       paddingVertical: Spacing.sm,
-      paddingHorizontal: Spacing.md,
+      paddingHorizontal: Spacing.sm,
     },
 
     metricItem: {
       flex: 1,
       alignItems: "center",
       justifyContent: "center",
+      paddingHorizontal: 2,
+    },
+
+    metricItemCenter: {
+      flex: 1.4,
+      paddingHorizontal: Spacing.xs,
     },
 
     metricDivider: {
       width: 1,
-      height: 24,
+      height: 28,
       backgroundColor: colors.border,
     },
 
@@ -353,7 +362,7 @@ function createStyles(colors: ColorPalette) {
     metricValueText: {
       ...Typography.label,
       fontSize: 12,
-      lineHeight: 16,
+      lineHeight: 15,
       fontWeight: "700",
       textAlign: "center",
     },
@@ -364,6 +373,7 @@ function createStyles(colors: ColorPalette) {
       lineHeight: 14,
       color: colors.textSecondary,
       marginTop: 2,
+      textAlign: "center",
     },
   });
 }

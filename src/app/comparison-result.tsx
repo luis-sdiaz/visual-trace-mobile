@@ -14,6 +14,7 @@ import {
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
+  Alert,
   AppState,
   BackHandler,
   Image,
@@ -441,27 +442,53 @@ export default function ComparisonResultScreen() {
       });
       if (result.success && !result.cancelled && analysisMountedRef.current) {
         setShowPreviewModal(false);
+      } else if (!result.success && !result.cancelled && analysisMountedRef.current) {
+        Alert.alert(
+          t("common.error", "Error"),
+          result.error || t("result.sharePdfError", "No fue posible generar o compartir el reporte PDF."),
+        );
+      }
+    } catch (error) {
+      if (analysisMountedRef.current) {
+        Alert.alert(
+          t("common.error", "Error"),
+          error instanceof Error
+            ? error.message
+            : t("result.sharePdfError", "No fue posible generar o compartir el reporte PDF."),
+        );
       }
     } finally {
       if (analysisMountedRef.current) {
         setIsExportingPdf(false);
       }
     }
-  }, [analysisReport, comparisonId, finalImageUri, initialImageUri, isExportingPdf, name, nameDraft]);
+  }, [analysisReport, comparisonId, finalImageUri, initialImageUri, isExportingPdf, name, nameDraft, t]);
 
   const handleShareReport = useCallback(async () => {
     if (!analysisReport || isSharingReport) return;
     setIsSharingReport(true);
     try {
-      await shareReportNative(analysisReport.result, {
+      const result = await shareReportNative(analysisReport.result, {
         comparisonName: nameDraft || name,
       });
+      if (!result.success && result.error && analysisMountedRef.current) {
+        Alert.alert(t("common.error", "Error"), result.error);
+      }
+    } catch (error) {
+      if (analysisMountedRef.current) {
+        Alert.alert(
+          t("common.error", "Error"),
+          error instanceof Error
+            ? error.message
+            : t("result.shareError", "No fue posible compartir el reporte."),
+        );
+      }
     } finally {
       if (analysisMountedRef.current) {
         setIsSharingReport(false);
       }
     }
-  }, [analysisReport, isSharingReport, name, nameDraft]);
+  }, [analysisReport, isSharingReport, name, nameDraft, t]);
 
   function handleRequestReanalysis() {
     setShowReanalyzeModal(true);
@@ -509,6 +536,11 @@ export default function ComparisonResultScreen() {
         !isOffline &&
         error instanceof AnalysisServiceError &&
         error.code === "usage_limit_reached";
+      const isProviderUnavailable =
+        !isOffline &&
+        !isQuota &&
+        error instanceof AnalysisServiceError &&
+        error.code === "provider_unavailable";
       const scope = error instanceof AnalysisServiceError ? error.scope : undefined;
 
       if (isOffline) {
@@ -522,6 +554,10 @@ export default function ComparisonResultScreen() {
         setAnalysisQuotaScope(scope);
         setAnalysisMessage("");
         setShowQuotaExceededModal(true);
+      } else if (isProviderUnavailable) {
+        setAnalysisStatus("analysis_error");
+        setAnalysisQuotaScope(undefined);
+        setAnalysisMessage(t("analysis.providerUnavailable"));
       } else {
         setAnalysisStatus("analysis_error");
         setAnalysisQuotaScope(undefined);
@@ -820,58 +856,51 @@ export default function ComparisonResultScreen() {
               <Text style={styles.reportEyebrow}>{t("result.aiSummary")}</Text>
             </View>
 
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.reportHeaderActionsScroll}
-              style={styles.reportHeaderActionsWrapper}
-            >
-              <View style={styles.reportHeaderActions}>
-                <Pressable
-                  accessibilityHint={t("result.copyHint")}
-                  accessibilityLabel={t("result.copy")}
-                  accessibilityRole="button"
-                  onPress={() => void handleCopyReport()}
+            <View style={styles.reportHeaderActions}>
+              <Pressable
+                accessibilityHint={t("result.copyHint")}
+                accessibilityLabel={t("result.copy")}
+                accessibilityRole="button"
+                onPress={() => void handleCopyReport()}
+                style={[
+                  styles.copyReportButton,
+                  copiedReport && styles.copyReportButtonActive,
+                ]}
+                testID="copy-report-button"
+              >
+                <Text
                   style={[
-                    styles.copyReportButton,
-                    copiedReport && styles.copyReportButtonActive,
+                    styles.copyReportButtonText,
+                    copiedReport && styles.copyReportButtonTextActive,
                   ]}
-                  testID="copy-report-button"
                 >
-                  <Text
-                    style={[
-                      styles.copyReportButtonText,
-                      copiedReport && styles.copyReportButtonTextActive,
-                    ]}
-                  >
-                    {copiedReport ? `✓ ${t("result.copied")}` : `📋 ${t("result.copy")}`}
-                  </Text>
-                </Pressable>
+                  {copiedReport ? `✓ ${t("result.copied")}` : `📋 ${t("result.copy")}`}
+                </Text>
+              </Pressable>
 
-                <Pressable
-                  accessibilityHint={t("result.shareHint")}
-                  accessibilityLabel={t("result.share")}
-                  accessibilityRole="button"
-                  disabled={isSharingReport}
-                  onPress={() => void handleShareReport()}
-                  style={[
-                    styles.shareReportButton,
-                    isSharingReport && styles.disabledButton,
-                  ]}
-                  testID="share-report-button"
-                >
-                  <Text style={styles.shareReportButtonText}>
-                    ↗ {t("result.share")}
-                  </Text>
-                </Pressable>
-                <ExportReportButton
-                  disabled={isExportingPdf}
-                  isLoading={isExportingPdf}
-                  onPress={handleOpenExportPreview}
-                  testID="export-pdf-report-button"
-                />
-              </View>
-            </ScrollView>
+              <Pressable
+                accessibilityHint={t("result.shareHint")}
+                accessibilityLabel={t("result.share")}
+                accessibilityRole="button"
+                disabled={isSharingReport}
+                onPress={() => void handleShareReport()}
+                style={[
+                  styles.shareReportButton,
+                  isSharingReport && styles.disabledButton,
+                ]}
+                testID="share-report-button"
+              >
+                <Text style={styles.shareReportButtonText}>
+                  ↗ {t("result.share")}
+                </Text>
+              </Pressable>
+              <ExportReportButton
+                disabled={isExportingPdf}
+                isLoading={isExportingPdf}
+                onPress={handleOpenExportPreview}
+                testID="export-pdf-report-button"
+              />
+            </View>
 
             {copiedReport ? (
               <View
@@ -887,9 +916,14 @@ export default function ComparisonResultScreen() {
             ) : null}
 
             <AiAnalysisSummaryCard report={analysisReport} />
-            <Text style={styles.reportSummary}>
-              {localizeAiReportText(analysisReport.result.summary, knownAiTranslations)}
-            </Text>
+            <View style={styles.summaryContainer}>
+              <Text style={styles.summaryTitle}>
+                {t("analysis.summaryTitle", "Resumen de la comparación")}
+              </Text>
+              <Text style={styles.reportSummary}>
+                {localizeAiReportText(analysisReport.result.summary, knownAiTranslations)}
+              </Text>
+            </View>
 
             {/* Sección: Diferencias detectadas con tarjetas desplegables por categoría */}
             <AiDifferencesCollapsible
@@ -942,7 +976,18 @@ export default function ComparisonResultScreen() {
         ) : analysisStatus === "analysis_error" || analysisStatus === "report_error" || analysisMessage ? (
           <AiAnalysisErrorFallbackCard
             errorMessage={analysisMessage}
-            onRetry={() => void executeAnalysisRequest()}
+            title={
+              analysisMessage === t("analysis.providerUnavailable")
+                ? t("analysis.providerUnavailableTitle")
+                : undefined
+            }
+            suggestions={
+              analysisMessage === t("analysis.providerUnavailable")
+                ? (t("analysis.providerUnavailableSuggestions", {
+                    returnObjects: true,
+                  }) as unknown as string[])
+                : undefined
+            }
           />
         ) : null}
 
@@ -1379,20 +1424,12 @@ function createStyles(colors: ColorPalette) {
     marginBottom: Spacing.xs,
   },
 
-  reportHeaderActionsWrapper: {
-    marginBottom: Spacing.md,
-  },
-
-  reportHeaderActionsScroll: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 2,
-  },
-
   reportHeaderActions: {
     flexDirection: "row",
+    flexWrap: "wrap",
     alignItems: "center",
-    gap: Spacing.xs,
+    gap: Spacing.sm,
+    marginBottom: Spacing.md,
   },
 
   copyReportButton: {
@@ -1471,6 +1508,17 @@ function createStyles(colors: ColorPalette) {
   reportEyebrow: {
     ...Typography.label,
     color: colors.primary,
+  },
+
+  summaryContainer: {
+    marginTop: Spacing.md,
+    marginBottom: Spacing.sm,
+  },
+
+  summaryTitle: {
+    ...Typography.title,
+    color: colors.textPrimary,
+    marginBottom: Spacing.xs,
   },
 
   reportSummary: {

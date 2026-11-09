@@ -68,11 +68,9 @@ function errorResponse(
 ): Response {
   const errorMessage =
     error instanceof Error ? error.message : "Internal server error";
-  const errorStack = error instanceof Error ? error.stack : undefined;
   return new Response(
     JSON.stringify({
       error: errorMessage,
-      ...(errorStack ? { stack: errorStack } : {}),
       ...extra,
     }),
     {
@@ -237,6 +235,13 @@ export function createAnalyzeComparisonHandler(dependencies: AnalyzeDependencies
 
         if (code === "provider_quota_exceeded") {
           return jsonResponse(429, code, "Gemini no tiene cuota disponible.");
+        }
+        if (code === "provider_unavailable") {
+          return jsonResponse(
+            503,
+            code,
+            "Gemini está recibiendo muchas solicitudes en este momento. Tus fotografías están guardadas.",
+          );
         }
         if (code === "gemini_timeout") {
           return jsonResponse(500, code, "Gemini excedió el tiempo de espera.");

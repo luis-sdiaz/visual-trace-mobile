@@ -21,6 +21,7 @@ vi.mock("react-native", async () => {
 
 import { GEMINI_ANALYSIS_CONTRACT_VERSION } from "@/contracts/geminiAnalysis";
 import type { ExportReportData } from "@/contracts/reportExport";
+import i18n from "@/i18n";
 import { ReportPreviewModal } from "./ReportPreviewModal";
 
 const mockReportData: ExportReportData = {
@@ -92,6 +93,8 @@ describe("ReportPreviewModal", () => {
     expect(html).toContain("Vista previa del informe");
     expect(html).toContain("Grieta en Fachada Principal");
     expect(html).toContain("preview-severity-badge");
+    expect(html).toContain("Menor");
+    expect(html).toMatch(/octubre/i);
     expect(html).toContain("Se observó cambio en la estructura de la grieta.");
     expect(html).toContain("1 hallazgo identificado");
     expect(html).toContain("preview-images-container");
@@ -141,6 +144,33 @@ describe("ReportPreviewModal", () => {
 
     element.props.onSharePdf();
     expect(shared).toBe(true);
+  });
+
+  it("renders localized preview in English when active language is en", async () => {
+    await i18n.changeLanguage("en");
+    try {
+      const html = renderToStaticMarkup(
+        <ReportPreviewModal
+          isGenerating={false}
+          onClose={vi.fn()}
+          onSharePdf={vi.fn()}
+          reportData={mockReportData}
+          visible={true}
+        />,
+      );
+
+      expect(html).toContain("Report preview");
+      expect(html).toContain("1 identified finding");
+      expect(html).toContain("Initial State");
+      expect(html).toContain("Final State");
+      expect(html).toContain("Minor");
+      expect(html).not.toContain("Menor");
+      expect(html).toMatch(/october/i);
+      expect(html).toContain("↗ Share PDF");
+      expect(html).toContain("Cancel");
+    } finally {
+      await i18n.changeLanguage("es");
+    }
   });
 });
 

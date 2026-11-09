@@ -100,7 +100,8 @@
       "registering": "Creating account...",
       "hasAccount": "Already have an account?",
       "loginLink": "Sign in",
-      "accountCreated": "Account created. Confirm your email before signing in."
+      "accountCreated": "Account created. Confirm your email before signing in.",
+      "passwordHelper": "Use between 8 and 72 characters, with at least one letter and one number."
     },
     "flow": {
       "step1": "STEP 1 OF 3",
@@ -212,7 +213,20 @@
       "reportUnavailable": "AI analysis is not available yet. Your photos are saved and can be analyzed when the service is enabled.",
       "reportError": "We could not retrieve the saved report. Your photos are still available.",
       "networkError": "No internet connection. Check your connectivity and try again.",
-      "renameError": "We could not rename it. Please try again."
+      "renameError": "We could not rename it. Please try again.",
+      "providerUnavailableTitle": "AI service temporarily busy",
+      "providerUnavailable": "Gemini is currently experiencing high demand. Your photos are saved safely. Please try again in a few moments.",
+      "providerUnavailableSuggestions": [
+        "Wait a few seconds and retry the request.",
+        "Your initial and final photos are safely saved.",
+        "Gemini service usually recovers quickly after traffic peaks."
+      ],
+      "summaryTitle": "Comparison summary",
+      "timerCompleted": "Wait time completed!",
+      "timerWaiting": "Retry wait time:",
+      "readyToRetry": "Ready to retry",
+      "timerAccessibilityCompleted": "Wait time finished, retry available",
+      "timerAccessibilityWaiting": "Retry wait time: {{seconds}} seconds"
     },
     "aiReport": {
       "impactTitle": "IMPACT EVALUATION",
@@ -285,7 +299,55 @@
       "cancel": "Cancel",
       "save": "Save",
       "reanalyze": "Re-analyze comparison",
-      "disclaimer": "VisualTrace will identify possible visible differences. The final review always belongs to the user."
+      "disclaimer": "VisualTrace will identify possible visible differences. The final review always belongs to the user.",
+      "exportPdf": "Export PDF",
+      "generatingPdf": "Generating PDF...",
+      "exportPdfHint": "Generates and exports the complete analysis report in professional PDF format",
+      "shareError": "Could not share the report.",
+      "sharePdfError": "Could not generate or share the PDF report."
+    },
+    "feedback": {
+      "title": "Was this analysis helpful?",
+      "subtitle": "Your feedback helps us continue improving the model's accuracy.",
+      "useful": "Helpful",
+      "notUseful": "Not helpful",
+      "usefulHint": "Indicates that the comparative analysis was helpful and accurate",
+      "notUsefulHint": "Indicates that the comparative analysis needs improvements",
+      "thankYou": "Thank you for your feedback!"
+    },
+    "reportPreview": {
+      "title": "Report preview",
+      "defaultComparisonName": "Comparative Report",
+      "close": "Close preview",
+      "closeHint": "Closes the preview window",
+      "initialState": "Initial State",
+      "finalState": "Final State",
+      "initialThumbnail": "Initial state thumbnail",
+      "finalThumbnail": "Final state thumbnail",
+      "noImage": "No image",
+      "executiveSummary": "📌 Executive Summary",
+      "findingIdentified": "identified finding",
+      "findingsIdentified": "identified findings",
+      "findingsNotice": "The document will include the detailed breakdown with observations and AI notices.",
+      "cancel": "Cancel",
+      "cancelHint": "Cancels and closes the dialog",
+      "sharePdf": "↗ Share PDF",
+      "sharePdfLabel": "Share PDF",
+      "sharePdfHint": "Exports and shares the complete report in PDF",
+      "generating": "Generating..."
+    },
+    "reanalyze": {
+      "title": "Re-analyze comparison?",
+      "badge": "Consumes 1 quota attempt",
+      "description": "This action will send your photos to Gemini Flash again to generate a new comparative analysis.",
+      "warningQuota": "It will consume 1 attempt of your daily available AI quota.",
+      "warningInternet": "Requires an active and stable internet connection.",
+      "warningSafePhotos": "Your saved photos remain intact and safe.",
+      "cancel": "Cancel",
+      "cancelHint": "Closes this dialog without taking any action",
+      "confirm": "Confirm re-analysis",
+      "confirmHint": "Initiates the re-analysis request in the cloud",
+      "modalLabel": "Confirm AI re-analysis"
     }
   }
 }

@@ -217,18 +217,22 @@ function createStyles(colors: ColorPalette) {
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
+      flexWrap: "wrap",
+      gap: Spacing.xs,
       marginBottom: Spacing.sm,
     },
 
     titleWithCount: {
       flexDirection: "row",
       alignItems: "center",
-      gap: Spacing.sm,
+      gap: Spacing.xs,
+      flexShrink: 1,
     },
 
     sectionTitle: {
       ...Typography.title,
       color: colors.textPrimary,
+      flexShrink: 1,
     },
 
     totalBadge: {
@@ -250,7 +254,8 @@ function createStyles(colors: ColorPalette) {
 
     toggleAllButton: {
       paddingVertical: Spacing.xs,
-      paddingHorizontal: Spacing.sm,
+      paddingHorizontal: Spacing.xs,
+      alignSelf: "center",
     },
 
     toggleAllButtonText: {
