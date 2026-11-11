@@ -73,7 +73,7 @@ export function ReportPreviewModal({
           <View style={styles.header}>
             <View style={styles.headerTitleContainer}>
               <Text style={styles.headerBadge}>PDF</Text>
-              <Text numberOfLines={1} style={styles.headerTitle}>
+              <Text style={styles.headerTitle}>
                 {t("reportPreview.title", "Vista previa del informe")}
               </Text>
             </View>
@@ -98,7 +98,7 @@ export function ReportPreviewModal({
             {/* Tarjeta de Metadatos y Severidad */}
             <View style={styles.metaCard}>
               <View style={styles.metaTop}>
-                <Text numberOfLines={2} style={styles.comparisonTitle}>
+                <Text style={styles.comparisonTitle}>
                   {title}
                 </Text>
                 <View
@@ -268,6 +268,7 @@ function createStyles(colors: ColorPalette) {
       alignItems: "center",
       flex: 1,
       gap: Spacing.sm,
+      minWidth: 0,
     },
     headerBadge: {
       backgroundColor: colors.primary,
@@ -282,6 +283,8 @@ function createStyles(colors: ColorPalette) {
       ...Typography.title,
       fontSize: 16,
       color: colors.textPrimary,
+      flexShrink: 1,
+      minWidth: 0,
     },
     closeButton: {
       padding: Spacing.xs,
@@ -313,6 +316,7 @@ function createStyles(colors: ColorPalette) {
       fontSize: 15,
       flex: 1,
       color: colors.textPrimary,
+      minWidth: 0,
     },
     severityBadge: {
       borderWidth: 1,
@@ -439,4 +443,3 @@ function createStyles(colors: ColorPalette) {
     },
   });
 }
-

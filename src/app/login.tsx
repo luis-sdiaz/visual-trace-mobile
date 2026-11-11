@@ -218,7 +218,10 @@ function createStyles(colors: ColorPalette) {
     backButton: {
       flexDirection: "row",
       alignItems: "center",
-      alignSelf: "flex-start",
+      alignSelf: "stretch",
+      minHeight: 44,
+      paddingVertical: Spacing.xs,
+      paddingRight: Spacing.md,
       marginBottom: Spacing.xxl,
     },
 
@@ -226,11 +229,14 @@ function createStyles(colors: ColorPalette) {
       color: colors.textPrimary,
       fontSize: 22,
       marginRight: Spacing.sm,
+      flexShrink: 0,
     },
 
     backText: {
       ...Typography.label,
       color: colors.textPrimary,
+      minWidth: 0,
+      flexShrink: 1,
     },
 
     header: {
@@ -242,6 +248,7 @@ function createStyles(colors: ColorPalette) {
       fontSize: 18,
       fontWeight: "700",
       marginBottom: Spacing.md,
+      width: "100%",
     },
 
     title: {

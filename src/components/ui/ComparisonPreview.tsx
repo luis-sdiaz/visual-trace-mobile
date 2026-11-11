@@ -8,6 +8,7 @@ import {
 } from "react-native";
 import type { ReactNode } from "react";
 
+import { LayoutText } from "@/components/ui/LayoutText";
 import { type ColorPalette } from "@/constants/colors";
 import { Radius } from "@/constants/radius";
 import { Spacing } from "@/constants/spacing";
@@ -49,7 +50,7 @@ export const ComparisonPreview = memo(function ComparisonPreview({
         <View style={styles.comparisonRow}>
           <View style={[styles.stateCard, styles.initialCard]}>
             <View style={[styles.stateBadge, styles.initialBadge]}>
-              <Text style={styles.initialBadgeText}>Inicial</Text>
+              <LayoutText layout="atomic" style={styles.initialBadgeText}>Inicial</LayoutText>
             </View>
 
             <View style={styles.previewArea}>
@@ -57,7 +58,7 @@ export const ComparisonPreview = memo(function ComparisonPreview({
               <View style={styles.initialMarker} />
             </View>
 
-            <Text style={styles.stateTitle}>Antes</Text>
+            <LayoutText layout="atomic" style={styles.stateTitle}>Antes</LayoutText>
             <Text style={styles.stateDescription}>Estado registrado</Text>
           </View>
 
@@ -67,7 +68,7 @@ export const ComparisonPreview = memo(function ComparisonPreview({
 
           <View style={[styles.stateCard, styles.finalCard]}>
             <View style={[styles.stateBadge, styles.finalBadge]}>
-              <Text style={styles.finalBadgeText}>Final</Text>
+              <LayoutText layout="atomic" style={styles.finalBadgeText}>Final</LayoutText>
             </View>
 
             <View style={styles.previewArea}>
@@ -77,7 +78,7 @@ export const ComparisonPreview = memo(function ComparisonPreview({
               </View>
             </View>
 
-            <Text style={styles.stateTitle}>Después</Text>
+            <LayoutText layout="atomic" style={styles.stateTitle}>Después</LayoutText>
             <Text style={styles.stateDescription}>Estado comparado</Text>
           </View>
         </View>
@@ -167,7 +168,7 @@ function createStyles(colors: ColorPalette) {
 
     stateBadge: {
       alignSelf: "flex-start",
-      paddingHorizontal: Spacing.sm,
+      paddingHorizontal: Spacing.md,
       paddingVertical: Spacing.xs,
       borderRadius: Radius.full,
       marginBottom: Spacing.sm,
@@ -186,6 +187,7 @@ function createStyles(colors: ColorPalette) {
       fontSize: 12,
       lineHeight: 16,
       fontWeight: "700",
+      flexShrink: 0,
     },
 
     finalBadgeText: {
@@ -193,6 +195,7 @@ function createStyles(colors: ColorPalette) {
       fontSize: 12,
       lineHeight: 16,
       fontWeight: "700",
+      flexShrink: 0,
     },
 
     previewArea: {
@@ -269,6 +272,7 @@ function createStyles(colors: ColorPalette) {
       ...Typography.label,
       color: colors.textPrimary,
       textAlign: "center",
+      flexShrink: 0,
     },
 
     stateDescription: {

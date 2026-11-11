@@ -18,6 +18,7 @@ import {
   AppState,
   BackHandler,
   Image,
+  type LayoutChangeEvent,
   Modal,
   Pressable,
   ScrollView,
@@ -38,6 +39,7 @@ import { AiQuotaAlertBanner } from "@/components/ui/AiQuotaAlertBanner";
 import { AiQuotaLimitExceededModal } from "@/components/ui/AiQuotaLimitExceededModal";
 import { AiReanalyzeConfirmationModal } from "@/components/ui/AiReanalyzeConfirmationModal";
 import { AiReportFeedbackCard } from "@/components/ui/AiReportFeedbackCard";
+import { LayoutText } from "@/components/ui/LayoutText";
 import { ExportReportButton } from "@/components/ui/ExportReportButton";
 import { PhotoPreviewModal } from "@/components/ui/PhotoPreviewModal";
 import { ReportPreviewModal } from "@/components/ui/ReportPreviewModal";
@@ -66,10 +68,7 @@ import {
   updateComparisonName,
 } from "@/services/comparisonService";
 import type { ImageStage } from "@/services/imageStorageService";
-import {
-  copyReportToClipboard,
-  shareReportNative,
-} from "@/utils/reportExport";
+import { shareReportNative } from "@/utils/reportExport";
 import { createSingleFlight } from "@/utils/singleFlight";
 import { localizeAiReportList, localizeAiReportText } from "@/utils/localizeAiReport";
 
@@ -185,6 +184,56 @@ export default function ComparisonResultScreen() {
   const [showQuotaExceededModal, setShowQuotaExceededModal] = useState(false);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const reanalyzeLayoutRef = useRef<{
+    buttonWidth?: number;
+    contentX?: number;
+    leftWidth?: number;
+    textX?: number;
+    textWidth?: number;
+  }>({});
+
+  function reportReanalyzeLayout(
+    part: keyof NonNullable<typeof reanalyzeLayoutRef.current>,
+    event: LayoutChangeEvent,
+  ) {
+    if (!__DEV__) {
+      return;
+    }
+
+    const layout = reanalyzeLayoutRef.current;
+    layout[part] =
+      part === "buttonWidth"
+        ? event.nativeEvent.layout.width
+        : part === "contentX"
+          ? event.nativeEvent.layout.x
+          : part === "leftWidth"
+            ? event.nativeEvent.layout.width
+            : part === "textX"
+              ? event.nativeEvent.layout.x
+              : event.nativeEvent.layout.width;
+
+    if (
+      layout.buttonWidth === undefined ||
+      layout.contentX === undefined ||
+      layout.leftWidth === undefined ||
+      layout.textX === undefined ||
+      layout.textWidth === undefined
+    ) {
+      return;
+    }
+
+    const buttonCenter = layout.buttonWidth / 2;
+    const textCenter =
+      layout.contentX +
+      layout.leftWidth +
+      layout.textX +
+      layout.textWidth / 2;
+    console.debug("[Re-analyze layout]", {
+      buttonCenter,
+      textCenter,
+      difference: textCenter - buttonCenter,
+    });
+  }
 
   const handleBack = useCallback(() => {
     if (showPreviewModal) {
@@ -231,9 +280,7 @@ export default function ComparisonResultScreen() {
   const [analysisReport, setAnalysisReport] = useState<AnalysisReportRecord | null>(null);
   const [analysisMessage, setAnalysisMessage] = useState("");
   const [analysisQuotaScope, setAnalysisQuotaScope] = useState<string | undefined>(undefined);
-  const [copiedReport, setCopiedReport] = useState(false);
   const [isSharingReport, setIsSharingReport] = useState(false);
-  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [previewStage, setPreviewStage] = useState<ImageStage | null>(null);
   const [isEditingName, setIsEditingName] = useState(false);
   const [nameDraft, setNameDraft] = useState(name);
@@ -252,9 +299,6 @@ export default function ComparisonResultScreen() {
     return () => {
       analysisMountedRef.current = false;
       analysisSequenceRef.current += 1;
-      if (copyTimerRef.current) {
-        clearTimeout(copyTimerRef.current);
-      }
     };
   }, []);
 
@@ -397,24 +441,6 @@ export default function ComparisonResultScreen() {
       analysisSequenceRef.current += 1;
     };
   }, [loadReport]);
-
-  const handleCopyReport = useCallback(async () => {
-    if (!analysisReport) return;
-    const copied = await copyReportToClipboard(analysisReport.result, {
-      comparisonName: nameDraft || name,
-    });
-    if (copied && analysisMountedRef.current) {
-      setCopiedReport(true);
-      if (copyTimerRef.current) {
-        clearTimeout(copyTimerRef.current);
-      }
-      copyTimerRef.current = setTimeout(() => {
-        if (analysisMountedRef.current) {
-          setCopiedReport(false);
-        }
-      }, 2500);
-    }
-  }, [analysisReport, name, nameDraft]);
 
   const handleOpenExportPreview = useCallback(() => {
     if (!analysisReport) return;
@@ -623,7 +649,14 @@ export default function ComparisonResultScreen() {
   }
 
   const hasComparisonData =
-    name.trim().length > 0 && initialImageUri && finalImageUri;
+    Boolean(
+      comparisonId &&
+        name.trim().length > 0 &&
+        initialImageUri &&
+        initialImagePath &&
+        finalImageUri &&
+        finalImagePath,
+    );
   const analysisPresentation = getAnalysisPresentation(
     analysisStatus,
     Boolean(comparisonId && initialImagePath && finalImagePath),
@@ -709,6 +742,7 @@ export default function ComparisonResultScreen() {
           disabled={isAnalyzing}
           onPress={handleBack}
           style={[styles.backButton, isAnalyzing && styles.disabledButton]}
+            testID="comparison-back-button"
         >
           <Text style={[styles.backIcon, { color: colors.textPrimary }]}>←</Text>
                 <Text style={[styles.backText, { color: colors.textPrimary }]}>{t("result.back")}</Text>
@@ -746,6 +780,7 @@ export default function ComparisonResultScreen() {
                     setRenameError(null);
                   }}
                   style={styles.renameCancel}
+                  testID="comparison-rename-cancel-button"
                 >
                   <Text style={styles.renameCancelText}>{t("result.cancel")}</Text>
                 </Pressable>
@@ -754,6 +789,7 @@ export default function ComparisonResultScreen() {
                   disabled={!nameDraft.trim() || isRenaming}
                   onPress={() => void handleRename()}
                   style={styles.renameSave}
+                  testID="comparison-rename-save-button"
                 >
                   <Text style={styles.renameSaveText}>
                     {isRenaming ? t("flow.saving") : t("result.save")}
@@ -770,6 +806,7 @@ export default function ComparisonResultScreen() {
                 disabled={isAnalyzing}
                 onPress={beginRenaming}
                 style={[styles.editNameButton, isAnalyzing && styles.disabledButton]}
+                testID="comparison-edit-name-button"
               >
                 <Text style={styles.editNameText}>{t("result.edit")}</Text>
               </Pressable>
@@ -788,7 +825,7 @@ export default function ComparisonResultScreen() {
                 <Text style={styles.initialBadgeText}>{t("result.initial")}</Text>
               </View>
 
-              <Text style={styles.imageLabel}>{t("result.before")}</Text>
+              <Text style={[styles.imageLabel, styles.beforeLabel]}>{t("result.before")}</Text>
             </View>
 
             <PrivateComparisonImage
@@ -796,7 +833,7 @@ export default function ComparisonResultScreen() {
               key={initialImageUri}
               onRetry={refreshPrivateImages}
               onOpen={() => setPreviewStage("initial")}
-              uri={initialImageUri}
+              uri={initialImageUri!}
             />
           </View>
 
@@ -814,7 +851,7 @@ export default function ComparisonResultScreen() {
                 <Text style={styles.finalBadgeText}>{t("result.final")}</Text>
               </View>
 
-              <Text style={styles.imageLabel}>{t("result.after")}</Text>
+              <Text style={[styles.imageLabel, styles.afterLabel]}>{t("result.after")}</Text>
             </View>
 
             <PrivateComparisonImage
@@ -822,7 +859,7 @@ export default function ComparisonResultScreen() {
               key={finalImageUri}
               onRetry={refreshPrivateImages}
               onOpen={() => setPreviewStage("final")}
-              uri={finalImageUri}
+              uri={finalImageUri!}
             />
           </View>
         </View>
@@ -856,31 +893,13 @@ export default function ComparisonResultScreen() {
               <Text style={styles.reportEyebrow}>{t("result.aiSummary")}</Text>
             </View>
 
-            <View style={styles.reportHeaderActions}>
-              <Pressable
-                accessibilityHint={t("result.copyHint")}
-                accessibilityLabel={t("result.copy")}
-                accessibilityRole="button"
-                onPress={() => void handleCopyReport()}
-                style={[
-                  styles.copyReportButton,
-                  copiedReport && styles.copyReportButtonActive,
-                ]}
-                testID="copy-report-button"
-              >
-                <Text
-                  style={[
-                    styles.copyReportButtonText,
-                    copiedReport && styles.copyReportButtonTextActive,
-                  ]}
-                >
-                  {copiedReport ? `✓ ${t("result.copied")}` : `📋 ${t("result.copy")}`}
-                </Text>
-              </Pressable>
-
+            <View
+              style={styles.reportHeaderActions}
+              testID="report-header-actions"
+            >
               <Pressable
                 accessibilityHint={t("result.shareHint")}
-                accessibilityLabel={t("result.share")}
+                accessibilityLabel={t("result.shareAction")}
                 accessibilityRole="button"
                 disabled={isSharingReport}
                 onPress={() => void handleShareReport()}
@@ -891,38 +910,27 @@ export default function ComparisonResultScreen() {
                 testID="share-report-button"
               >
                 <Text style={styles.shareReportButtonText}>
-                  ↗ {t("result.share")}
+                  ↗ {t("result.shareAction")}
                 </Text>
               </Pressable>
               <ExportReportButton
                 disabled={isExportingPdf}
                 isLoading={isExportingPdf}
+                label={`📄 ${t("result.exportAction")}`}
                 onPress={handleOpenExportPreview}
+                style={styles.reportActionButton}
                 testID="export-pdf-report-button"
               />
             </View>
-
-            {copiedReport ? (
-              <View
-                accessibilityLiveRegion="polite"
-                style={styles.copiedFeedbackBadge}
-                testID="copied-feedback-badge"
-              >
-                <Text style={styles.copiedFeedbackIcon}>✓</Text>
-                <Text style={styles.copiedFeedbackText}>
-                  {t("result.copiedToClipboard")}
-                </Text>
-              </View>
-            ) : null}
 
             <AiAnalysisSummaryCard report={analysisReport} />
             <View style={styles.summaryContainer}>
               <Text style={styles.summaryTitle}>
                 {t("analysis.summaryTitle", "Resumen de la comparación")}
               </Text>
-              <Text style={styles.reportSummary}>
+              <LayoutText layout="stretch" style={styles.reportSummary}>
                 {localizeAiReportText(analysisReport.result.summary, knownAiTranslations)}
-              </Text>
+              </LayoutText>
             </View>
 
             {/* Sección: Diferencias detectadas con tarjetas desplegables por categoría */}
@@ -1010,10 +1018,34 @@ export default function ComparisonResultScreen() {
                 isAnalyzing && styles.disabledButton,
               ]}
               testID="reanalyze-button"
+              onLayout={(event) =>
+                reportReanalyzeLayout("buttonWidth", event)
+              }
             >
-              <Text style={styles.reanalyzeButtonText}>
-                🔄 {t("result.reanalyze")}
-              </Text>
+              <View
+                onLayout={(event) => reportReanalyzeLayout("contentX", event)}
+                style={styles.reanalyzeButtonContent}
+              >
+                <View
+                  onLayout={(event) =>
+                    reportReanalyzeLayout("leftWidth", event)
+                  }
+                  style={styles.reanalyzeButtonLeftZone}
+                >
+                  <Text style={styles.reanalyzeButtonIcon}>🔄</Text>
+                </View>
+                <View style={styles.reanalyzeButtonCenterZone}>
+                  <Text
+                    onLayout={(event) =>
+                      reportReanalyzeLayout("textX", event)
+                    }
+                    style={styles.reanalyzeButtonText}
+                  >
+                    {t("result.reanalyze")}
+                  </Text>
+                </View>
+                <View style={styles.reanalyzeButtonRightZone} />
+              </View>
             </Pressable>
           ) : null}
 
@@ -1107,6 +1139,9 @@ function createStyles(colors: ColorPalette) {
     flexDirection: "row",
     alignItems: "center",
     alignSelf: "flex-start",
+    minHeight: 44,
+    paddingVertical: Spacing.xs,
+    paddingRight: Spacing.md,
     marginBottom: Spacing.xl,
   },
   disabledButton: {
@@ -1117,11 +1152,14 @@ function createStyles(colors: ColorPalette) {
     color: colors.textPrimary,
     fontSize: 22,
     marginRight: Spacing.sm,
+    flexShrink: 0,
   },
 
   backText: {
     ...Typography.label,
     color: colors.textPrimary,
+    minWidth: 52,
+    flexShrink: 0,
   },
 
   header: {
@@ -1132,6 +1170,7 @@ function createStyles(colors: ColorPalette) {
     ...Typography.label,
     color: colors.primary,
     marginBottom: Spacing.sm,
+    alignSelf: "stretch",
   },
 
   title: {
@@ -1148,21 +1187,27 @@ function createStyles(colors: ColorPalette) {
 
   titleInRow: {
     flex: 1,
+    minWidth: 0,
     marginBottom: 0,
   },
 
   editNameButton: {
     minHeight: 40,
+    alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: Spacing.md,
     marginLeft: Spacing.sm,
     backgroundColor: colors.primarySoft,
     borderRadius: Radius.full,
+    flexShrink: 0,
   },
 
   editNameText: {
     ...Typography.label,
     color: colors.primary,
+    minWidth: 48,
+    textAlign: "center",
+    flexShrink: 0,
   },
 
   renameCard: {
@@ -1251,11 +1296,15 @@ function createStyles(colors: ColorPalette) {
     paddingVertical: Spacing.xs,
     backgroundColor: colors.primarySoft,
     borderRadius: Radius.full,
+    alignSelf: "flex-start",
   },
 
   initialBadgeText: {
     ...Typography.label,
     color: colors.primary,
+    minWidth: 56,
+    textAlign: "center",
+    flexShrink: 0,
   },
 
   finalBadge: {
@@ -1263,16 +1312,31 @@ function createStyles(colors: ColorPalette) {
     paddingVertical: Spacing.xs,
     backgroundColor: colors.successSoft,
     borderRadius: Radius.full,
+    alignSelf: "flex-start",
   },
 
   finalBadgeText: {
     ...Typography.label,
     color: colors.success,
+    minWidth: 44,
+    textAlign: "center",
+    flexShrink: 0,
   },
 
   imageLabel: {
     ...Typography.label,
     color: colors.textSecondary,
+    flexShrink: 0,
+  },
+
+  beforeLabel: {
+    minWidth: 52,
+    textAlign: "right",
+  },
+
+  afterLabel: {
+    minWidth: 64,
+    textAlign: "right",
   },
 
   image: {
@@ -1388,6 +1452,7 @@ function createStyles(colors: ColorPalette) {
 
   statusTextContainer: {
     flex: 1,
+    minWidth: 0,
   },
 
   statusTitle: {
@@ -1426,43 +1491,24 @@ function createStyles(colors: ColorPalette) {
 
   reportHeaderActions: {
     flexDirection: "row",
-    flexWrap: "wrap",
     alignItems: "center",
     gap: Spacing.sm,
     marginBottom: Spacing.md,
   },
 
-  copyReportButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: colors.primarySoft,
-    borderWidth: 1,
-    borderColor: colors.borderPrimary,
-    borderRadius: Radius.full,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
-  },
-
-  copyReportButtonActive: {
-    backgroundColor: colors.successSoft,
-    borderColor: colors.success,
-  },
-
-  copyReportButtonText: {
-    ...Typography.label,
-    fontSize: 12,
-    lineHeight: 16,
-    color: colors.primary,
-  },
-
-  copyReportButtonTextActive: {
-    color: colors.successDark,
-    fontWeight: "700",
+  reportActionButton: {
+    flex: 1,
+    minWidth: 0,
+    minHeight: 44,
   },
 
   shareReportButton: {
+    flex: 1,
+    minWidth: 0,
+    minHeight: 44,
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
     backgroundColor: colors.surfaceSecondary,
     borderWidth: 1,
     borderColor: colors.border,
@@ -1476,33 +1522,10 @@ function createStyles(colors: ColorPalette) {
     fontSize: 12,
     lineHeight: 16,
     color: colors.textPrimary,
-  },
-
-  copiedFeedbackBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: colors.successSoft,
-    borderWidth: 1,
-    borderColor: colors.success,
-    borderRadius: Radius.md,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
-    marginBottom: Spacing.md,
-    gap: Spacing.xs,
-  },
-
-  copiedFeedbackIcon: {
-    color: colors.successDark,
-    fontSize: 14,
-    fontWeight: "700",
-  },
-
-  copiedFeedbackText: {
-    ...Typography.label,
-    fontSize: 12,
-    lineHeight: 16,
-    color: colors.successDark,
-    fontWeight: "600",
+    width: "100%",
+    minWidth: 0,
+    textAlign: "center",
+    flexShrink: 1,
   },
 
   reportEyebrow: {
@@ -1579,7 +1602,7 @@ function createStyles(colors: ColorPalette) {
   },
 
   reanalyzeButton: {
-    flexDirection: "row",
+    alignSelf: "stretch",
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: colors.surface,
@@ -1590,6 +1613,34 @@ function createStyles(colors: ColorPalette) {
     paddingHorizontal: Spacing.xl,
     marginBottom: Spacing.md,
     gap: Spacing.sm,
+  },
+
+  reanalyzeButtonContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "stretch",
+  },
+
+  reanalyzeButtonLeftZone: {
+    flex: 1,
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    alignItems: "center",
+  },
+
+  reanalyzeButtonCenterZone: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  reanalyzeButtonRightZone: {
+    flex: 1,
+  },
+
+  reanalyzeButtonIcon: {
+    fontSize: 16,
+    lineHeight: 24,
+    marginRight: Spacing.sm,
   },
 
   reanalyzeButtonText: {

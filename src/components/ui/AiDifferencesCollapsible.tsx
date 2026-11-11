@@ -238,8 +238,11 @@ function createStyles(colors: ColorPalette) {
     totalBadge: {
       backgroundColor: colors.primarySoft,
       borderRadius: Radius.full,
-      paddingHorizontal: Spacing.sm,
-      paddingVertical: 2,
+      alignItems: "center",
+      justifyContent: "center",
+      alignSelf: "center",
+      paddingHorizontal: Spacing.xs,
+      paddingVertical: Spacing.xs,
       borderWidth: 1,
       borderColor: colors.borderPrimary,
     },
@@ -250,6 +253,7 @@ function createStyles(colors: ColorPalette) {
       lineHeight: 16,
       color: colors.primary,
       fontWeight: "700",
+      textAlign: "center",
     },
 
     toggleAllButton: {
@@ -302,6 +306,7 @@ function createStyles(colors: ColorPalette) {
       gap: Spacing.sm,
       flex: 1,
       marginRight: Spacing.sm,
+      minWidth: 0,
     },
 
     categoryCountBadge: {
@@ -337,6 +342,7 @@ function createStyles(colors: ColorPalette) {
       flexDirection: "row",
       alignItems: "center",
       gap: Spacing.xs,
+      flexShrink: 1,
     },
 
     toggleText: {
@@ -345,6 +351,7 @@ function createStyles(colors: ColorPalette) {
       lineHeight: 16,
       color: colors.primary,
       fontWeight: "600",
+      flexShrink: 1,
     },
 
     toggleIcon: {

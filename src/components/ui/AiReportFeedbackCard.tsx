@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
+import { LayoutText } from "@/components/ui/LayoutText";
 import { lightColors, type ColorPalette } from "@/constants/colors";
 import { Radius } from "@/constants/radius";
 import { Spacing } from "@/constants/spacing";
@@ -69,15 +70,15 @@ export function AiReportFeedbackCard({
   return (
     <View style={styles.card} testID="ai-report-feedback-card">
       <View style={styles.header}>
-        <Text style={styles.title}>
+        <LayoutText layout="fullWidth" style={styles.title}>
           {t("feedback.title", "¿Te resultó útil este análisis?")}
-        </Text>
-        <Text style={styles.subtitle}>
+        </LayoutText>
+        <LayoutText layout="fullWidth" style={styles.subtitle}>
           {t(
             "feedback.subtitle",
             "Tu retroalimentación nos ayuda a seguir mejorando la precisión del modelo.",
           )}
-        </Text>
+        </LayoutText>
       </View>
 
       <View style={styles.actionsRow}>
@@ -97,14 +98,15 @@ export function AiReportFeedbackCard({
           testID="feedback-useful-button"
         >
           <Text style={styles.buttonIcon}>👍</Text>
-          <Text
+          <LayoutText
+            layout="flexible"
             style={[
               styles.buttonText,
               isUsefulSelected && styles.buttonTextActiveUseful,
             ]}
           >
             {t("feedback.useful", "Útil")}
-          </Text>
+          </LayoutText>
         </Pressable>
 
         <Pressable
@@ -123,14 +125,15 @@ export function AiReportFeedbackCard({
           testID="feedback-not-useful-button"
         >
           <Text style={styles.buttonIcon}>👎</Text>
-          <Text
+          <LayoutText
+            layout="flexible"
             style={[
               styles.buttonText,
               isNotUsefulSelected && styles.buttonTextActiveNotUseful,
             ]}
           >
             {t("feedback.notUseful", "No útil")}
-          </Text>
+          </LayoutText>
         </Pressable>
       </View>
 
@@ -192,10 +195,11 @@ function createStyles(colors: ColorPalette) {
     },
 
     feedbackButton: {
+      flex: 1,
+      minWidth: 0,
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "center",
-      minWidth: 110,
       paddingVertical: Spacing.sm,
       paddingHorizontal: Spacing.lg,
       backgroundColor: colors.surface,
@@ -223,6 +227,7 @@ function createStyles(colors: ColorPalette) {
       ...Typography.label,
       fontSize: 14,
       color: colors.textPrimary,
+      textAlign: "center",
     },
 
     buttonTextActiveUseful: {

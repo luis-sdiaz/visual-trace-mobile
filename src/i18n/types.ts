@@ -17,8 +17,12 @@ export interface AppTranslations {
   settings: {
     title: string;
     subtitle: string;
+    back: string;
     language: string;
     languageDescription: string;
+    appearance: string;
+    lightTheme: string;
+    darkTheme: string;
     darkMode: string;
     darkModeDescription: string;
     lightMode: string;
@@ -314,6 +318,8 @@ export interface AppTranslations {
     limitations: string;
     copy: string;
     share: string;
+    shareAction: string;
+    exportAction: string;
     copied: string;
     copiedToClipboard: string;
     copyHint: string;

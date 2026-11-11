@@ -8,7 +8,10 @@ import {
   Text,
   View,
 } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 
 import { Button } from "@/components/ui/Button";
 import { HeroVisualAnimation } from "@/components/ui/HeroVisualAnimation";
@@ -36,7 +39,12 @@ export default function WelcomeScreen() {
 
   if (isLoading || user) {
     return (
-      <SafeAreaView style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+      <SafeAreaView
+        style={[
+          styles.loadingContainer,
+          { backgroundColor: colors.background },
+        ]}
+      >
         <ActivityIndicator size="large" color={colors.primary} />
       </SafeAreaView>
     );
@@ -57,7 +65,9 @@ export default function WelcomeScreen() {
       edges={["left", "right"]}
     >
       <View style={styles.header}>
-        <Text style={[styles.brandTitle, { color: colors.primary }]}>VisualTrace</Text>
+        <Text style={[styles.brandTitle, { color: colors.primary }]}>
+          VisualTrace
+        </Text>
         <View style={styles.headerControls}>
           <LanguageToggle />
           <ThemeToggle />
@@ -66,7 +76,9 @@ export default function WelcomeScreen() {
 
       <View style={styles.hero}>
         <View style={styles.introContent}>
-          <Text style={[styles.title, { color: colors.textPrimary }]}>{t("welcome.title")}</Text>
+          <Text style={[styles.title, { color: colors.textPrimary }]}>
+            {t("welcome.title")}
+          </Text>
 
           <Text style={[styles.description, { color: colors.textSecondary }]}>
             {t("welcome.description")}
@@ -93,7 +105,9 @@ export default function WelcomeScreen() {
             pressed && styles.secondaryButtonPressed,
           ]}
         >
-          <Text style={[styles.secondaryButtonText, { color: colors.primary }]}>{t("welcome.register")}</Text>
+          <Text style={[styles.secondaryButtonText, { color: colors.primary }]}>
+            {t("welcome.register")}
+          </Text>
         </Pressable>
       </View>
     </SafeAreaView>
@@ -105,7 +119,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
     justifyContent: "space-between",
-    overflow: "hidden",
   },
 
   loadingContainer: {
@@ -120,6 +133,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     width: "100%",
+    marginTop: 10,
   },
 
   headerControls: {
@@ -137,15 +151,15 @@ const styles = StyleSheet.create({
   },
 
   introContent: {
-    maxWidth: 320,
+    maxWidth: 360,
     width: "100%",
     marginVertical: Spacing.xs,
   },
 
   title: {
     color: Colors.textPrimary,
-    fontSize: 30,
-    lineHeight: 36,
+    fontSize: 28,
+    lineHeight: 34,
     fontWeight: "800",
     textAlign: "center",
     marginBottom: Spacing.xs,
@@ -176,9 +190,13 @@ const styles = StyleSheet.create({
     fontSize: 18,
     lineHeight: 24,
     fontWeight: "700",
+    flex: 1,
+    minWidth: 0,
+    flexShrink: 1,
   },
 
   secondaryButton: {
+    width: "100%",
     minHeight: 52,
     alignItems: "center",
     justifyContent: "center",
@@ -198,5 +216,8 @@ const styles = StyleSheet.create({
     ...Typography.button,
     color: Colors.primary,
     textAlign: "center",
+    width: "100%",
+    minWidth: 0,
+    flexShrink: 1,
   },
 });

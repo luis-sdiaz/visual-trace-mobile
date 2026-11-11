@@ -243,18 +243,17 @@ describe("AI database and mobile integration safeguards", () => {
   });
 
   it(
-    "provides copy-to-clipboard elements and formats report cleanly for user sharing",
+    "keeps native sharing without rendering copy-to-clipboard controls",
     async () => {
     const screen = readFileSync(
       resolve(process.cwd(), "src/app/comparison-result.tsx"),
       "utf8",
     );
-    expect(screen).toContain("copy-report-button");
+    expect(screen).not.toContain("copy-report-button");
     expect(screen).toContain("share-report-button");
-    expect(screen).toContain("copied-feedback-badge");
-    expect(screen).toContain('t("result.copy")');
-    expect(screen).toContain('t("result.share")');
-    expect(screen).toContain('t("result.copiedToClipboard")');
+    expect(screen).not.toContain("copied-feedback-badge");
+    expect(screen).not.toContain("handleCopyReport");
+    expect(screen).toContain('t("result.shareAction")');
 
     const { formatReportForClipboard, shareReportNative } = await import(
       "@/utils/reportExport"

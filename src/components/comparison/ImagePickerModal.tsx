@@ -13,6 +13,7 @@ import { Radius } from "@/constants/radius";
 import { Spacing } from "@/constants/spacing";
 import { Typography } from "@/constants/typography";
 import "@/i18n";
+import { LayoutText } from "@/components/ui/LayoutText";
 
 export type ImagePickerModalSource = "camera" | "gallery";
 
@@ -70,10 +71,12 @@ export function ImagePickerModal({
             >
               <Text style={styles.optionIcon}>📷</Text>
               <View style={styles.optionTextContainer}>
-                <Text style={styles.optionTitle}>{t("media.cameraTitle")}</Text>
-                <Text style={styles.optionDescription}>
+                <LayoutText layout="fullWidth" style={styles.optionTitle}>
+                  {t("media.cameraTitle")}
+                </LayoutText>
+                <LayoutText layout="fullWidth" style={styles.optionDescription}>
                   {t("media.cameraDescription")}
-                </Text>
+                </LayoutText>
               </View>
             </Pressable>
 
@@ -94,10 +97,12 @@ export function ImagePickerModal({
             >
               <Text style={styles.optionIcon}>🖼️</Text>
               <View style={styles.optionTextContainer}>
-                <Text style={styles.optionTitle}>{t("media.galleryTitle")}</Text>
-                <Text style={styles.optionDescription}>
+                <LayoutText layout="fullWidth" style={styles.optionTitle}>
+                  {t("media.galleryTitle")}
+                </LayoutText>
+                <LayoutText layout="fullWidth" style={styles.optionDescription}>
                   {t("media.galleryDescription")}
-                </Text>
+                </LayoutText>
               </View>
             </Pressable>
 
@@ -184,6 +189,7 @@ const styles = StyleSheet.create({
   },
   optionTextContainer: {
     flex: 1,
+    minWidth: 0,
   },
   optionTitle: {
     ...Typography.label,
@@ -199,6 +205,8 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
   },
   cancelButton: {
+    minHeight: 44,
+    alignSelf: "stretch",
     paddingVertical: Spacing.md,
     alignItems: "center",
     justifyContent: "center",
@@ -209,5 +217,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 18,
     color: Colors.textMuted,
+    alignSelf: "stretch",
+    textAlign: "center",
   },
 });

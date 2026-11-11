@@ -13,7 +13,13 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import {
+  ImagePickerModal,
+  type ImagePickerModalSource,
+} from "@/components/comparison/ImagePickerModal";
+import { getDevTextMeasurementProps } from "@/components/dev/devTextMeasurement";
 import { Button } from "@/components/ui/Button";
+import { LayoutText } from "@/components/ui/LayoutText";
 import { PhotoPreviewModal } from "@/components/ui/PhotoPreviewModal";
 import { type ColorPalette } from "@/constants/colors";
 import { Radius } from "@/constants/radius";
@@ -48,6 +54,7 @@ export default function InitialStateScreen() {
   const [isUploading, setIsUploading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isDiscarding, setIsDiscarding] = useState(false);
+  const [isPickerVisible, setIsPickerVisible] = useState(false);
   const [isPreviewVisible, setIsPreviewVisible] = useState(false);
 
   const uploadingRef = useRef(false);
@@ -62,20 +69,16 @@ export default function InitialStateScreen() {
       return;
     }
 
-    Alert.alert(
-      t("flow.replaceInitialTitle"),
-      t("flow.replaceDescription"),
-      [
-        { text: t("flow.cancel"), style: "cancel" },
-        {
-          text: t("flow.replace"),
-          onPress: () => {
-            setInitialImageUri(uri);
-            setErrorMessage(null);
-          },
+    Alert.alert(t("flow.replaceInitialTitle"), t("flow.replaceDescription"), [
+      { text: t("flow.cancel"), style: "cancel" },
+      {
+        text: t("flow.replace"),
+        onPress: () => {
+          setInitialImageUri(uri);
+          setErrorMessage(null);
         },
-      ],
-    );
+      },
+    ]);
   }
 
   async function handleSelectPhoto(source: PhotoSelectionSource) {
@@ -96,10 +99,12 @@ export default function InitialStateScreen() {
         acceptSelectedImage(outcome.uri);
       }
     } catch {
-      setErrorMessage(
-        t("flow.pickerError"),
-      );
+      setErrorMessage(t("flow.pickerError"));
     }
+  }
+
+  function handlePickerSource(source: ImagePickerModalSource) {
+    void handleSelectPhoto(source === "gallery" ? "library" : "camera");
   }
 
   async function handleContinue() {
@@ -108,9 +113,7 @@ export default function InitialStateScreen() {
     }
 
     if (!comparisonId) {
-      setErrorMessage(
-        t("flow.comparisonNotFound"),
-      );
+      setErrorMessage(t("flow.comparisonNotFound"));
 
       return;
     }
@@ -150,7 +153,8 @@ export default function InitialStateScreen() {
       !initialImagePath ||
       uploadingRef.current ||
       discardingRef.current
-    ) return;
+    )
+      return;
     discardingRef.current = true;
     setIsDiscarding(true);
     setErrorMessage(null);
@@ -170,7 +174,9 @@ export default function InitialStateScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+    >
       <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
@@ -182,25 +188,47 @@ export default function InitialStateScreen() {
             onPress={() => router.replace("/new-comparison")}
             style={styles.backButton}
           >
-            <Text style={[styles.backIcon, { color: colors.textPrimary }]}>←</Text>
-            <Text style={[styles.backText, { color: colors.textSecondary }]}>{t("flow.back")}</Text>
+            <Text style={[styles.backIcon, { color: colors.textPrimary }]}>
+              ←
+            </Text>
+            <Text
+              style={[styles.backText, { color: colors.textSecondary }]}
+              {...getDevTextMeasurementProps("initial.back", t("flow.back"))}
+            >
+              {t("flow.back")}
+            </Text>
           </Pressable>
 
           <View style={styles.progressContainer}>
-            <Text style={[styles.progressText, { color: colors.primary }]}>{t("flow.step2")}</Text>
+            <LayoutText
+              layout="atomic"
+              style={[styles.progressText, { color: colors.primary }]}
+            >
+              {t("flow.step2")}
+            </LayoutText>
 
             <View style={styles.progressTrack}>
               <View style={styles.progressValue} />
             </View>
           </View>
 
-          <Text style={[styles.title, { color: colors.textPrimary }]}>{t("flow.initialTitle")}</Text>
+          <Text style={[styles.title, { color: colors.textPrimary }]}>
+            {t("flow.initialTitle")}
+          </Text>
 
           <Text style={[styles.description, { color: colors.textSecondary }]}>
             {t("flow.initialDescription")}
           </Text>
 
-          <View style={[styles.photoCard, { backgroundColor: colors.surface, borderColor: colors.borderStrong }]}>
+          <View
+            style={[
+              styles.photoCard,
+              {
+                backgroundColor: colors.surface,
+                borderColor: colors.borderStrong,
+              },
+            ]}
+          >
             {initialImageUri ? (
               <Pressable
                 accessibilityLabel={t("flow.expandInitialPhoto")}
@@ -215,19 +243,44 @@ export default function InitialStateScreen() {
                 />
               </Pressable>
             ) : (
-              <View style={styles.placeholder}>
-                <View style={styles.placeholderIcon}>
+              <Pressable
+                accessibilityHint={t("flow.choosePhotoDescription")}
+                accessibilityLabel={t("flow.addPhoto")}
+                accessibilityRole="button"
+                disabled={isUploading || isDiscarding}
+                onPress={() => setIsPickerVisible(true)}
+                style={({ pressed }) => [
+                  styles.placeholder,
+                  pressed && styles.placeholderPressed,
+                ]}
+                testID="initial-photo-picker-trigger"
+              >
+                <View pointerEvents="none" style={styles.placeholderIcon}>
                   <Text style={styles.placeholderIconText}>＋</Text>
                 </View>
 
-                <Text style={[styles.placeholderTitle, { color: colors.textPrimary }]}>
+                <Text
+                  style={[
+                    styles.placeholderTitle,
+                    { color: colors.textPrimary },
+                  ]}
+                  {...getDevTextMeasurementProps(
+                    "initial.addPhoto",
+                    t("flow.addPhoto"),
+                  )}
+                >
                   {t("flow.addPhoto")}
                 </Text>
 
-                <Text style={[styles.placeholderDescription, { color: colors.textSecondary }]}>
+                <Text
+                  style={[
+                    styles.placeholderDescription,
+                    { color: colors.textSecondary },
+                  ]}
+                >
                   {t("flow.choosePhotoDescription")}
                 </Text>
-              </View>
+              </Pressable>
             )}
           </View>
 
@@ -237,9 +290,12 @@ export default function InitialStateScreen() {
               disabled={isUploading || isDiscarding}
               onPress={() => void handleSelectPhoto("camera")}
               style={styles.primaryAction}
+              testID="initial-camera-button"
             >
               <Text style={styles.primaryActionText}>
-                {initialImagePath ? t("flow.takeNewPhoto") : t("flow.takePhoto")}
+                {initialImagePath
+                  ? t("flow.takeNewPhoto")
+                  : t("flow.takePhoto")}
               </Text>
             </Pressable>
 
@@ -248,6 +304,7 @@ export default function InitialStateScreen() {
               disabled={isUploading || isDiscarding}
               onPress={() => void handleSelectPhoto("library")}
               style={styles.secondaryAction}
+              testID="initial-gallery-button"
             >
               <Text style={styles.secondaryActionText}>
                 {initialImagePath
@@ -265,7 +322,9 @@ export default function InitialStateScreen() {
               style={styles.discardAction}
             >
               <Text style={styles.discardActionText}>
-                {isDiscarding ? t("flow.restoringPhoto") : t("flow.discardReplacement")}
+                {isDiscarding
+                  ? t("flow.restoringPhoto")
+                  : t("flow.discardReplacement")}
               </Text>
             </Pressable>
           ) : null}
@@ -283,6 +342,13 @@ export default function InitialStateScreen() {
           />
         </View>
       </ScrollView>
+      <ImagePickerModal
+        onClose={() => setIsPickerVisible(false)}
+        onSelectSource={handlePickerSource}
+        stageLabel={t("flow.initialTitle").toLocaleLowerCase()}
+        testID="initial-image-picker-modal"
+        visible={isPickerVisible}
+      />
       <PhotoPreviewModal
         label={t("flow.initialTitle")}
         onClose={() => setIsPreviewVisible(false)}
@@ -312,6 +378,9 @@ function createStyles(colors: ColorPalette) {
       flexDirection: "row",
       alignItems: "center",
       alignSelf: "flex-start",
+      minHeight: 44,
+      paddingVertical: Spacing.xs,
+      paddingRight: Spacing.md,
       marginBottom: Spacing.xxl,
     },
 
@@ -319,11 +388,14 @@ function createStyles(colors: ColorPalette) {
       color: colors.textPrimary,
       fontSize: 22,
       marginRight: Spacing.sm,
+      flexShrink: 0,
     },
 
     backText: {
       ...Typography.label,
       color: colors.textPrimary,
+      minWidth: 52,
+      flexShrink: 0,
     },
 
     progressContainer: {
@@ -334,6 +406,7 @@ function createStyles(colors: ColorPalette) {
       ...Typography.label,
       color: colors.primary,
       marginBottom: Spacing.sm,
+      flexShrink: 0,
     },
 
     progressTrack: {
@@ -380,6 +453,10 @@ function createStyles(colors: ColorPalette) {
       paddingHorizontal: Spacing.xl,
     },
 
+    placeholderPressed: {
+      opacity: 0.8,
+    },
+
     placeholderIcon: {
       width: 52,
       height: 52,
@@ -399,6 +476,7 @@ function createStyles(colors: ColorPalette) {
     placeholderTitle: {
       ...Typography.title,
       color: colors.textPrimary,
+      alignSelf: "stretch",
       textAlign: "center",
       marginBottom: Spacing.sm,
     },
@@ -423,6 +501,8 @@ function createStyles(colors: ColorPalette) {
       minHeight: 52,
       alignItems: "center",
       justifyContent: "center",
+      paddingHorizontal: Spacing.lg,
+      paddingVertical: Spacing.sm,
       backgroundColor: colors.primarySoft,
       borderRadius: Radius.lg,
       marginBottom: Spacing.md,
@@ -431,12 +511,18 @@ function createStyles(colors: ColorPalette) {
     primaryActionText: {
       ...Typography.button,
       color: colors.primary,
+      textAlign: "center",
+      width: "100%",
+      minWidth: 0,
+      flexShrink: 1,
     },
 
     secondaryAction: {
       minHeight: 52,
       alignItems: "center",
       justifyContent: "center",
+      paddingHorizontal: Spacing.lg,
+      paddingVertical: Spacing.sm,
       backgroundColor: colors.surface,
       borderWidth: 1,
       borderColor: colors.border,
@@ -446,6 +532,10 @@ function createStyles(colors: ColorPalette) {
     secondaryActionText: {
       ...Typography.button,
       color: colors.textPrimary,
+      textAlign: "center",
+      width: "100%",
+      minWidth: 0,
+      flexShrink: 1,
     },
 
     discardAction: {

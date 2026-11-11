@@ -344,6 +344,7 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
     textAlign: "center",
     marginBottom: Spacing.xs,
+    width: "100%",
   },
 
   stageDescription: {
@@ -353,6 +354,7 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     textAlign: "center",
     paddingHorizontal: Spacing.md,
+    width: "100%",
   },
 
   progressRow: {

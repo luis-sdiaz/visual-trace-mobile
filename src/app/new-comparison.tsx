@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { getDevTextMeasurementProps } from "@/components/dev/devTextMeasurement";
 import { Button } from "@/components/ui/Button";
 import { type ColorPalette } from "@/constants/colors";
 import { Radius } from "@/constants/radius";
@@ -90,12 +91,22 @@ export default function NewComparisonScreen() {
         >
           <Ionicons name="arrow-back" size={20} color={colors.textPrimary} />
 
-          <Text style={[styles.backText, { color: colors.textSecondary }]}>{t("flow.back")}</Text>
+          <Text
+            style={[styles.backText, { color: colors.textSecondary }]}
+            {...getDevTextMeasurementProps("newComparison.back", t("flow.back"))}
+          >
+            {t("flow.back")}
+          </Text>
         </Pressable>
 
         <View style={styles.progressSection}>
           <View style={styles.progressHeader}>
-            <Text style={[styles.progressText, { color: colors.primary }]}>{t("flow.step1")}</Text>
+            <Text
+              style={[styles.progressText, { color: colors.primary }]}
+              {...getDevTextMeasurementProps("newComparison.step1", t("flow.step1"))}
+            >
+              {t("flow.step1")}
+            </Text>
 
             <Text style={[styles.progressLabel, { color: colors.textSecondary }]}>{t("newComparison.info")}</Text>
           </View>
@@ -193,7 +204,12 @@ export default function NewComparisonScreen() {
           <View style={styles.guideContent}>
             <View style={styles.guideItem}>
               <View style={styles.guideNumber}>
-                <Text style={styles.guideNumberText}>01</Text>
+                <Text
+                  style={styles.guideNumberText}
+                  {...getDevTextMeasurementProps("newComparison.guide01", "01")}
+                >
+                  01
+                </Text>
               </View>
 
               <View style={styles.guideItemContent}>
@@ -211,7 +227,12 @@ export default function NewComparisonScreen() {
 
             <View style={styles.guideItem}>
               <View style={styles.guideNumber}>
-                <Text style={styles.guideNumberText}>02</Text>
+                <Text
+                  style={styles.guideNumberText}
+                  {...getDevTextMeasurementProps("newComparison.guide02", "02")}
+                >
+                  02
+                </Text>
               </View>
 
               <View style={styles.guideItemContent}>
@@ -249,8 +270,9 @@ function createStyles(colors: ColorPalette) {
       flexDirection: "row",
       alignItems: "center",
       alignSelf: "flex-start",
-      minHeight: 40,
+      minHeight: 44,
       paddingHorizontal: Spacing.sm,
+      paddingRight: Spacing.md,
       marginLeft: -Spacing.sm,
       marginBottom: Spacing.xl,
       borderRadius: Radius.md,
@@ -264,6 +286,8 @@ function createStyles(colors: ColorPalette) {
       ...Typography.label,
       color: colors.textPrimary,
       marginLeft: Spacing.sm,
+      minWidth: 52,
+      flexShrink: 0,
     },
 
     progressSection: {
@@ -274,6 +298,7 @@ function createStyles(colors: ColorPalette) {
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
+      columnGap: Spacing.sm,
       marginBottom: Spacing.sm,
     },
 
@@ -283,6 +308,8 @@ function createStyles(colors: ColorPalette) {
       lineHeight: 16,
       fontWeight: "800",
       letterSpacing: 0.5,
+      minWidth: 92,
+      flexShrink: 0,
     },
 
     progressLabel: {
@@ -290,6 +317,8 @@ function createStyles(colors: ColorPalette) {
       fontSize: 12,
       lineHeight: 16,
       fontWeight: "600",
+      flexShrink: 1,
+      textAlign: "right",
     },
 
     progressTrack: {
@@ -442,6 +471,7 @@ function createStyles(colors: ColorPalette) {
     guideNumber: {
       width: 36,
       height: 36,
+      flexShrink: 0,
       alignItems: "center",
       justifyContent: "center",
       backgroundColor: colors.primarySoft,
@@ -454,6 +484,10 @@ function createStyles(colors: ColorPalette) {
       fontSize: 11,
       lineHeight: 14,
       fontWeight: "800",
+      textAlign: "center",
+      width: "100%",
+      paddingHorizontal: 2,
+      flexShrink: 0,
     },
 
     guideItemContent: {

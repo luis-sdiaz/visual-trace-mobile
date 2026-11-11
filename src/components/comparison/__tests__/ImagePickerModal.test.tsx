@@ -1,7 +1,9 @@
 import React from "react";
 // @ts-expect-error react-dom/server type declarations are not in devDependencies
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const pressHandlers = vi.hoisted(() => new Map<string, () => void>());
 
 vi.mock("react-native", async () => {
   const actual = await vi.importActual<typeof import("react-native")>("react-native");
@@ -16,12 +18,37 @@ vi.mock("react-native", async () => {
       children?: React.ReactNode;
       testID?: string;
     }) => (visible ? React.createElement("div", { "data-testid": testID }, children) : null),
+    Pressable: ({
+      accessibilityLabel,
+      children,
+      onPress,
+      testID,
+    }: {
+      accessibilityLabel?: string;
+      children?: React.ReactNode;
+      onPress?: () => void;
+      testID?: string;
+    }) => {
+      if (testID && onPress) {
+        pressHandlers.set(testID, onPress);
+      }
+
+      return React.createElement(
+        "button",
+        { "aria-label": accessibilityLabel, "data-testid": testID },
+        children,
+      );
+    },
   };
 });
 
 import { ImagePickerModal } from "../ImagePickerModal";
 
 describe("ImagePickerModal Accessibility and Interaction", () => {
+  beforeEach(() => {
+    pressHandlers.clear();
+  });
+
   it("renders with accessible buttons, hints, and labels", () => {
     const html = renderToStaticMarkup(
       React.createElement(ImagePickerModal, {
@@ -56,6 +83,43 @@ describe("ImagePickerModal Accessibility and Interaction", () => {
     );
 
     expect(htmlHidden).toBe("");
+  });
+
+  it.each([
+    ["image-picker-camera-button", "camera"],
+    ["image-picker-gallery-button", "gallery"],
+  ] as const)("selects %s and closes the modal", (testID, expectedSource) => {
+    const onClose = vi.fn();
+    const onSelectSource = vi.fn();
+
+    renderToStaticMarkup(
+      React.createElement(ImagePickerModal, {
+        visible: true,
+        onClose,
+        onSelectSource,
+      }),
+    );
+    pressHandlers.get(testID)?.();
+
+    expect(onSelectSource).toHaveBeenCalledWith(expectedSource);
+    expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  it("closes on cancellation without selecting a source", () => {
+    const onClose = vi.fn();
+    const onSelectSource = vi.fn();
+
+    renderToStaticMarkup(
+      React.createElement(ImagePickerModal, {
+        visible: true,
+        onClose,
+        onSelectSource,
+      }),
+    );
+    pressHandlers.get("image-picker-cancel-button")?.();
+
+    expect(onClose).toHaveBeenCalledOnce();
+    expect(onSelectSource).not.toHaveBeenCalled();
   });
 });
 

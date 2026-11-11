@@ -5,7 +5,7 @@ import { darkColors } from "@/constants/colors";
 import { Radius } from "@/constants/radius";
 import { Spacing } from "@/constants/spacing";
 import { Typography } from "@/constants/typography";
-import i18n from "@/i18n";
+import i18n, { changeAppLanguage } from "@/i18n";
 import type { SupportedLanguage } from "@/i18n/types";
 
 export interface LanguageSelectorModalProps {
@@ -34,7 +34,7 @@ const LANGUAGE_OPTIONS: {
 ];
 
 export function requestLanguageChange(language: SupportedLanguage) {
-  void i18n.changeLanguage(language).catch((error: unknown) => {
+  void changeAppLanguage(language).catch((error: unknown) => {
     console.error("[LanguageSelectorModal] No se pudo cambiar el idioma:", error);
   });
 }
@@ -73,7 +73,7 @@ export function LanguageSelectorModal({
           testID="language-selector-modal"
         >
           <View style={styles.header}>
-            <View>
+            <View style={styles.headerCopy}>
               <Text style={styles.title}>
                 {t("language.title", { defaultValue: "Idioma" })}
               </Text>
@@ -168,6 +168,11 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginBottom: Spacing.xl,
   },
+  headerCopy: {
+    flex: 1,
+    minWidth: 0,
+    marginRight: Spacing.md,
+  },
   title: {
     ...Typography.title,
     color: darkColors.textPrimary,
@@ -211,11 +216,13 @@ const styles = StyleSheet.create({
   },
   optionText: {
     flex: 1,
+    minWidth: 0,
     marginLeft: Spacing.md,
   },
   languageName: {
     ...Typography.label,
     color: darkColors.textPrimary,
+    flexShrink: 1,
   },
   languageCode: {
     ...Typography.label,

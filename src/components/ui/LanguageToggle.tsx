@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import { useTheme } from "@/context/ThemeContext";
 import { Radius } from "@/constants/radius";
 import { Spacing } from "@/constants/spacing";
-import i18n from "@/i18n";
+import i18n, { changeAppLanguage } from "@/i18n";
 import type { SupportedLanguage } from "@/i18n/types";
 
 export interface LanguageToggleProps {
@@ -40,7 +40,7 @@ export function LanguageToggle({
 
   async function handleLanguageSelect(language: SupportedLanguage) {
     try {
-      await i18n.changeLanguage(language);
+      await changeAppLanguage(language);
     } catch (error: unknown) {
       console.error("[LanguageToggle] No se pudo cambiar el idioma:", error);
     } finally {
@@ -96,6 +96,7 @@ export function LanguageToggle({
         transparent
         visible={isOpen}
         animationType="fade"
+        statusBarTranslucent
         onRequestClose={() => setIsOpen(false)}
       >
         <View style={styles.modalContainer}>
@@ -225,6 +226,7 @@ const styles = StyleSheet.create({
   },
   optionLabel: {
     flex: 1,
+    minWidth: 0,
     fontSize: 14,
     fontWeight: "500",
   },

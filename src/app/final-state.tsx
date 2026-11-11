@@ -13,7 +13,13 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import {
+  ImagePickerModal,
+  type ImagePickerModalSource,
+} from "@/components/comparison/ImagePickerModal";
+import { getDevTextMeasurementProps } from "@/components/dev/devTextMeasurement";
 import { Button } from "@/components/ui/Button";
+import { LayoutText } from "@/components/ui/LayoutText";
 import { PhotoPreviewModal } from "@/components/ui/PhotoPreviewModal";
 import { type ColorPalette } from "@/constants/colors";
 import { Radius } from "@/constants/radius";
@@ -22,14 +28,12 @@ import { Typography } from "@/constants/typography";
 import { useComparison } from "@/context/ComparisonContext";
 import { useTheme } from "@/context/ThemeContext";
 import {
-  markComparisonReady,
-} from "@/services/comparisonService";
-import {
   getComparisonImageSaveErrorMessage,
   restoreSavedComparisonImage,
   saveComparisonImage,
   shouldUploadComparisonImage,
 } from "@/services/comparisonImageLifecycleService";
+import { markComparisonReady } from "@/services/comparisonService";
 import {
   selectComparisonPhoto,
   type PhotoSelectionSource,
@@ -40,6 +44,7 @@ export default function FinalStateScreen() {
   const { colors } = useTheme();
   const {
     comparisonId,
+    initialImageUri,
     finalImageUri,
     finalImagePath,
     finalImageIsDirty,
@@ -51,6 +56,7 @@ export default function FinalStateScreen() {
   const [isUploading, setIsUploading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isDiscarding, setIsDiscarding] = useState(false);
+  const [isPickerVisible, setIsPickerVisible] = useState(false);
   const [isPreviewVisible, setIsPreviewVisible] = useState(false);
 
   const uploadingRef = useRef(false);
@@ -65,20 +71,16 @@ export default function FinalStateScreen() {
       return;
     }
 
-    Alert.alert(
-      t("flow.replaceFinalTitle"),
-      t("flow.replaceDescription"),
-      [
-        { text: t("flow.cancel"), style: "cancel" },
-        {
-          text: t("flow.replace"),
-          onPress: () => {
-            setFinalImageUri(uri);
-            setErrorMessage(null);
-          },
+    Alert.alert(t("flow.replaceFinalTitle"), t("flow.replaceDescription"), [
+      { text: t("flow.cancel"), style: "cancel" },
+      {
+        text: t("flow.replace"),
+        onPress: () => {
+          setFinalImageUri(uri);
+          setErrorMessage(null);
         },
-      ],
-    );
+      },
+    ]);
   }
 
   async function handleSelectPhoto(source: PhotoSelectionSource) {
@@ -99,21 +101,26 @@ export default function FinalStateScreen() {
         acceptSelectedImage(outcome.uri);
       }
     } catch {
-      setErrorMessage(
-        t("flow.pickerError"),
-      );
+      setErrorMessage(t("flow.pickerError"));
     }
   }
 
+  function handlePickerSource(source: ImagePickerModalSource) {
+    void handleSelectPhoto(source === "gallery" ? "library" : "camera");
+  }
+
   async function handleContinue() {
-    if (!finalImageUri || uploadingRef.current || discardingRef.current) {
+    if (
+      !initialImageUri ||
+      !finalImageUri ||
+      uploadingRef.current ||
+      discardingRef.current
+    ) {
       return;
     }
 
     if (!comparisonId) {
-      setErrorMessage(
-        t("flow.comparisonNotFound"),
-      );
+      setErrorMessage(t("flow.comparisonNotFound"));
 
       return;
     }
@@ -155,7 +162,8 @@ export default function FinalStateScreen() {
       !finalImagePath ||
       uploadingRef.current ||
       discardingRef.current
-    ) return;
+    )
+      return;
     discardingRef.current = true;
     setIsDiscarding(true);
     setErrorMessage(null);
@@ -175,7 +183,9 @@ export default function FinalStateScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+    >
       <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
@@ -186,26 +196,49 @@ export default function FinalStateScreen() {
             disabled={isUploading || isDiscarding}
             onPress={() => router.replace("/initial-state")}
             style={styles.backButton}
+            testID="final-back-button"
           >
-            <Text style={[styles.backIcon, { color: colors.textPrimary }]}>←</Text>
-            <Text style={[styles.backText, { color: colors.textSecondary }]}>{t("flow.back")}</Text>
+            <Text style={[styles.backIcon, { color: colors.textPrimary }]}>
+              ←
+            </Text>
+            <Text
+              style={[styles.backText, { color: colors.textSecondary }]}
+              {...getDevTextMeasurementProps("final.back", t("flow.back"))}
+            >
+              {t("flow.back")}
+            </Text>
           </Pressable>
 
           <View style={styles.progressContainer}>
-            <Text style={[styles.progressText, { color: colors.primary }]}>{t("flow.step3")}</Text>
+            <LayoutText
+              layout="atomic"
+              style={[styles.progressText, { color: colors.primary }]}
+            >
+              {t("flow.step3")}
+            </LayoutText>
 
             <View style={styles.progressTrack}>
               <View style={styles.progressValue} />
             </View>
           </View>
 
-          <Text style={[styles.title, { color: colors.textPrimary }]}>{t("flow.finalTitle")}</Text>
+          <Text style={[styles.title, { color: colors.textPrimary }]}>
+            {t("flow.finalTitle")}
+          </Text>
 
           <Text style={[styles.description, { color: colors.textSecondary }]}>
             {t("flow.finalDescription")}
           </Text>
 
-          <View style={[styles.photoCard, { backgroundColor: colors.surface, borderColor: colors.borderStrong }]}>
+          <View
+            style={[
+              styles.photoCard,
+              {
+                backgroundColor: colors.surface,
+                borderColor: colors.borderStrong,
+              },
+            ]}
+          >
             {finalImageUri ? (
               <Pressable
                 accessibilityLabel={t("flow.expandFinalPhoto")}
@@ -220,19 +253,39 @@ export default function FinalStateScreen() {
                 />
               </Pressable>
             ) : (
-              <View style={styles.placeholder}>
-                <View style={styles.placeholderIcon}>
+              <Pressable
+                accessibilityLabel={t("flow.addFinalPhoto")}
+                accessibilityRole="button"
+                disabled={isUploading || isDiscarding}
+                onPress={() => setIsPickerVisible(true)}
+                style={({ pressed }) => [
+                  styles.placeholder,
+                  pressed && styles.placeholderPressed,
+                ]}
+                testID="final-photo-picker-trigger"
+              >
+                <View pointerEvents="none" style={styles.placeholderIcon}>
                   <Text style={styles.placeholderIconText}>＋</Text>
                 </View>
 
-                <Text style={[styles.placeholderTitle, { color: colors.textPrimary }]}>
+                <Text
+                  style={[
+                    styles.placeholderTitle,
+                    { color: colors.textPrimary },
+                  ]}
+                >
                   {t("flow.addFinalPhoto")}
                 </Text>
 
-                <Text style={[styles.placeholderDescription, { color: colors.textSecondary }]}>
+                <Text
+                  style={[
+                    styles.placeholderDescription,
+                    { color: colors.textSecondary },
+                  ]}
+                >
                   {t("flow.choosePhotoDescription")}
                 </Text>
-              </View>
+              </Pressable>
             )}
           </View>
 
@@ -270,7 +323,9 @@ export default function FinalStateScreen() {
               style={styles.discardAction}
             >
               <Text style={styles.discardActionText}>
-                {isDiscarding ? t("flow.restoringPhoto") : t("flow.discardReplacement")}
+                {isDiscarding
+                  ? t("flow.restoringPhoto")
+                  : t("flow.discardReplacement")}
               </Text>
             </Pressable>
           ) : null}
@@ -282,12 +337,26 @@ export default function FinalStateScreen() {
 
         <View style={styles.footer}>
           <Button
-            label={isUploading ? t("flow.savingPhoto") : t("flow.compareStates")}
-            disabled={!finalImageUri || isUploading || isDiscarding}
+            label={
+              isUploading ? t("flow.savingPhoto") : t("flow.compareStates")
+            }
+            disabled={
+              !initialImageUri ||
+              !finalImageUri ||
+              isUploading ||
+              isDiscarding
+            }
             onPress={handleContinue}
           />
         </View>
       </ScrollView>
+      <ImagePickerModal
+        onClose={() => setIsPickerVisible(false)}
+        onSelectSource={handlePickerSource}
+        stageLabel={t("flow.finalTitle").toLocaleLowerCase()}
+        testID="final-image-picker-modal"
+        visible={isPickerVisible}
+      />
       <PhotoPreviewModal
         label={t("flow.finalTitle")}
         onClose={() => setIsPreviewVisible(false)}
@@ -317,6 +386,9 @@ function createStyles(colors: ColorPalette) {
       flexDirection: "row",
       alignItems: "center",
       alignSelf: "flex-start",
+      minHeight: 44,
+      paddingVertical: Spacing.xs,
+      paddingRight: Spacing.md,
       marginBottom: Spacing.xxl,
     },
 
@@ -324,11 +396,14 @@ function createStyles(colors: ColorPalette) {
       color: colors.textPrimary,
       fontSize: 22,
       marginRight: Spacing.sm,
+      flexShrink: 0,
     },
 
     backText: {
       ...Typography.label,
       color: colors.textPrimary,
+      minWidth: 52,
+      flexShrink: 0,
     },
 
     progressContainer: {
@@ -339,6 +414,7 @@ function createStyles(colors: ColorPalette) {
       ...Typography.label,
       color: colors.primary,
       marginBottom: Spacing.sm,
+      flexShrink: 0,
     },
 
     progressTrack: {
@@ -385,6 +461,10 @@ function createStyles(colors: ColorPalette) {
       paddingHorizontal: Spacing.xl,
     },
 
+    placeholderPressed: {
+      opacity: 0.8,
+    },
+
     placeholderIcon: {
       width: 52,
       height: 52,
@@ -428,6 +508,8 @@ function createStyles(colors: ColorPalette) {
       minHeight: 52,
       alignItems: "center",
       justifyContent: "center",
+      paddingHorizontal: Spacing.lg,
+      paddingVertical: Spacing.sm,
       backgroundColor: colors.primarySoft,
       borderRadius: Radius.lg,
       marginBottom: Spacing.md,
@@ -436,12 +518,18 @@ function createStyles(colors: ColorPalette) {
     primaryActionText: {
       ...Typography.button,
       color: colors.primary,
+      textAlign: "center",
+      width: "100%",
+      minWidth: 0,
+      flexShrink: 1,
     },
 
     secondaryAction: {
       minHeight: 52,
       alignItems: "center",
       justifyContent: "center",
+      paddingHorizontal: Spacing.lg,
+      paddingVertical: Spacing.sm,
       backgroundColor: colors.surface,
       borderWidth: 1,
       borderColor: colors.border,
@@ -451,6 +539,10 @@ function createStyles(colors: ColorPalette) {
     secondaryActionText: {
       ...Typography.button,
       color: colors.textPrimary,
+      textAlign: "center",
+      width: "100%",
+      minWidth: 0,
+      flexShrink: 1,
     },
 
     discardAction: {

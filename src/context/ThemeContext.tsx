@@ -1,4 +1,3 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   createContext,
   useCallback,
@@ -14,8 +13,13 @@ import {
   lightColors,
   type ColorPalette,
 } from "@/constants/colors";
+import {
+  getStoredTheme,
+  persistTheme,
+  type Theme,
+} from "@/services/themePreferenceService";
 
-export type Theme = "light" | "dark";
+export type { Theme } from "@/services/themePreferenceService";
 
 type ThemeContextValue = {
   theme: Theme;
@@ -24,8 +28,6 @@ type ThemeContextValue = {
   toggleTheme: () => void;
   setTheme: (theme: Theme) => void;
 };
-
-const THEME_STORAGE_KEY = "@visualtrace/theme";
 
 const defaultThemeValue: ThemeContextValue = {
   theme: "light",
@@ -49,8 +51,8 @@ export function ThemeProvider({ children }: PropsWithChildren) {
 
     async function restoreTheme() {
       try {
-        const storedTheme = await AsyncStorage.getItem(THEME_STORAGE_KEY);
-        if (active && (storedTheme === "light" || storedTheme === "dark")) {
+        const storedTheme = await getStoredTheme();
+        if (active && storedTheme) {
           setThemeState(storedTheme);
         }
       } catch (error) {
@@ -66,7 +68,7 @@ export function ThemeProvider({ children }: PropsWithChildren) {
 
   const setTheme = useCallback((nextTheme: Theme) => {
     setThemeState(nextTheme);
-    void AsyncStorage.setItem(THEME_STORAGE_KEY, nextTheme).catch((error) => {
+    void persistTheme(nextTheme).catch((error) => {
       console.error("[ThemeContext] No se pudo guardar el tema:", error);
     });
   }, []);

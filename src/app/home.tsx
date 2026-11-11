@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { router, useFocusEffect } from "expo-router";
+import { router, type Href, useFocusEffect } from "expo-router";
 import {
   useCallback,
   useEffect,
@@ -18,12 +18,18 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Button } from "@/components/ui/Button";
-import { SettingsModal } from "@/components/ui/SettingsModal";
+import { LayoutText } from "@/components/ui/LayoutText";
+import { getDevTextMeasurementProps } from "@/components/dev/devTextMeasurement";
+import {
+  HomeHistoryLabels,
+  HomeLoadMoreLabel,
+} from "@/components/history/HomeHistoryLabels";
 import { type ColorPalette } from "@/constants/colors";
 import { Radius } from "@/constants/radius";
 import { Spacing } from "@/constants/spacing";
@@ -42,6 +48,9 @@ import {
 } from "@/services/comparisonService";
 import { recoverComparison } from "@/services/comparisonRecoveryService";
 import { getAccountGreeting } from "@/utils/accountDisplay";
+import { getHomeFilterTextMinWidth } from "@/utils/homeTextLayout";
+import { openSettings } from "@/utils/settingsNavigation";
+import { shouldStackTopBar } from "@/utils/responsiveLayout";
 
 function formatComparisonDate(value: string, locale: string, unavailable: string): string {
   const date = new Date(value);
@@ -61,6 +70,9 @@ export default function HomeScreen() {
   const { t, i18n } = useTranslation();
   const { user, isLoading, signOut } = useAuth();
   const { colors } = useTheme();
+  const { fontScale, width: windowWidth } = useWindowDimensions();
+  const homeContentWidth = Math.max(0, windowWidth - Spacing.xl * 2);
+  const baseCompactTopBar = shouldStackTopBar(homeContentWidth, fontScale);
   const styles = useMemo(() => createStyles(colors), [colors]);
   const statusLabels: Record<ComparisonStatus, string> = {
     draft: t("homeFilters.draft"),
@@ -88,7 +100,11 @@ export default function HomeScreen() {
   } = useComparison();
 
   const [isSigningOut, setIsSigningOut] = useState(false);
-  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const signOutLabel = isSigningOut ? t("home.signingOut") : t("home.signOut");
+  const signOutTextMinWidth = Math.ceil(
+    Math.max(44, signOutLabel.length * 8) * Math.max(fontScale, 1),
+  );
+  const useCompactTopBar = baseCompactTopBar || signOutTextMinWidth > 88;
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [recentComparisons, setRecentComparisons] = useState<
     ComparisonRecord[]
@@ -404,14 +420,38 @@ export default function HomeScreen() {
         }
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.topBar}>
+        <View style={[styles.topBar, useCompactTopBar && styles.topBarCompact]}>
           <Text style={[styles.brand, { color: colors.primary }]}>VisualTrace</Text>
 
-          <View style={styles.topBarActions}>
+          <View
+            style={[
+              styles.topBarActions,
+              useCompactTopBar && styles.topBarActionsCompact,
+            ]}
+          >
+            {__DEV__ ? (
+              <Pressable
+                accessibilityLabel="Abrir diagnóstico de texto"
+                accessibilityRole="button"
+                onPress={() => router.push("/text-diagnostics" as Href)}
+                style={({ pressed }) => [
+                  styles.devSettingsButton,
+                  pressed && styles.devSettingsButtonPressed,
+                ]}
+                testID="open-text-diagnostics-button"
+              >
+                <Ionicons
+                  name="flask-outline"
+                  size={17}
+                  color={colors.textSecondary}
+                />
+              </Pressable>
+            ) : null}
+
             <Pressable
               accessibilityLabel={t("settings.title")}
               accessibilityRole="button"
-              onPress={() => setShowSettingsModal(true)}
+              onPress={openSettings}
               style={({ pressed }) => [
                 styles.devSettingsButton,
                 pressed && styles.devSettingsButtonPressed,
@@ -440,8 +480,18 @@ export default function HomeScreen() {
                 color={colors.textSecondary}
               />
 
-              <Text style={styles.signOutText}>
-                {isSigningOut ? t("home.signingOut") : t("home.signOut")}
+              <Text
+                style={[
+                  styles.signOutText,
+                  { minWidth: signOutTextMinWidth },
+                ]}
+                {...getDevTextMeasurementProps(
+                  "home.signOut",
+                  signOutLabel,
+                )}
+                testID="home-sign-out-label"
+              >
+                {signOutLabel}
               </Text>
             </Pressable>
           </View>
@@ -481,13 +531,36 @@ export default function HomeScreen() {
             </View>
 
             <View style={styles.draftContent}>
-              <Text style={styles.draftLabel}>{t("homeFilters.inProgress")}</Text>
-
-              <Text style={styles.draftName} numberOfLines={1}>
-                {name.trim() || t("homeFilters.unnamed")}
+              <Text
+                style={styles.draftLabel}
+                {...getDevTextMeasurementProps(
+                  "home.draftLabel",
+                  t("homeFilters.inProgress"),
+                )}
+              >
+                {t("homeFilters.inProgress")}
               </Text>
 
-              <Text style={styles.draftAction}>
+              <LayoutText
+                layout="fullWidth"
+                style={styles.draftName}
+                {...getDevTextMeasurementProps(
+                  "home.draftName",
+                  name.trim() || t("homeFilters.unnamed"),
+                )}
+              >
+                {name.trim() || t("homeFilters.unnamed")}
+              </LayoutText>
+
+              <Text
+                style={styles.draftAction}
+                {...getDevTextMeasurementProps(
+                  "home.draftAction",
+                  openingComparisonId === comparisonId
+                    ? t("homeFilters.opening")
+                    : t("homeFilters.continue"),
+                )}
+              >
                 {openingComparisonId === comparisonId
                   ? t("homeFilters.opening")
                   : t("homeFilters.continue")}
@@ -551,7 +624,11 @@ export default function HomeScreen() {
             ) : null}
           </View>
 
-          <View accessibilityRole="radiogroup" style={styles.filterRow}>
+          <View
+            accessibilityRole="radiogroup"
+            style={styles.filterRow}
+            testID="home-status-filters"
+          >
             {statusFilters.map((filter) => {
               const selected = statusFilter === filter.value;
               return (
@@ -565,8 +642,19 @@ export default function HomeScreen() {
                   <Text
                     style={[
                       styles.filterChipText,
+                      {
+                        minWidth: getHomeFilterTextMinWidth(
+                          filter.value,
+                          fontScale,
+                        ),
+                      },
                       selected && styles.filterChipTextSelected,
                     ]}
+                    {...getDevTextMeasurementProps(
+                      `home.filter.${filter.value ?? "all"}`,
+                      filter.label,
+                    )}
+                    testID={`home-filter-label-${filter.value ?? "all"}`}
                   >
                     {filter.label}
                   </Text>
@@ -593,6 +681,11 @@ export default function HomeScreen() {
                         styles.sortOptionText,
                         selected && styles.sortOptionTextSelected,
                       ]}
+                      {...getDevTextMeasurementProps(
+                        `home.sort.${option.value}`,
+                        option.label,
+                      )}
+                      testID={`home-sort-label-${option.value}`}
                     >
                       {option.label}
                     </Text>
@@ -646,6 +739,7 @@ export default function HomeScreen() {
                 windowSize={5}
                 removeClippedSubviews={true}
                 scrollEnabled={false}
+                ItemSeparatorComponent={() => <View style={styles.recentSeparator} />}
                 renderItem={({ item: comparison }) => (
                   <Pressable
                     key={comparison.id}
@@ -666,38 +760,18 @@ export default function HomeScreen() {
                       />
                     </View>
 
-                    <View style={styles.recentContent}>
-                      <Text style={styles.recentName} numberOfLines={1}>
-                        {comparison.name}
-                      </Text>
-                      <Text style={styles.recentDate}>
-                        {formatComparisonDate(
-                          comparison.created_at,
-                          i18n.language,
-                          t("homeFilters.dateUnavailable"),
-                        )}
-                      </Text>
-                    </View>
-
-                    <View
-                      style={[
-                        styles.statusBadge,
-                        comparison.status === "ready" && styles.readyBadge,
-                        comparison.status === "analyzed" &&
-                          styles.analyzedBadge,
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.statusText,
-                          comparison.status === "ready" && styles.readyText,
-                          comparison.status === "analyzed" &&
-                            styles.analyzedText,
-                        ]}
-                      >
-                        {statusLabels[comparison.status]}
-                      </Text>
-                    </View>
+                    <HomeHistoryLabels
+                      comparisonId={comparison.id}
+                      date={formatComparisonDate(
+                        comparison.created_at,
+                        i18n.language,
+                        t("homeFilters.dateUnavailable"),
+                      )}
+                      fontScale={fontScale}
+                      name={comparison.name}
+                      status={comparison.status}
+                      statusLabel={statusLabels[comparison.status]}
+                    />
 
                     {openingComparisonId === comparison.id ? (
                       <ActivityIndicator
@@ -734,7 +808,7 @@ export default function HomeScreen() {
                   {isLoadingMore ? (
                     <ActivityIndicator color={colors.primary} />
                   ) : (
-                    <Text style={styles.loadMoreText}>{t("homeFilters.loadMore")}</Text>
+                    <HomeLoadMoreLabel label={t("homeFilters.loadMore")} />
                   )}
                 </Pressable>
               ) : (
@@ -769,10 +843,6 @@ export default function HomeScreen() {
         </View>
       </ScrollView>
 
-      <SettingsModal
-        onClose={() => setShowSettingsModal(false)}
-        visible={showSettingsModal}
-      />
     </SafeAreaView>
   );
 }
@@ -803,10 +873,21 @@ function createStyles(colors: ColorPalette) {
     marginBottom: Spacing.xl,
   },
 
+  topBarCompact: {
+    alignItems: "flex-start",
+    flexWrap: "wrap",
+    rowGap: Spacing.sm,
+  },
+
   topBarActions: {
     flexDirection: "row",
     alignItems: "center",
     gap: Spacing.sm,
+  },
+
+  topBarActionsCompact: {
+    width: "100%",
+    justifyContent: "flex-end",
   },
 
   brand: {
@@ -814,12 +895,15 @@ function createStyles(colors: ColorPalette) {
     fontSize: 20,
     lineHeight: 26,
     fontWeight: "800",
+    flex: 1,
+    minWidth: 0,
+    flexShrink: 1,
   },
 
   signOutButton: {
     flexDirection: "row",
     alignItems: "center",
-    minHeight: 40,
+    minHeight: 44,
     paddingHorizontal: Spacing.md,
     backgroundColor: colors.surface,
     borderWidth: 1,
@@ -834,12 +918,13 @@ function createStyles(colors: ColorPalette) {
   signOutText: {
     ...Typography.label,
     color: colors.textSecondary,
-    marginLeft: Spacing.xs,
+    marginLeft: Spacing.sm,
+    flexShrink: 0,
   },
 
   devSettingsButton: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: colors.surface,
@@ -913,6 +998,7 @@ function createStyles(colors: ColorPalette) {
 
   draftContent: {
     flex: 1,
+    minWidth: 0,
     marginRight: Spacing.sm,
   },
 
@@ -923,6 +1009,7 @@ function createStyles(colors: ColorPalette) {
     fontWeight: "800",
     letterSpacing: 0.6,
     marginBottom: Spacing.xs,
+    alignSelf: "stretch",
   },
 
   draftName: {
@@ -938,6 +1025,7 @@ function createStyles(colors: ColorPalette) {
     lineHeight: 19,
     fontWeight: "700",
     marginTop: Spacing.sm,
+    alignSelf: "stretch",
   },
 
   actionCard: {
@@ -977,6 +1065,7 @@ function createStyles(colors: ColorPalette) {
 
   actionHeaderText: {
     flex: 1,
+    minWidth: 0,
   },
 
   actionTitle: {
@@ -1035,13 +1124,17 @@ function createStyles(colors: ColorPalette) {
   },
 
   filterChip: {
-    minHeight: 40,
+    minHeight: 44,
+    alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: Spacing.md,
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: Radius.full,
+    flexBasis: "47%",
+    flexGrow: 1,
+    flexShrink: 1,
   },
 
   filterChipSelected: {
@@ -1052,6 +1145,8 @@ function createStyles(colors: ColorPalette) {
   filterChipText: {
     ...Typography.label,
     color: colors.textSecondary,
+    textAlign: "center",
+    flexShrink: 0,
   },
 
   filterChipTextSelected: {
@@ -1080,6 +1175,7 @@ function createStyles(colors: ColorPalette) {
     minHeight: 40,
     alignItems: "center",
     justifyContent: "center",
+    paddingHorizontal: Spacing.sm,
     borderRadius: Radius.md,
   },
 
@@ -1090,6 +1186,8 @@ function createStyles(colors: ColorPalette) {
   sortOptionText: {
     ...Typography.label,
     color: colors.textSecondary,
+    textAlign: "center",
+    alignSelf: "stretch",
   },
 
   sortOptionTextSelected: {
@@ -1155,15 +1253,11 @@ function createStyles(colors: ColorPalette) {
     minHeight: 48,
     alignItems: "center",
     justifyContent: "center",
+    paddingHorizontal: Spacing.xl,
     borderWidth: 1,
     borderColor: colors.borderPrimary,
     borderRadius: Radius.lg,
     backgroundColor: colors.primarySoft,
-  },
-
-  loadMoreText: {
-    ...Typography.label,
-    color: colors.primary,
   },
 
   loadMoreError: {
@@ -1177,6 +1271,10 @@ function createStyles(colors: ColorPalette) {
     color: colors.textMuted,
     textAlign: "center",
     paddingVertical: Spacing.sm,
+  },
+
+  recentSeparator: {
+    height: 12,
   },
 
   recentCard: {
@@ -1201,54 +1299,6 @@ function createStyles(colors: ColorPalette) {
     marginRight: Spacing.md,
     backgroundColor: colors.primarySoft,
     borderRadius: Radius.md,
-  },
-
-  recentContent: {
-    flex: 1,
-    marginRight: Spacing.sm,
-  },
-
-  recentName: {
-    ...Typography.label,
-    color: colors.textPrimary,
-    fontSize: 15,
-  },
-
-  recentDate: {
-    color: colors.textSecondary,
-    fontSize: 12,
-    lineHeight: 18,
-    marginTop: Spacing.xs,
-  },
-
-  statusBadge: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs,
-    backgroundColor: colors.warningSoft,
-    borderRadius: Radius.full,
-  },
-
-  statusText: {
-    color: colors.warning,
-    fontSize: 11,
-    lineHeight: 15,
-    fontWeight: "700",
-  },
-
-  readyBadge: {
-    backgroundColor: colors.primarySoft,
-  },
-
-  readyText: {
-    color: colors.primary,
-  },
-
-  analyzedBadge: {
-    backgroundColor: colors.successSoft,
-  },
-
-  analyzedText: {
-    color: colors.success,
   },
 
   openingIndicator: {

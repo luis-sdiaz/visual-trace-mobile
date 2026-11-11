@@ -100,6 +100,7 @@ export function ExportReportButton({
         <Text
           style={[
             styles.buttonText,
+            styles.buttonTextFullWidth,
             variant === "primary"
               ? styles.buttonTextPrimary
               : styles.buttonTextOutline,
@@ -147,6 +148,12 @@ function createStyles(colors: ColorPalette) {
       ...Typography.label,
       fontSize: 12,
       lineHeight: 16,
+      minWidth: 0,
+      textAlign: "center",
+      flexShrink: 1,
+    },
+    buttonTextFullWidth: {
+      width: "100%",
     },
     buttonTextPrimary: {
       color: colors.white,

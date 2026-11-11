@@ -200,6 +200,7 @@ const styles = StyleSheet.create({
 
   titleContainer: {
     flex: 1,
+    minWidth: 0,
   },
 
   title: {
@@ -208,6 +209,7 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     color: Colors.textPrimary,
     marginBottom: 4,
+    flexShrink: 1,
   },
 
   quotaBadge: {
@@ -254,6 +256,7 @@ const styles = StyleSheet.create({
 
   resetTextContainer: {
     flex: 1,
+    minWidth: 0,
   },
 
   resetLabel: {
@@ -304,6 +307,7 @@ const styles = StyleSheet.create({
     lineHeight: 17,
     color: Colors.textSecondary,
     flex: 1,
+    minWidth: 0,
   },
 
   actionsContainer: {

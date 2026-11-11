@@ -165,6 +165,7 @@ const styles = StyleSheet.create({
 
   titleContainer: {
     flex: 1,
+    minWidth: 0,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -177,6 +178,7 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     color: Colors.textPrimary,
     flex: 1,
+    minWidth: 0,
   },
 
   badge: {
@@ -230,6 +232,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     color: Colors.textSecondary,
     flex: 1,
+    minWidth: 0,
   },
 
   retryButton: {
@@ -296,4 +299,3 @@ const styles = StyleSheet.create({
     fontFamily: "monospace",
   },
 });
-

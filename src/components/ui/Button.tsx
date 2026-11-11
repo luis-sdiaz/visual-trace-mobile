@@ -1,10 +1,11 @@
-import { Pressable, StyleSheet, Text } from "react-native";
+import { Pressable, StyleSheet } from "react-native";
 
 import { type ColorPalette } from "@/constants/colors";
 import { Radius } from "@/constants/radius";
 import { Spacing } from "@/constants/spacing";
 import { Typography } from "@/constants/typography";
 import { useTheme } from "@/context/ThemeContext";
+import { LayoutText } from "./LayoutText";
 
 type ButtonProps = {
   label: string;
@@ -26,7 +27,9 @@ export function Button({ label, onPress, disabled = false }: ButtonProps) {
         disabled && buttonStyles(colors).disabled,
       ]}
     >
-      <Text style={buttonStyles(colors).label}>{label}</Text>
+      <LayoutText layout="fullWidth" style={buttonStyles(colors).label}>
+        {label}
+      </LayoutText>
     </Pressable>
   );
 }
@@ -37,7 +40,7 @@ function buttonStyles(colors: ColorPalette) {
       minHeight: 52,
       alignItems: "center",
       justifyContent: "center",
-      paddingHorizontal: Spacing.xl,
+      paddingHorizontal: Spacing.lg,
       paddingVertical: Spacing.md,
       backgroundColor: colors.primary,
       borderRadius: Radius.lg,

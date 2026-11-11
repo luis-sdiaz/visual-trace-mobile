@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import "@/i18n";
 import { StyleSheet, Text, View } from "react-native";
 
+import { LayoutText } from "@/components/ui/LayoutText";
 import { Colors, type ColorPalette } from "@/constants/colors";
 import { Radius } from "@/constants/radius";
 import { Spacing } from "@/constants/spacing";
@@ -202,7 +203,9 @@ export function AiAnalysisSummaryCard({
       <View style={styles.headerRow}>
         <View style={styles.headerLeft}>
           <Text style={styles.headerEyebrow}>{t("aiReport.impactTitle")}</Text>
-          <Text style={styles.headerTitle}>{labels.title}</Text>
+          <LayoutText layout="flexible" style={styles.headerTitle}>
+            {labels.title}
+          </LayoutText>
         </View>
 
         <View
@@ -215,20 +218,25 @@ export function AiAnalysisSummaryCard({
           ]}
           testID="severity-level-badge"
         >
-          <Text style={[styles.severityBadgeText, { color: severity.color }]}>
+          <LayoutText
+            layout="stretch"
+            style={[styles.severityBadgeText, { color: severity.color }]}
+          >
             {labels.badgeText}
-          </Text>
+          </LayoutText>
         </View>
       </View>
 
-      <Text style={styles.description}>{labels.description}</Text>
+      <LayoutText layout="stretch" style={styles.description}>
+        {labels.description}
+      </LayoutText>
 
       <View style={styles.metricsRow}>
         <View style={styles.metricItem} testID="total-findings-indicator">
           <Text style={styles.metricValue}>{totalDifferences}</Text>
-          <Text style={styles.metricLabel}>
+          <LayoutText layout="fullWidth" style={styles.metricLabel}>
             {findingLabel}
-          </Text>
+          </LayoutText>
         </View>
 
         <View style={styles.metricDivider} />
@@ -237,22 +245,24 @@ export function AiAnalysisSummaryCard({
           style={[styles.metricItem, styles.metricItemCenter]}
           testID="comparison-status-indicator"
         >
-          <Text
-            numberOfLines={2}
+          <LayoutText
+            layout="fullWidth"
             style={[styles.metricValueText, { color: severity.color }]}
           >
             {labels.statusLabel}
-          </Text>
-          <Text style={styles.metricLabel}>{t("aiReport.status")}</Text>
+          </LayoutText>
+          <LayoutText layout="fullWidth" style={styles.metricLabel}>
+            {t("aiReport.status")}
+          </LayoutText>
         </View>
 
         <View style={styles.metricDivider} />
 
         <View style={styles.metricItem} testID="affected-categories-indicator">
           <Text style={styles.metricValue}>{uniqueCategoriesCount}</Text>
-          <Text style={styles.metricLabel}>
+          <LayoutText layout="fullWidth" style={styles.metricLabel}>
             {categoryLabel}
-          </Text>
+          </LayoutText>
         </View>
       </View>
     </View>
@@ -280,6 +290,7 @@ function createStyles(colors: ColorPalette) {
 
     headerLeft: {
       flex: 1,
+      minWidth: 0,
     },
 
     headerEyebrow: {
@@ -299,6 +310,7 @@ function createStyles(colors: ColorPalette) {
     },
 
     severityBadge: {
+      minWidth: 84,
       paddingHorizontal: Spacing.md,
       paddingVertical: Spacing.xs,
       borderRadius: Radius.full,
@@ -312,6 +324,8 @@ function createStyles(colors: ColorPalette) {
       fontSize: 12,
       lineHeight: 16,
       fontWeight: "700",
+      flexShrink: 1,
+      textAlign: "center",
     },
 
     description: {
@@ -335,6 +349,7 @@ function createStyles(colors: ColorPalette) {
 
     metricItem: {
       flex: 1,
+      minWidth: 0,
       alignItems: "center",
       justifyContent: "center",
       paddingHorizontal: 2,
@@ -365,6 +380,7 @@ function createStyles(colors: ColorPalette) {
       lineHeight: 15,
       fontWeight: "700",
       textAlign: "center",
+      flexShrink: 1,
     },
 
     metricLabel: {
@@ -374,6 +390,7 @@ function createStyles(colors: ColorPalette) {
       color: colors.textSecondary,
       marginTop: 2,
       textAlign: "center",
+      flexShrink: 1,
     },
   });
 }

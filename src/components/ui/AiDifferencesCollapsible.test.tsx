@@ -93,6 +93,24 @@ describe("AiDifferencesCollapsible", () => {
       expect(html).toContain("Se colocó un cuadro decorativo en la pared norte.");
       expect(html).toContain("El tono de pintura cambió de gris oscuro a blanco perla.");
     });
+
+    it("keeps the total counter content-driven for one and two-digit counts", () => {
+      const oneDifference = renderToStaticMarkup(
+        React.createElement(AiDifferencesCollapsible, {
+          differences: [sampleDifferences[0]],
+        }),
+      );
+      const twelveDifferences = renderToStaticMarkup(
+        React.createElement(AiDifferencesCollapsible, {
+          differences: Array.from({ length: 12 }, (_, index) => ({
+            ...sampleDifferences[0],
+            description: `Diferencia ${index + 1}`,
+          })),
+        }),
+      );
+
+      expect(oneDifference).toContain("1 cambio");
+      expect(twelveDifferences).toContain("12 cambios");
+    });
   });
 });
-

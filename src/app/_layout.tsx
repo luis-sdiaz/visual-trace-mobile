@@ -1,4 +1,5 @@
-import { Stack } from "expo-router";
+import { SplashScreen, Stack } from "expo-router";
+import { useEffect } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 
 import { AuthProvider, useAuth } from "@/context/AuthContext";
@@ -6,6 +7,9 @@ import { ComparisonProvider } from "@/context/ComparisonContext";
 import { ThemeProvider, useTheme } from "@/context/ThemeContext";
 import { getAuthRouteAccess } from "@/utils/authNavigation";
 import "@/i18n";
+
+// Keep the native splash visible only while the real session state is resolving.
+void SplashScreen.preventAutoHideAsync().catch(() => {});
 
 export default function RootLayout() {
   return (
@@ -20,6 +24,12 @@ export default function RootLayout() {
 function AppNavigator() {
   const { user, isLoading } = useAuth();
   const { colors } = useTheme();
+
+  useEffect(() => {
+    if (!isLoading) {
+      SplashScreen.hide();
+    }
+  }, [isLoading]);
 
   if (isLoading) {
     return (
@@ -47,6 +57,8 @@ function AppNavigator() {
 
         <Stack.Protected guard={routeAccess.canAccessAuthenticatedRoutes}>
           <Stack.Screen name="home" />
+          <Stack.Screen name="settings" />
+          {__DEV__ ? <Stack.Screen name="text-diagnostics" /> : null}
           <Stack.Screen name="new-comparison" />
           <Stack.Screen name="initial-state" />
           <Stack.Screen name="final-state" />

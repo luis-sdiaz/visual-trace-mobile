@@ -231,6 +231,7 @@ const styles = StyleSheet.create({
 
   searchInput: {
     flex: 1,
+    minWidth: 0,
     ...Typography.body,
     fontSize: 14,
     color: Colors.textPrimary,
@@ -283,6 +284,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.textSecondary,
     fontWeight: "500",
+    flexShrink: 1,
   },
 
   chipTextSelected: {
