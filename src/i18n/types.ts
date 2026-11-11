@@ -85,6 +85,13 @@ export interface AppTranslations {
     noComparisons: string;
     noMatchesHint: string;
     historyEnd: string;
+    deleteComparison: string;
+    deleteTitle: string;
+    deleteMessage: string;
+    deleteAction: string;
+    deleteCancel: string;
+    deleteError: string;
+    deleting: string;
   };
   auth: {
     back: string;

@@ -146,7 +146,13 @@ function PreferenceOption({
     >
       <View style={styles.optionLabel}>
         {icon ? <Ionicons name={icon} size={18} color={colors.textPrimary} /> : null}
-        <Text style={[styles.optionText, { color: colors.textPrimary }]}>{label}</Text>
+        <Text
+          numberOfLines={1}
+          textBreakStrategy="simple"
+          style={[styles.optionText, { color: colors.textPrimary }]}
+        >
+          {label}
+        </Text>
       </View>
       <View
         style={[
@@ -215,8 +221,8 @@ const styles = StyleSheet.create({
   },
   optionText: {
     ...Typography.label,
+    flex: 1,
     minWidth: 0,
-    flexShrink: 1,
   },
   radio: {
     width: 22,

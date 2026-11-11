@@ -77,6 +77,8 @@ export function LanguageToggle({
           strokeWidth={1.8}
         />
         <Text
+          numberOfLines={1}
+          textBreakStrategy="simple"
           style={[
             styles.code,
             { color: isDark ? "#FFFFFF" : "#0F172A" },
@@ -177,21 +179,25 @@ function LanguageOption({
 
 const styles = StyleSheet.create({
   container: {
-    width: 62,
-    height: 29,
+    width: 68,
+    height: 32,
     borderRadius: 9999,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 4,
-    paddingHorizontal: 4,
+    paddingHorizontal: 6,
     borderWidth: 1,
     overflow: "hidden",
   },
   code: {
     fontSize: 11,
+    lineHeight: 14,
     fontWeight: "700",
     letterSpacing: 0.5,
+    minWidth: 18,
+    textAlign: "center",
+    flexShrink: 0,
   },
   modalContainer: {
     flex: 1,

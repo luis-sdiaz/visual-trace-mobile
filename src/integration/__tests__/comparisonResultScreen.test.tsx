@@ -375,6 +375,8 @@ describe("ComparisonResultScreen review flow", () => {
       "onPress",
     );
     tree = renderScreenTree();
+    expect(collectText(tree)).toContain("Cancelar");
+    expect(collectText(tree)).toContain("Guardar");
     callElementProp(findByLabel(tree, "Nuevo nombre"), "onChangeText", "Otro");
     callElementProp(
       findByTestId(tree, "comparison-rename-cancel-button"),

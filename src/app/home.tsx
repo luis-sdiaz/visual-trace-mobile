@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { router, type Href, useFocusEffect } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import {
   useCallback,
   useEffect,
@@ -11,6 +11,7 @@ import {
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Pressable,
   RefreshControl,
@@ -38,6 +39,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useComparison } from "@/context/ComparisonContext";
 import { useTheme } from "@/context/ThemeContext";
 import {
+  deleteComparison,
   fetchComparisonPage,
   isComparisonComplete,
   mergeComparisonPages,
@@ -120,6 +122,7 @@ export default function HomeScreen() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<ComparisonStatus | null>(null);
   const [sortOrder, setSortOrder] = useState<ComparisonSortOrder>("newest");
+  const [deletingComparisonId, setDeletingComparisonId] = useState<string | null>(null);
   const [openingComparison, setOpeningComparison] = useState<{
     id: string;
     userId: string;
@@ -392,6 +395,52 @@ export default function HomeScreen() {
     void handleOpenComparison(comparisonId, true);
   }
 
+  function handleDeleteComparison(targetComparisonId: string, comparisonName: string) {
+    if (deletingComparisonId) return;
+
+    Alert.alert(
+      t("homeFilters.deleteTitle"),
+      t("homeFilters.deleteMessage"),
+      [
+        {
+          text: t("homeFilters.deleteCancel"),
+          style: "cancel",
+        },
+        {
+          text: t("homeFilters.deleteAction"),
+          style: "destructive",
+          onPress: () => {
+            void executeDeleteComparison(targetComparisonId);
+          },
+        },
+      ],
+      { cancelable: true },
+    );
+  }
+
+  async function executeDeleteComparison(targetComparisonId: string) {
+    setDeletingComparisonId(targetComparisonId);
+    setRecentError(null);
+
+    const previousComparisons = recentComparisons;
+    setRecentComparisons((prev) =>
+      prev.filter((item) => item.id !== targetComparisonId),
+    );
+
+    try {
+      await deleteComparison(targetComparisonId);
+
+      if (comparisonId === targetComparisonId) {
+        resetComparison();
+      }
+    } catch {
+      setRecentComparisons(previousComparisons);
+      setRecentError(t("homeFilters.deleteError"));
+    } finally {
+      setDeletingComparisonId(null);
+    }
+  }
+
   if (isLoading || !user) {
     return (
       <SafeAreaView style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
@@ -429,25 +478,6 @@ export default function HomeScreen() {
               useCompactTopBar && styles.topBarActionsCompact,
             ]}
           >
-            {__DEV__ ? (
-              <Pressable
-                accessibilityLabel="Abrir diagnóstico de texto"
-                accessibilityRole="button"
-                onPress={() => router.push("/text-diagnostics" as Href)}
-                style={({ pressed }) => [
-                  styles.devSettingsButton,
-                  pressed && styles.devSettingsButtonPressed,
-                ]}
-                testID="open-text-diagnostics-button"
-              >
-                <Ionicons
-                  name="flask-outline"
-                  size={17}
-                  color={colors.textSecondary}
-                />
-              </Pressable>
-            ) : null}
-
             <Pressable
               accessibilityLabel={t("settings.title")}
               accessibilityRole="button"
@@ -740,55 +770,90 @@ export default function HomeScreen() {
                 removeClippedSubviews={true}
                 scrollEnabled={false}
                 ItemSeparatorComponent={() => <View style={styles.recentSeparator} />}
-                renderItem={({ item: comparison }) => (
-                  <Pressable
-                    key={comparison.id}
-                    accessibilityRole="button"
-                    accessibilityLabel={`${t("homeFilters.comparison")}: ${comparison.name}`}
-                    disabled={openingComparisonId !== null}
-                    onPress={() => void handleOpenComparison(comparison.id, false, "history")}
-                    style={({ pressed }) => [
-                      styles.recentCard,
-                      pressed && styles.recentCardPressed,
-                    ]}
-                  >
-                    <View style={styles.recentIcon}>
-                      <Ionicons
-                        name="images-outline"
-                        size={22}
-                        color={colors.primary}
-                      />
+                renderItem={({ item: comparison }) => {
+                  const isOpening = openingComparisonId === comparison.id;
+                  const isDeleting = deletingComparisonId === comparison.id;
+                  const isActionDisabled =
+                    openingComparisonId !== null || deletingComparisonId !== null;
+
+                  return (
+                    <View key={comparison.id} style={styles.recentCard}>
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={`${t("homeFilters.comparison")}: ${comparison.name}`}
+                        disabled={isActionDisabled}
+                        onPress={() =>
+                          void handleOpenComparison(comparison.id, false, "history")
+                        }
+                        style={({ pressed }) => [
+                          styles.recentCardMain,
+                          pressed && styles.recentCardPressed,
+                        ]}
+                      >
+                        <View style={styles.recentIcon}>
+                          <Ionicons
+                            name="images-outline"
+                            size={22}
+                            color={colors.primary}
+                          />
+                        </View>
+
+                        <HomeHistoryLabels
+                          comparisonId={comparison.id}
+                          date={formatComparisonDate(
+                            comparison.created_at,
+                            i18n.language,
+                            t("homeFilters.dateUnavailable"),
+                          )}
+                          fontScale={fontScale}
+                          name={comparison.name}
+                          status={comparison.status}
+                          statusLabel={statusLabels[comparison.status]}
+                        />
+
+                        {isOpening ? (
+                          <ActivityIndicator
+                            size="small"
+                            color={colors.primary}
+                            style={styles.openingIndicator}
+                          />
+                        ) : (
+                          <Ionicons
+                            name="chevron-forward"
+                            size={18}
+                            color={colors.textMuted}
+                            style={styles.recentChevron}
+                          />
+                        )}
+                      </Pressable>
+
+                      <Pressable
+                        accessibilityLabel={`${t("homeFilters.deleteComparison")}: ${comparison.name}`}
+                        accessibilityRole="button"
+                        disabled={isActionDisabled}
+                        hitSlop={8}
+                        onPress={() =>
+                          handleDeleteComparison(comparison.id, comparison.name)
+                        }
+                        style={({ pressed }) => [
+                          styles.deleteComparisonButton,
+                          pressed && styles.deleteComparisonButtonPressed,
+                        ]}
+                        testID={`delete-comparison-${comparison.id}`}
+                      >
+                        {isDeleting ? (
+                          <ActivityIndicator size="small" color={colors.danger} />
+                        ) : (
+                          <Ionicons
+                            name="trash-outline"
+                            size={18}
+                            color={colors.textMuted}
+                          />
+                        )}
+                      </Pressable>
                     </View>
-
-                    <HomeHistoryLabels
-                      comparisonId={comparison.id}
-                      date={formatComparisonDate(
-                        comparison.created_at,
-                        i18n.language,
-                        t("homeFilters.dateUnavailable"),
-                      )}
-                      fontScale={fontScale}
-                      name={comparison.name}
-                      status={comparison.status}
-                      statusLabel={statusLabels[comparison.status]}
-                    />
-
-                    {openingComparisonId === comparison.id ? (
-                      <ActivityIndicator
-                        size="small"
-                        color={colors.primary}
-                        style={styles.openingIndicator}
-                      />
-                    ) : (
-                      <Ionicons
-                        name="chevron-forward"
-                        size={18}
-                        color={colors.textMuted}
-                        style={styles.recentChevron}
-                      />
-                    )}
-                  </Pressable>
-                )}
+                  );
+                }}
               />
               {recentError ? (
                 <Text style={styles.loadMoreError}>{recentError}</Text>
@@ -1280,15 +1345,38 @@ function createStyles(colors: ColorPalette) {
   recentCard: {
     flexDirection: "row",
     alignItems: "center",
-    padding: Spacing.lg,
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: Radius.lg,
+    overflow: "hidden",
+  },
+
+  recentCardMain: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    padding: Spacing.lg,
+    paddingRight: Spacing.xs,
   },
 
   recentCardPressed: {
     backgroundColor: colors.surfaceSecondary,
+  },
+
+  deleteComparisonButton: {
+    minWidth: 44,
+    minHeight: 44,
+    width: 44,
+    height: 44,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: Spacing.sm,
+    borderRadius: Radius.md,
+  },
+
+  deleteComparisonButtonPressed: {
+    backgroundColor: colors.dangerSoft,
   },
 
   recentIcon: {

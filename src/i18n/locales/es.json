@@ -44,7 +44,7 @@
       "helper": "Usa un nombre breve y claro para reconocerla fácilmente.",
       "saveError": "No pudimos guardar la comparación. Revisa tu conexión e inténtalo nuevamente.",
       "guideEyebrow": "ANTES DE EMPEZAR",
-      "guideTitle": "Mejora la calidad de la comparación",
+      "guideTitle": "Mejora la calidad de las comparaciones",
       "guideDescription": "Dos detalles simples ayudan a obtener resultados visuales más consistentes.",
       "framingTitle": "Mantén el mismo encuadre",
       "framingDescription": "Conserva una distancia y un ángulo similares en ambas fotografías.",
@@ -80,7 +80,14 @@
       "noMatches": "No encontramos coincidencias",
       "noComparisons": "Aún no tienes comparaciones",
       "noMatchesHint": "Prueba con otros criterios o selecciona Todas.",
-      "historyEnd": "No hay más comparaciones para mostrar."
+      "historyEnd": "No hay más comparaciones para mostrar.",
+      "deleteComparison": "Eliminar comparación",
+      "deleteTitle": "Eliminar comparación",
+      "deleteMessage": "¿Estás seguro de que deseas eliminar esta comparación? Esta acción no se puede deshacer.",
+      "deleteAction": "Eliminar",
+      "deleteCancel": "Cancelar",
+      "deleteError": "No pudimos eliminar la comparación. Inténtalo nuevamente.",
+      "deleting": "Eliminando..."
     },
     "auth": {
       "back": "Volver",

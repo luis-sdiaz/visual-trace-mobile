@@ -1,6 +1,6 @@
-import React, { useMemo } from "react";
-import { useTranslation } from "react-i18next";
 import "@/i18n";
+import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { StyleSheet, Text, View } from "react-native";
 
 import { LayoutText } from "@/components/ui/LayoutText";
@@ -18,10 +18,7 @@ import type { AnalysisReportRecord } from "@/services/analysisService";
 export type VisualSeverityLevel = "none" | "minor" | "moderate" | "significant";
 
 export type VisualSeverityBadgeText =
-  | "Sin cambios"
-  | "Menor"
-  | "Moderado"
-  | "Significativo";
+  "Sin cambios" | "Menor" | "Moderado" | "Significativo";
 
 export type VisualSeverityInfo = {
   level: VisualSeverityLevel;
@@ -33,6 +30,22 @@ export type VisualSeverityInfo = {
   borderColor: string;
   statusLabel: string;
 };
+
+const SEVERITY_BADGE_MIN_WIDTH: Record<VisualSeverityLevel, number> = {
+  none: 88,
+  minor: 48,
+  moderate: 72,
+  significant: 108,
+};
+
+export function getSeverityBadgeTextMinWidth(
+  level: VisualSeverityLevel,
+  badgeText?: string,
+): number {
+  const base = SEVERITY_BADGE_MIN_WIDTH[level] ?? 72;
+  if (!badgeText) return base;
+  return Math.max(base, badgeText.length * 8 + 8);
+}
 
 /**
  * Calcula la severidad e impacto visual derivado del total y categorías de las diferencias.
@@ -165,7 +178,9 @@ export function AiAnalysisSummaryCard({
   const findingLabel =
     totalDifferences === 1 ? t("aiReport.finding") : t("aiReport.findings");
   const categoryLabel =
-    uniqueCategoriesCount === 1 ? t("aiReport.category") : t("aiReport.categories");
+    uniqueCategoriesCount === 1
+      ? t("aiReport.category")
+      : t("aiReport.categories");
   const labels = {
     none: {
       badgeText: t("aiReport.noChanges"),
@@ -218,12 +233,21 @@ export function AiAnalysisSummaryCard({
           ]}
           testID="severity-level-badge"
         >
-          <LayoutText
-            layout="stretch"
-            style={[styles.severityBadgeText, { color: severity.color }]}
+          <Text
+            textBreakStrategy="simple"
+            style={[
+              styles.severityBadgeText,
+              {
+                color: severity.color,
+                minWidth: getSeverityBadgeTextMinWidth(
+                  severity.level,
+                  labels.badgeText,
+                ),
+              },
+            ]}
           >
             {labels.badgeText}
-          </LayoutText>
+          </Text>
         </View>
       </View>
 
@@ -310,13 +334,14 @@ function createStyles(colors: ColorPalette) {
     },
 
     severityBadge: {
-      minWidth: 84,
+      alignSelf: "flex-start",
       paddingHorizontal: Spacing.md,
       paddingVertical: Spacing.xs,
       borderRadius: Radius.full,
       borderWidth: 1,
       alignItems: "center",
       justifyContent: "center",
+      flexShrink: 0,
     },
 
     severityBadgeText: {
@@ -324,7 +349,7 @@ function createStyles(colors: ColorPalette) {
       fontSize: 12,
       lineHeight: 16,
       fontWeight: "700",
-      flexShrink: 1,
+      flexShrink: 0,
       textAlign: "center",
     },
 

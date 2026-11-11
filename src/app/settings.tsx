@@ -31,7 +31,7 @@ export default function SettingsScreen() {
           testID="settings-back-button"
         >
           <Ionicons name="arrow-back" size={20} color={colors.textPrimary} />
-          <LayoutText layout="atomic" style={styles.backText}>
+          <LayoutText layout="flexible" textBreakStrategy="simple" style={styles.backText}>
             {t("settings.back")}
           </LayoutText>
         </Pressable>
@@ -62,9 +62,10 @@ function createStyles(colors: ColorPalette) {
     },
     backButton: {
       minHeight: 44,
-      alignSelf: "flex-start",
+      alignSelf: "stretch",
       flexDirection: "row",
       alignItems: "center",
+      paddingVertical: Spacing.xs,
       paddingRight: Spacing.md,
       marginBottom: Spacing.xl,
     },
@@ -72,7 +73,8 @@ function createStyles(colors: ColorPalette) {
       ...Typography.label,
       color: colors.textPrimary,
       marginLeft: Spacing.sm,
-      flexShrink: 0,
+      flex: 1,
+      minWidth: 0,
     },
     header: {
       marginBottom: Spacing.xxl,

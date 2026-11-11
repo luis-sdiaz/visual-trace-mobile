@@ -1,13 +1,16 @@
 import LottieView from "lottie-react-native";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   AccessibilityInfo,
+  Animated,
   StyleSheet,
   TouchableOpacity,
   View,
 } from "react-native";
 
 import { useTheme } from "@/context/ThemeContext";
+
+const AnimatedLottieView = Animated.createAnimatedComponent(LottieView);
 
 const DAY_FRAME = 0;
 const NIGHT_FRAME = 30;
@@ -32,17 +35,12 @@ export function getThemeTogglePlayback(
 }
 
 export function ThemeToggle() {
-  const { isDark, toggleTheme } = useTheme();
-  const animationRef = useRef<LottieView>(null);
-  const isInitialized = useRef(false);
-  const currentTheme = useRef(isDark);
+  const { isDark, toggleTheme, isLoaded } = useTheme();
+  const [progressAnim] = useState(() => new Animated.Value(isDark ? 1 : 0));
+  const isInitialSync = useRef(true);
   const lastAnimatedTheme = useRef(isDark);
   const [reduceMotionEnabled, setReduceMotionEnabled] = useState(false);
   const nextThemeLabel = isDark ? "Activar modo claro" : "Activar modo oscuro";
-
-  useEffect(() => {
-    currentTheme.current = isDark;
-  }, [isDark]);
 
   useEffect(() => {
     let isMounted = true;
@@ -63,41 +61,37 @@ export function ThemeToggle() {
     };
   }, []);
 
-  const setInitialFrame = useCallback(() => {
-    if (isInitialized.current) {
+  // Sincronización precisa y libre de rebotes:
+  // 1. Durante la carga inicial / restauración de preferencias: fija la posición inmediatamente sin animar.
+  // 2. Ante pulsaciones del usuario: anima suavemente hacia el estado final (250 ms) o invierte fluidamente sin saltar.
+  useEffect(() => {
+    const targetValue = isDark ? 1 : 0;
+
+    if (isInitialSync.current) {
+      progressAnim.setValue(targetValue);
+      lastAnimatedTheme.current = isDark;
+      if (isLoaded) {
+        isInitialSync.current = false;
+      }
       return;
     }
 
-    const [initialFrame] = getThemeToggleFrameRange(
-      currentTheme.current,
-      reduceMotionEnabled,
-    );
-    animationRef.current?.pause();
-    animationRef.current?.play(initialFrame, initialFrame);
-    isInitialized.current = true;
-    lastAnimatedTheme.current = currentTheme.current;
-  }, [reduceMotionEnabled]);
+    if (isDark === lastAnimatedTheme.current && !reduceMotionEnabled) {
+      return;
+    }
 
-  const stopAtThemeFrame = useCallback((isCancelled: boolean) => {
-    if (!isCancelled) animationRef.current?.pause();
-  }, []);
-
-  useEffect(() => {
-    if (!isInitialized.current) return;
-    const playback = getThemeTogglePlayback(
-      isDark,
-      lastAnimatedTheme.current,
-      reduceMotionEnabled,
-    );
-    if (!playback) return;
-    const [startFrame, endFrame] = playback;
-
-    // Stop any in-flight run before starting exactly one transition toward
-    // the current theme. Reverse the frame range when returning to light mode.
-    animationRef.current?.pause();
-    animationRef.current?.play(startFrame, endFrame);
     lastAnimatedTheme.current = isDark;
-  }, [isDark, reduceMotionEnabled]);
+
+    if (reduceMotionEnabled) {
+      progressAnim.setValue(targetValue);
+    } else {
+      Animated.timing(progressAnim, {
+        toValue: targetValue,
+        duration: 250,
+        useNativeDriver: false,
+      }).start();
+    }
+  }, [isDark, isLoaded, progressAnim, reduceMotionEnabled]);
 
   return (
     <TouchableOpacity
@@ -110,12 +104,10 @@ export function ThemeToggle() {
       testID="theme-toggle"
     >
       <View pointerEvents="none" style={styles.animationWrapper}>
-        <LottieView
+        <AnimatedLottieView
           autoPlay={false}
           loop={false}
-          onAnimationFinish={stopAtThemeFrame}
-          onAnimationLoaded={setInitialFrame}
-          ref={animationRef}
+          progress={progressAnim}
           source={require("../../../assets/animations/theme-switch.json")}
           style={styles.lottie}
         />

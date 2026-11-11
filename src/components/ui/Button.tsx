@@ -27,7 +27,11 @@ export function Button({ label, onPress, disabled = false }: ButtonProps) {
         disabled && buttonStyles(colors).disabled,
       ]}
     >
-      <LayoutText layout="fullWidth" style={buttonStyles(colors).label}>
+      <LayoutText
+        layout="fullWidth"
+        textBreakStrategy="simple"
+        style={buttonStyles(colors).label}
+      >
         {label}
       </LayoutText>
     </Pressable>

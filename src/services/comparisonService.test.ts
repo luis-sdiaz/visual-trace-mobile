@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const supabaseMock = vi.hoisted(() => ({
   from: vi.fn(),
   getUser: vi.fn(),
+  storageRemove: vi.fn(),
 }));
 
 vi.mock("@/lib/supabase", () => ({
@@ -11,12 +12,19 @@ vi.mock("@/lib/supabase", () => ({
       getUser: supabaseMock.getUser,
     },
     from: supabaseMock.from,
+    storage: {
+      from: vi.fn(() => ({
+        remove: supabaseMock.storageRemove,
+      })),
+    },
   },
 }));
 
 import {
+  AuthenticationRequiredError,
   buildComparisonNameSearchPattern,
   ComparisonNotFoundError,
+  deleteComparison,
   fetchComparisonById,
   fetchComparisonPage,
   fetchRecentComparisons,
@@ -35,6 +43,7 @@ type QueryResult = {
 
 function createQuery(result: QueryResult) {
   const query = {
+    delete: vi.fn(),
     eq: vi.fn(),
     is: vi.fn(),
     ilike: vi.fn(),
@@ -52,6 +61,7 @@ function createQuery(result: QueryResult) {
     update: vi.fn(),
   };
 
+  query.delete.mockReturnValue(query);
   query.eq.mockReturnValue(query);
   query.is.mockReturnValue(query);
   query.ilike.mockReturnValue(query);
@@ -359,5 +369,61 @@ describe("comparisonService", () => {
     ).rejects.toThrow("Image path does not match this comparison.");
 
     expect(supabaseMock.from).not.toHaveBeenCalled();
+  });
+
+  describe("deleteComparison", () => {
+    it("deletes an owned comparison and removes its storage images", async () => {
+      const selectQuery = createQuery({
+        data: {
+          id: "comparison-1",
+          initial_image_path: "user-1/comparison-1/initial.jpg",
+          final_image_path: "user-1/comparison-1/final.jpg",
+        },
+        error: null,
+      });
+      const deleteQuery = createQuery({ data: null, error: null });
+
+      supabaseMock.from
+        .mockReturnValueOnce(selectQuery)
+        .mockReturnValueOnce(deleteQuery);
+      supabaseMock.storageRemove.mockResolvedValueOnce({ data: [], error: null });
+
+      await expect(deleteComparison("comparison-1")).resolves.toBeUndefined();
+
+      expect(supabaseMock.from).toHaveBeenCalledWith("comparisons");
+      expect(deleteQuery.delete).toHaveBeenCalled();
+      expect(deleteQuery.eq).toHaveBeenCalledWith("id", "comparison-1");
+      expect(deleteQuery.eq).toHaveBeenCalledWith("user_id", "user-1");
+      expect(supabaseMock.storageRemove).toHaveBeenCalledWith([
+        "user-1/comparison-1/initial.jpg",
+        "user-1/comparison-1/final.jpg",
+      ]);
+    });
+
+    it("throws ComparisonNotFoundError if the comparison does not exist or is not owned", async () => {
+      const selectQuery = createQuery({ data: null, error: null });
+      supabaseMock.from.mockReturnValueOnce(selectQuery);
+
+      await expect(deleteComparison("non-existent")).rejects.toThrow(
+        ComparisonNotFoundError,
+      );
+    });
+
+    it("throws AuthenticationRequiredError if user is not authenticated", async () => {
+      supabaseMock.getUser.mockResolvedValueOnce({
+        data: { user: null },
+        error: new Error("Auth failed"),
+      });
+
+      await expect(deleteComparison("comparison-1")).rejects.toThrow(
+        AuthenticationRequiredError,
+      );
+    });
+
+    it("throws an error if comparison ID is missing", async () => {
+      await expect(deleteComparison("")).rejects.toThrow(
+        "Comparison ID is required.",
+      );
+    });
   });
 });

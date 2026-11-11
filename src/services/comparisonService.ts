@@ -443,3 +443,59 @@ export async function markComparisonReady(
 
   return updatedComparison as ComparisonRecord;
 }
+
+export async function deleteComparison(comparisonId: string): Promise<void> {
+  if (!comparisonId) {
+    throw new Error("Comparison ID is required.");
+  }
+
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    throw new AuthenticationRequiredError();
+  }
+
+  const { data: comparison, error: fetchError } = await supabase
+    .from("comparisons")
+    .select("id, initial_image_path, final_image_path")
+    .eq("id", comparisonId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (fetchError) {
+    throw fetchError;
+  }
+
+  if (!comparison) {
+    throw new ComparisonNotFoundError();
+  }
+
+  const { error: deleteError } = await supabase
+    .from("comparisons")
+    .delete()
+    .eq("id", comparisonId)
+    .eq("user_id", user.id);
+
+  if (deleteError) {
+    throw deleteError;
+  }
+
+  const pathsToRemove: string[] = [];
+  if (comparison.initial_image_path) {
+    pathsToRemove.push(comparison.initial_image_path);
+  }
+  if (comparison.final_image_path) {
+    pathsToRemove.push(comparison.final_image_path);
+  }
+
+  if (pathsToRemove.length > 0) {
+    try {
+      await supabase.storage.from("comparison-images").remove(pathsToRemove);
+    } catch {
+      // Storage cleanup is best-effort once database record is cleanly deleted
+    }
+  }
+}

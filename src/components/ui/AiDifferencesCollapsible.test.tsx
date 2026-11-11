@@ -69,7 +69,7 @@ describe("AiDifferencesCollapsible", () => {
       expect(html).toContain("Elemento añadido");
       expect(html).toContain("Modificación");
       expect(html).toContain("Ver detalles");
-      expect(html).toContain("Ver todo");
+      expect(html).not.toContain("Ver todo");
 
       // Descriptions should not be visible when collapsed
       expect(html).not.toContain("Se instaló una luminaria LED en el cielo raso.");
@@ -86,7 +86,7 @@ describe("AiDifferencesCollapsible", () => {
 
       expect(html).toContain("Diferencias detectadas");
       expect(html).toContain("Ocultar detalles");
-      expect(html).toContain("Ocultar todo");
+      expect(html).not.toContain("Ocultar todo");
 
       // Descriptions are visible when expanded
       expect(html).toContain("Se instaló una luminaria LED en el cielo raso.");

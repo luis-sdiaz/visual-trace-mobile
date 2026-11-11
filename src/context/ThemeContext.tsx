@@ -27,6 +27,7 @@ type ThemeContextValue = {
   colors: ColorPalette;
   toggleTheme: () => void;
   setTheme: (theme: Theme) => void;
+  isLoaded: boolean;
 };
 
 const defaultThemeValue: ThemeContextValue = {
@@ -35,6 +36,7 @@ const defaultThemeValue: ThemeContextValue = {
   colors: lightColors,
   toggleTheme: () => {},
   setTheme: () => {},
+  isLoaded: true,
 };
 
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
@@ -45,6 +47,7 @@ export function getToggledTheme(theme: Theme): Theme {
 
 export function ThemeProvider({ children }: PropsWithChildren) {
   const [theme, setThemeState] = useState<Theme>("light");
+  const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -52,11 +55,17 @@ export function ThemeProvider({ children }: PropsWithChildren) {
     async function restoreTheme() {
       try {
         const storedTheme = await getStoredTheme();
-        if (active && storedTheme) {
-          setThemeState(storedTheme);
+        if (active) {
+          if (storedTheme) {
+            setThemeState(storedTheme);
+          }
+          setIsLoaded(true);
         }
       } catch (error) {
         console.error("[ThemeContext] No se pudo restaurar el tema:", error);
+        if (active) {
+          setIsLoaded(true);
+        }
       }
     }
 
@@ -84,8 +93,9 @@ export function ThemeProvider({ children }: PropsWithChildren) {
       colors: theme === "dark" ? darkColors : lightColors,
       toggleTheme,
       setTheme,
+      isLoaded,
     }),
-    [setTheme, theme, toggleTheme],
+    [isLoaded, setTheme, theme, toggleTheme],
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;

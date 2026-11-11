@@ -144,7 +144,7 @@ export function AiReportFeedbackCard({
           testID="feedback-thank-you-message"
         >
           <Text style={styles.thankYouIcon}>🎉</Text>
-          <Text style={styles.thankYouText}>
+          <Text textBreakStrategy="simple" style={styles.thankYouText}>
             {t("feedback.thankYou", "¡Gracias por tu retroalimentación!")}
           </Text>
         </View>
@@ -245,18 +245,21 @@ function createStyles(colors: ColorPalette) {
       alignItems: "center",
       justifyContent: "center",
       marginTop: Spacing.md,
-      paddingVertical: Spacing.xs,
+      paddingVertical: Spacing.sm,
       paddingHorizontal: Spacing.md,
       backgroundColor: colors.successSoft,
       borderRadius: Radius.md,
       gap: Spacing.xs,
       borderWidth: 1,
       borderColor: colors.success,
+      width: "100%",
     },
 
     thankYouIcon: {
       fontSize: 14,
+      lineHeight: 18,
       color: colors.successDark,
+      flexShrink: 0,
     },
 
     thankYouText: {
@@ -265,6 +268,10 @@ function createStyles(colors: ColorPalette) {
       lineHeight: 18,
       color: colors.successDark,
       fontWeight: "600",
+      flex: 1,
+      minWidth: 0,
+      flexWrap: "wrap",
+      textAlign: "center",
     },
   });
 }

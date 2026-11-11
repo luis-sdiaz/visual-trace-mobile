@@ -83,19 +83,6 @@ export function AiDifferencesCollapsible({
     }));
   };
 
-  const allExpanded =
-    groups.length > 0 &&
-    groups.every((g) => Boolean(expandedCategories[g.category]));
-
-  const toggleAll = () => {
-    const nextState = !allExpanded;
-    const updated: Record<string, boolean> = {};
-    for (const g of groups) {
-      updated[g.category] = nextState;
-    }
-    setExpandedCategories(updated);
-  };
-
   if (differences.length === 0) {
     return (
       <View style={styles.container}>
@@ -116,22 +103,6 @@ export function AiDifferencesCollapsible({
             </Text>
           </View>
         </View>
-
-        <Pressable
-          accessibilityLabel={
-            allExpanded
-              ? t("differences.hideAll")
-              : t("differences.showAll")
-          }
-          accessibilityRole="button"
-          onPress={toggleAll}
-          style={styles.toggleAllButton}
-          testID="toggle-all-differences-button"
-        >
-          <Text style={styles.toggleAllButtonText}>
-            {allExpanded ? t("differences.hideAll") : t("differences.showAll")}
-          </Text>
-        </Pressable>
       </View>
 
       <View style={styles.cardsList}>
@@ -169,7 +140,13 @@ export function AiDifferencesCollapsible({
                       {group.items.length}
                     </Text>
                   </View>
-                  <Text style={styles.categoryLabel}>{categoryLabel}</Text>
+                  <Text
+                    numberOfLines={1}
+                    textBreakStrategy="simple"
+                    style={styles.categoryLabel}
+                  >
+                    {categoryLabel}
+                  </Text>
                 </View>
 
                 <View style={styles.toggleAction}>
@@ -256,19 +233,6 @@ function createStyles(colors: ColorPalette) {
       textAlign: "center",
     },
 
-    toggleAllButton: {
-      paddingVertical: Spacing.xs,
-      paddingHorizontal: Spacing.xs,
-      alignSelf: "center",
-    },
-
-    toggleAllButtonText: {
-      ...Typography.label,
-      fontSize: 13,
-      color: colors.primary,
-      fontWeight: "600",
-    },
-
     emptyText: {
       ...Typography.body,
       color: colors.textSecondary,
@@ -335,7 +299,8 @@ function createStyles(colors: ColorPalette) {
       lineHeight: 20,
       color: colors.textPrimary,
       fontWeight: "700",
-      flexShrink: 1,
+      flex: 1,
+      minWidth: 0,
     },
 
     toggleAction: {

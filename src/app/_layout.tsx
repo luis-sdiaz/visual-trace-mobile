@@ -58,7 +58,6 @@ function AppNavigator() {
         <Stack.Protected guard={routeAccess.canAccessAuthenticatedRoutes}>
           <Stack.Screen name="home" />
           <Stack.Screen name="settings" />
-          {__DEV__ ? <Stack.Screen name="text-diagnostics" /> : null}
           <Stack.Screen name="new-comparison" />
           <Stack.Screen name="initial-state" />
           <Stack.Screen name="final-state" />

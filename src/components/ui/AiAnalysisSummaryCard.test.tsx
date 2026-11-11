@@ -11,6 +11,7 @@ import type { AnalysisReportRecord } from "@/services/analysisService";
 import {
   AiAnalysisSummaryCard,
   calculateVisualSeverity,
+  getSeverityBadgeTextMinWidth,
 } from "./AiAnalysisSummaryCard";
 
 describe("AiAnalysisSummaryCard", () => {
@@ -180,6 +181,55 @@ describe("AiAnalysisSummaryCard", () => {
       expect(html).toContain("Sin cambios");
       expect(html).toContain("Sin alteraciones");
       expect(html).toContain("0");
+    });
+
+    it("renders complete badge text for 'Moderado' and other severities without truncation", () => {
+      const moderateReport: GeminiAnalysisReport = {
+        contractVersion: "1.0",
+        hasVisibleChanges: true,
+        summary: "Cambios moderados",
+        differences: [
+          { category: "added", description: "Item 1" },
+          { category: "modified", description: "Item 2" },
+          { category: "moved", description: "Item 3" },
+        ],
+        observations: [],
+        uncertainties: [],
+      };
+
+      const htmlModerate = renderToStaticMarkup(
+        React.createElement(AiAnalysisSummaryCard, { report: moderateReport }),
+      );
+      expect(htmlModerate).toContain("Moderado");
+      expect(htmlModerate).not.toContain("Modera...");
+
+      const significantReport: GeminiAnalysisReport = {
+        contractVersion: "1.0",
+        hasVisibleChanges: true,
+        summary: "Cambios estructurales grandes",
+        differences: [
+          { category: "removed", description: "Muro" },
+          { category: "removed", description: "Ventana" },
+          { category: "added", description: "Pared" },
+        ],
+        observations: [],
+        uncertainties: [],
+      };
+
+      const htmlSignificant = renderToStaticMarkup(
+        React.createElement(AiAnalysisSummaryCard, { report: significantReport }),
+      );
+      expect(htmlSignificant).toContain("Significativo");
+      expect(htmlSignificant).not.toContain("Significa...");
+    });
+
+    it("calculates headroom width for every severity badge text preventing subpixel truncation", () => {
+      expect(getSeverityBadgeTextMinWidth("moderate", "Moderado")).toBe(72);
+      expect(getSeverityBadgeTextMinWidth("moderate", "Moderate")).toBe(72);
+      expect(getSeverityBadgeTextMinWidth("minor", "Menor")).toBe(48);
+      expect(getSeverityBadgeTextMinWidth("minor", "Minor")).toBe(48);
+      expect(getSeverityBadgeTextMinWidth("significant", "Significativo")).toBe(112);
+      expect(getSeverityBadgeTextMinWidth("none", "Sin cambios")).toBe(96);
     });
   });
 });

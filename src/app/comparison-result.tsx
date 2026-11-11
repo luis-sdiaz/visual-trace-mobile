@@ -782,7 +782,12 @@ export default function ComparisonResultScreen() {
                   style={styles.renameCancel}
                   testID="comparison-rename-cancel-button"
                 >
-                  <Text style={styles.renameCancelText}>{t("result.cancel")}</Text>
+                  <Text
+                    textBreakStrategy="simple"
+                    style={styles.renameCancelText}
+                  >
+                    {t("result.cancel")}
+                  </Text>
                 </Pressable>
                 <Pressable
                   accessibilityRole="button"
@@ -791,7 +796,13 @@ export default function ComparisonResultScreen() {
                   style={styles.renameSave}
                   testID="comparison-rename-save-button"
                 >
-                  <Text style={styles.renameSaveText}>
+                  <Text
+                    textBreakStrategy="simple"
+                    style={[
+                      styles.renameSaveText,
+                      isRenaming && styles.renameSaveTextLoading,
+                    ]}
+                  >
                     {isRenaming ? t("flow.saving") : t("result.save")}
                   </Text>
                 </Pressable>
@@ -1035,16 +1046,26 @@ export default function ComparisonResultScreen() {
                   <Text style={styles.reanalyzeButtonIcon}>🔄</Text>
                 </View>
                 <View style={styles.reanalyzeButtonCenterZone}>
-                  <Text
-                    onLayout={(event) =>
-                      reportReanalyzeLayout("textX", event)
-                    }
+                  <LayoutText
+                    onLayout={(event) => {
+                      reportReanalyzeLayout("textX", event);
+                      reportReanalyzeLayout("textWidth", event);
+                    }}
+                    textBreakStrategy="simple"
                     style={styles.reanalyzeButtonText}
                   >
                     {t("result.reanalyze")}
+                  </LayoutText>
+                </View>
+                <View style={styles.reanalyzeButtonRightZone}>
+                  <Text
+                    accessibilityElementsHidden
+                    importantForAccessibility="no-hide-descendants"
+                    style={[styles.reanalyzeButtonIcon, styles.reanalyzeButtonIconHidden]}
+                  >
+                    🔄
                   </Text>
                 </View>
-                <View style={styles.reanalyzeButtonRightZone} />
               </View>
             </Pressable>
           ) : null}
@@ -1239,25 +1260,34 @@ function createStyles(colors: ColorPalette) {
   renameActions: {
     flexDirection: "row",
     justifyContent: "flex-end",
+    alignItems: "center",
+    gap: Spacing.sm,
     marginTop: Spacing.md,
   },
 
   renameCancel: {
-    minHeight: 42,
+    minHeight: 44,
+    minWidth: 92,
+    alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: Spacing.md,
-    marginRight: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: Radius.md,
   },
 
   renameCancelText: {
     ...Typography.label,
     color: colors.textSecondary,
+    textAlign: "center",
+    minWidth: 76,
+    flexShrink: 0,
   },
 
   renameSave: {
-    minHeight: 42,
+    minHeight: 44,
+    minWidth: 92,
+    alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: Spacing.md,
+    paddingHorizontal: Spacing.lg,
     backgroundColor: colors.primary,
     borderRadius: Radius.md,
   },
@@ -1265,6 +1295,13 @@ function createStyles(colors: ColorPalette) {
   renameSaveText: {
     ...Typography.label,
     color: colors.textInverse,
+    textAlign: "center",
+    minWidth: 76,
+    flexShrink: 0,
+  },
+
+  renameSaveTextLoading: {
+    minWidth: 96,
   },
 
   description: {
@@ -1603,6 +1640,7 @@ function createStyles(colors: ColorPalette) {
 
   reanalyzeButton: {
     alignSelf: "stretch",
+    minHeight: 52,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: colors.surface,
@@ -1612,7 +1650,6 @@ function createStyles(colors: ColorPalette) {
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.xl,
     marginBottom: Spacing.md,
-    gap: Spacing.sm,
   },
 
   reanalyzeButtonContent: {
@@ -1626,6 +1663,7 @@ function createStyles(colors: ColorPalette) {
     flexDirection: "row",
     justifyContent: "flex-end",
     alignItems: "center",
+    minWidth: 0,
   },
 
   reanalyzeButtonCenterZone: {
@@ -1635,6 +1673,10 @@ function createStyles(colors: ColorPalette) {
 
   reanalyzeButtonRightZone: {
     flex: 1,
+    flexDirection: "row",
+    justifyContent: "flex-start",
+    alignItems: "center",
+    minWidth: 0,
   },
 
   reanalyzeButtonIcon: {
@@ -1643,10 +1685,17 @@ function createStyles(colors: ColorPalette) {
     marginRight: Spacing.sm,
   },
 
+  reanalyzeButtonIconHidden: {
+    opacity: 0,
+    marginRight: 0,
+    marginLeft: Spacing.sm,
+  },
+
   reanalyzeButtonText: {
     ...Typography.button,
     color: colors.primary,
     fontSize: 15,
+    textAlign: "center",
   },
 
   disclaimer: {

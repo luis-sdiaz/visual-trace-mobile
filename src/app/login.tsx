@@ -14,6 +14,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { EmailConfirmationResend } from "@/components/auth/EmailConfirmationResend";
 import { Button } from "@/components/ui/Button";
+import { LayoutText } from "@/components/ui/LayoutText";
 import { type ColorPalette } from "@/constants/colors";
 import { Radius } from "@/constants/radius";
 import { Spacing } from "@/constants/spacing";
@@ -110,22 +111,51 @@ export default function LoginScreen() {
             style={styles.backButton}
           >
             <Text style={[styles.backIcon, { color: colors.textPrimary }]}>←</Text>
-            <Text style={[styles.backText, { color: colors.textSecondary }]}>{t("auth.back")}</Text>
+            <LayoutText
+              layout="flexible"
+              numberOfLines={1}
+              textBreakStrategy="simple"
+              style={[styles.backText, { color: colors.textSecondary }]}
+            >
+              {t("auth.back")}
+            </LayoutText>
           </Pressable>
 
           <View style={styles.header}>
-            <Text style={[styles.brand, { color: colors.primary }]}>VisualTrace</Text>
+            <LayoutText
+              layout="fullWidth"
+              textBreakStrategy="simple"
+              style={[styles.brand, { color: colors.primary }]}
+            >
+              VisualTrace
+            </LayoutText>
 
-            <Text style={[styles.title, { color: colors.textPrimary }]}>{t("auth.loginTitle")}</Text>
+            <LayoutText
+              layout="fullWidth"
+              textBreakStrategy="simple"
+              style={[styles.title, { color: colors.textPrimary }]}
+            >
+              {t("auth.loginTitle")}
+            </LayoutText>
 
-            <Text style={[styles.description, { color: colors.textSecondary }]}>
+            <LayoutText
+              layout="fullWidth"
+              textBreakStrategy="simple"
+              style={[styles.description, { color: colors.textSecondary }]}
+            >
               {t("auth.loginDescription")}
-            </Text>
+            </LayoutText>
           </View>
 
           <View style={styles.form}>
             <View style={styles.field}>
-              <Text style={[styles.label, { color: colors.textPrimary }]}>{t("auth.email")}</Text>
+              <LayoutText
+                layout="fullWidth"
+                textBreakStrategy="simple"
+                style={[styles.label, { color: colors.textPrimary }]}
+              >
+                {t("auth.email")}
+              </LayoutText>
 
               <TextInput
                 value={email}
@@ -141,7 +171,13 @@ export default function LoginScreen() {
             </View>
 
             <View style={styles.field}>
-              <Text style={[styles.label, { color: colors.textPrimary }]}>{t("auth.password")}</Text>
+              <LayoutText
+                layout="fullWidth"
+                textBreakStrategy="simple"
+                style={[styles.label, { color: colors.textPrimary }]}
+              >
+                {t("auth.password")}
+              </LayoutText>
 
               <TextInput
                 value={password}
@@ -158,7 +194,11 @@ export default function LoginScreen() {
 
             {errorMessage ? (
               <View style={styles.errorCard}>
-                <Text accessibilityLiveRegion="polite" style={styles.errorText}>
+                <Text
+                  accessibilityLiveRegion="polite"
+                  textBreakStrategy="simple"
+                  style={styles.errorText}
+                >
                   {errorMessage}
                 </Text>
 
@@ -177,7 +217,11 @@ export default function LoginScreen() {
             onPress={handleLogin}
           />
 
-          <Text style={[styles.registerText, { color: colors.textSecondary }]}>
+          <LayoutText
+            layout="fullWidth"
+            textBreakStrategy="simple"
+            style={[styles.registerText, { color: colors.textSecondary }]}
+          >
             {t("auth.noAccount")}{" "}
             <Text
               accessibilityRole="link"
@@ -186,7 +230,7 @@ export default function LoginScreen() {
             >
               {t("auth.registerLink")}
             </Text>
-          </Text>
+          </LayoutText>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -235,8 +279,8 @@ function createStyles(colors: ColorPalette) {
     backText: {
       ...Typography.label,
       color: colors.textPrimary,
+      flex: 1,
       minWidth: 0,
-      flexShrink: 1,
     },
 
     header: {
@@ -246,6 +290,7 @@ function createStyles(colors: ColorPalette) {
     brand: {
       color: colors.primary,
       fontSize: 18,
+      lineHeight: 24,
       fontWeight: "700",
       marginBottom: Spacing.md,
       width: "100%",
@@ -255,11 +300,13 @@ function createStyles(colors: ColorPalette) {
       ...Typography.heading,
       color: colors.textPrimary,
       marginBottom: Spacing.sm,
+      width: "100%",
     },
 
     description: {
       ...Typography.body,
       color: colors.textSecondary,
+      width: "100%",
     },
 
     form: {
@@ -274,6 +321,7 @@ function createStyles(colors: ColorPalette) {
       ...Typography.label,
       color: colors.textPrimary,
       marginBottom: Spacing.sm,
+      width: "100%",
     },
 
     input: {

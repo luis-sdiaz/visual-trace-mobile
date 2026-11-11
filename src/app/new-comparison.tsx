@@ -183,17 +183,10 @@ export default function NewComparisonScreen() {
         </View>
 
         <View style={styles.guideCard}>
-          <View style={styles.guideTop}>
-            <Text style={[styles.guideEyebrow, { color: colors.primary }]}>{t("newComparison.guideEyebrow")}</Text>
-
-            <Ionicons
-              name="sparkles-outline"
-              size={18}
-              color={colors.primary}
-            />
-          </View>
-
-          <Text style={[styles.guideTitle, { color: colors.textPrimary }]}>
+          <Text
+            style={[styles.guideTitle, { color: colors.textPrimary }]}
+            textBreakStrategy="simple"
+          >
             {t("newComparison.guideTitle")}
           </Text>
 
@@ -427,21 +420,6 @@ function createStyles(colors: ColorPalette) {
       borderWidth: 1,
       borderColor: colors.border,
       borderRadius: Radius.xl,
-    },
-
-    guideTop: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-      marginBottom: Spacing.sm,
-    },
-
-    guideEyebrow: {
-      color: colors.primary,
-      fontSize: 10,
-      lineHeight: 14,
-      fontWeight: "800",
-      letterSpacing: 0.8,
     },
 
     guideTitle: {
